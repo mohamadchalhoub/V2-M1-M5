@@ -9,10 +9,16 @@ export default async function globalSetup() {
   const env = { ...process.env };
   config({ path: resolve(__dirname, '../.env.test'), override: true, processEnv: env });
 
-  if (!env.DATABASE_URL?.includes('autonomous_trading_test')) {
+  // Guard against running migrations anywhere but THIS project's disposable
+  // test database. The name is v2-specific on purpose: several sibling
+  // checkouts of this codebase exist on the same machine, one of which is
+  // deployed and trading, and a test run that reached another project's
+  // database would be unrecoverable. Widening this check is never the right
+  // fix for a connection error.
+  if (!env.DATABASE_URL?.includes('m1m5_v2_test')) {
     throw new Error(
-      'Refusing to run migrations: DATABASE_URL does not look like the test database. ' +
-        'Check backend/.env.test.',
+      'Refusing to run migrations: DATABASE_URL does not point at this project's test database ' +
+        '(expected a name containing "m1m5_v2_test"). Check backend/.env.test.',
     );
   }
 
