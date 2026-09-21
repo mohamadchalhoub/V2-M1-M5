@@ -33,8 +33,9 @@
  * a free slot sees it become free only after the lock that should block it is
  * already in place.
  */
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Prisma, PrismaClient, type XauusdM1M5SlotState } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 import { classifyClosure, unlockEvidenceFor, type ClosureOutcome } from './locks';
 import { SPEC_HASH, XAUUSD_M1M5_STRATEGY_VERSION, type Direction, type Timeframe } from './spec';
 
@@ -56,7 +57,17 @@ export interface OccupancyRow {
 export class M1M5OccupancyService {
   private readonly logger = new Logger(M1M5OccupancyService.name);
 
-  constructor(private readonly prisma: PrismaClient) {}
+  /**
+   * Injected by the PrismaService token but typed as PrismaClient.
+   *
+   * Nest resolves providers by token, and this module provides PrismaService;
+   * asking for a bare `PrismaClient` leaves Nest with a token it cannot
+   * resolve, which fails at application boot rather than at compile time.
+   * Typing the field as PrismaClient keeps this service constructible from a
+   * plain client in tests, where the lifecycle hooks PrismaService adds are
+   * not wanted.
+   */
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaClient) {}
 
   /**
    * Atomically claims a timeframe for a decision.
