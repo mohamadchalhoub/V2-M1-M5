@@ -40,9 +40,11 @@ application.
 | Backend API port | 8410 | 8420 | **8430** |
 | Prod compose project | — | `autonomous-trading` | `trading-monitor-m1m5-v2-prod` |
 | Magic numbers | 262610180 | 262610181, 262610190, 262610191 | **262610200 (M1), 262610201 (M5)** |
-| MT5 terminal / Wine prefix | its own | its own | **not yet provisioned** |
-| DEMO account | its own | its own | **not yet provisioned** |
-| Telegram bot / chats | its own | its own | **not yet provisioned** |
+| MT5 terminal / Wine prefix | its own | its own | **still to provision** |
+| DEMO account | its own | its own | its own (MetaQuotes-Demo, Forex Hedged USD) |
+| Telegram bot | its own | its own | **@M1M5Trade_bot** (id 8736831653) |
+| Telegram chat | its own | its own | 7434107396, delivery verified |
+| Collector token | its own | its own | minted against this project's backend |
 
 The magic-number split is asserted at startup by
 `assertMagicNumbersAreDisjoint()`, which refuses to start on a collision
@@ -199,24 +201,44 @@ exclusion should be removed in the same change.
 
 ## Remaining setup
 
-None of these can be completed from this machine without credentials, and
-**execution stays OFF until every one is done and verified**.
+Execution stays OFF until every item below is done and verified.
 
-1. **A dedicated MT5 DEMO account** for this application, with its own
-   terminal installation and Wine prefix. The running bot's terminal must not
-   be switched to it.
-2. **Collector credentials** bound to that account — `COLLECTOR_API_KEY` and
-   `COLLECTOR_ACCOUNT_ID` from `npm run bootstrap` in this project.
-3. **A Telegram bot token and chat ids** for this application. The existing
-   bot's routing must not be modified.
-4. **A dashboard hostname** distinct from the existing bot's.
-5. **Confirmation that the broker account supports hedging**
-   (`RETAIL_HEDGING`). Without it, independent simultaneous M1 and M5
-   positions are not possible, and that is a structural blocker on the core
-   design rather than a configuration detail — netting or unknown
-   compatibility must be reported explicitly, never silently emulated.
-6. **A real `.env`** for this project, built from `backend/.env.example`,
-   pointing at port 5453 / 6490 and the new account.
+### Done
+
+- **DEMO this application's account** on MetaQuotes-Demo, opened specifically for this
+  application. Account type **Forex Hedged USD**, which is what makes
+  simultaneous independent M1 and M5 positions possible at all. Credentials
+  live in `collector/.env` (gitignored); the master password is used for
+  trading and the investor password is deliberately not stored, since it
+  cannot place orders.
+- **Telegram**: `@M1M5Trade_bot` (id 8736831653), a different bot from the one
+  the existing system uses, so that bot's routing is untouched. Chat
+  7434107396, confirmed by an actually delivered message.
+- **Collector credentials** minted against this project's own backend, bound
+  to this account. Never reuse the other project's.
+- **Database**: all 36 migrations applied to `m1m5_v2` on port 5453.
+
+### Still required
+
+1. **A dedicated MT5 terminal installation and Wine prefix** for this
+   application. This is the one piece that cannot be shared: the running bot's
+   terminal must not be switched to this application's account, and this application
+   must not attach to the terminal that bot is using. Set
+   `MT5_TERMINAL_PATH` in `collector/.env` once it exists, so this collector
+   can never pick the wrong terminal by default.
+2. **Runtime verification of MT5 permissions** through this application's own
+   collector: terminal connected, terminal `trade_allowed`, terminal
+   `tradeapi_disabled`, account `trade_allowed`, account `trade_expert`, and
+   the account's margin mode reported as `RETAIL_HEDGING`.
+
+   The account type reads "Forex Hedged USD", which is strong evidence of
+   hedging, but it is a label on a signup screen rather than the value MT5
+   reports at runtime. Section 8 requires the live value, and this is the last
+   substantive unknown.
+3. **Enable execution**, only after the checklist below passes: set
+   `XAUUSD_M1M5_EXECUTION_MODE=DEMO` in `backend/.env` AND
+   `XAUUSD_M1M5_EXECUTION_ENABLED=true` in `collector/.env`. Both are required;
+   with only one set, nothing is ever sent.
 
 ### Pre-activation checklist (§14)
 
