@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { LEGACY_EXECUTION_MODE } from '../xauusd-m1m5/legacy-entries-disabled';
 
 /**
  * OFF / SHADOW / DEMO control for the trend-breakout strategy, read fresh
@@ -32,12 +33,16 @@ import { join } from 'node:path';
 export type TrendBreakoutExecutionMode = 'OFF' | 'SHADOW' | 'DEMO';
 
 export function getTrendBreakoutExecutionMode(): TrendBreakoutExecutionMode {
-  const raw = (process.env.TREND_BREAKOUT_EXECUTION_MODE ?? 'OFF').trim().toUpperCase();
-  if (raw === 'SHADOW') return 'SHADOW';
-  if (raw === 'DEMO') return 'DEMO';
-  // Fails closed to OFF for anything else (unset, typo, "true", etc.) —
-  // never silently defaults to an active mode.
-  return 'OFF';
+  // DISABLED IN THIS COPY (§2). This project runs
+  // `xauusd-m1-m5-rsi-threshold-v2` as its only enabled strategy, so
+  // trend-breakout's entry wiring — for BOTH instruments — is switched off
+  // here regardless of the environment. `TREND_BREAKOUT_EXECUTION_MODE=DEMO`
+  // has no effect.
+  //
+  // See `../xauusd-m1m5/legacy-entries-disabled.ts` for why this is a
+  // code-level gate rather than a default, and for what remains enabled
+  // (protection, reconciliation, liquidation, history).
+  return LEGACY_EXECUTION_MODE;
 }
 
 /**

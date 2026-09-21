@@ -16,6 +16,7 @@
  */
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { LEGACY_EXECUTION_MODE } from '../xauusd-m1m5/legacy-entries-disabled';
 
 /**
  * There is no REAL mode and no automatic real-account path — the type cannot
@@ -31,12 +32,20 @@ import { join } from 'node:path';
 export type RsiExecutionMode = 'OFF' | 'SHADOW' | 'DEMO';
 
 export function getRsiExecutionMode(): RsiExecutionMode {
-  const raw = (process.env.XAUUSD_RSI_EXECUTION_MODE ?? '').trim().toUpperCase();
-  if (raw === 'SHADOW') return 'SHADOW';
-  if (raw === 'DEMO') return 'DEMO';
-  // Fails closed to OFF for anything else — unset, a typo, "true" — so an
-  // active mode is never reached by accident.
-  return 'OFF';
+  // DISABLED IN THIS COPY (§2). This project runs
+  // `xauusd-m1-m5-rsi-threshold-v2` as its only enabled strategy, so this
+  // strategy's entry wiring is switched off here regardless of the
+  // environment. `XAUUSD_RSI_EXECUTION_MODE=DEMO` has no effect.
+  //
+  // The environment variable is deliberately not read at all: leaving the
+  // read in place and discarding the result would suggest the value still
+  // matters somewhere. See `../xauusd-m1m5/legacy-entries-disabled.ts` for
+  // why this is a code-level gate rather than a default, and for what
+  // remains enabled (protection, reconciliation, liquidation, history).
+  //
+  // This does not affect the separate deployment of this same strategy that
+  // runs from its own checkout on its own account.
+  return LEGACY_EXECUTION_MODE;
 }
 
 export function getRsiKillSwitchPath(): string {

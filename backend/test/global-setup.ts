@@ -17,7 +17,7 @@ export default async function globalSetup() {
   // fix for a connection error.
   if (!env.DATABASE_URL?.includes('m1m5_v2_test')) {
     throw new Error(
-      'Refusing to run migrations: DATABASE_URL does not point at this project's test database ' +
+      'Refusing to run migrations: DATABASE_URL does not point at this project\'s test database ' +
         '(expected a name containing "m1m5_v2_test"). Check backend/.env.test.',
     );
   }
