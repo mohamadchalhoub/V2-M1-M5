@@ -33,6 +33,7 @@
     "test:watch": "npm run test:db:up && vitest",
     "backup": "bash scripts/backup.sh",
     "restore": "bash scripts/restore.sh",
+    "xauusd-m1m5:scheduler": "node dist/scripts/xauusd-m1m5-scheduler.js",
     "xauusd-rsi:scheduler": "tsx scripts/xauusd-rsi-scheduler.ts",
     "xauusd-rsi:migrate": "tsx scripts/xauusd-rsi-migrate.ts",
     "xauusd-rsi:telegram-test": "tsx scripts/xauusd-rsi-telegram-test.ts",
