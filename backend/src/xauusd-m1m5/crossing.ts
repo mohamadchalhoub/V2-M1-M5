@@ -175,12 +175,22 @@ export function evaluate(state: CrossingState, obs: Observation): CrossingEvalua
   if (state.previousObservationT !== null && obs.t <= state.previousObservationT) {
     return unchanged('OUT_OF_ORDER_OR_DUPLICATE');
   }
+  // Warm-up is tested BEFORE the null check, because during warm-up the
+  // indicator legitimately has no value yet and `WARMING_UP` is the reason an
+  // operator needs: it says "wait", where `NO_RSI` reads as "something is
+  // broken". Both suppress the signal identically, so this ordering changes
+  // only what gets reported — but a dashboard that cries fault during normal
+  // start-up is one an operator learns to ignore.
+  //
+  // With this order, a surviving `NO_RSI` means the indicator claims to be
+  // warmed up yet produced no value, which IS an anomaly worth seeing.
+  if (!obs.warmedUp) return unchanged('WARMING_UP');
   if (obs.rsi === null || !Number.isFinite(obs.rsi)) return unchanged('NO_RSI');
 
-  // Warm-up and staleness do not merely suppress the signal — they must not
+  // Staleness likewise does not merely suppress the signal — it must not
   // advance continuity either, because an entry formed against a `previousRsi`
-  // that came from warm-up history would be a historical entry (§3.3, §11).
-  if (!obs.warmedUp) return unchanged('WARMING_UP');
+  // that came from stale or warm-up data would not be the event the rules
+  // described (§3.3, §11).
   if (!obs.fresh) return unchanged('NOT_FRESH');
 
   const gapBudget = continuityGapBudgetMs(state.timeframe);
