@@ -141,7 +141,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
-    networks: [internal, proxy_shared]
+    networks: [internal]
 
   web:
     build:
@@ -177,7 +177,7 @@ services:
     # dropping this host-port publish at that point if you want it gone.
     ports:
       - "127.0.0.1:${WEB_HOST_PORT:-3011}:3001"
-    networks: [internal, proxy_shared]
+    networks: [internal]
 
   # ===========================================================================
   # The inherited `mt5-collector` service is deliberately NOT defined here.
@@ -289,27 +289,35 @@ services:
         max-file: "5"
 
 
-  # NOTE (single-VPS-alongside-v1 topology): no `caddy` service is defined
-  # in this file, on purpose. v1 already owns host ports 80/443 with its
-  # own Caddy container — a second container binding the same ports on the
-  # same host would simply fail to start. Instead, `api`/`web` above join
-  # the EXTERNAL `proxy_shared` network (created once, manually, on the
-  # host: `docker network create proxy_shared`; v1's existing Caddy
-  # container is then attached to it with `docker network connect
-  # proxy_shared <v1-caddy-container-name>` — v1's own compose file and
-  # containers are never modified). v1's Caddy gets two new site blocks
-  # added to ITS OWN Caddyfile (reverse_proxy to this project's
-  # `autonomous-trading-api-1:3000` / `autonomous-trading-web-1:3001` by
-  # container name, reachable over `proxy_shared`), so ONE already-running
-  # Caddy instance TLS-terminates both systems' public domains, each
-  # proxying into its own completely separate containers/volumes/DB. See
-  # DEPLOYMENT_SINGLE_VPS.md's "alongside an existing v1" addendum for the
-  # exact commands.
+  # NOTE (topology alongside the other deployments on this host)
+  #
+  # No `caddy` service is defined here, on purpose: the legacy deployment's
+  # Caddy already owns host ports 80 and 443, and a second container binding
+  # them would simply fail to start.
+  #
+  # `api` and `web` are ALSO deliberately not attached to the external
+  # `proxy_shared` network yet. This project has no public domain, so nothing
+  # needs to reach it from outside the host, and declaring an external network
+  # would make `docker compose up` fail outright if that network happened not
+  # to exist. Both publish loopback-only host ports instead, reachable over an
+  # SSH tunnel:
+  #
+  #     ssh -L 3020:127.0.0.1:3020 -L 3021:127.0.0.1:3021 <host>
+  #
+  # TO PUBLISH A DASHBOARD LATER, without touching another deployment's
+  # compose file or containers:
+  #   1. docker network create proxy_shared        (if it does not exist)
+  #   2. docker network connect proxy_shared trading-monitor-caddy-1
+  #   3. add `proxy_shared` back to api/web here, and re-add it under
+  #      `networks:` as `external: true`
+  #   4. add a site block to the EXISTING Caddy's own Caddyfile, reverse
+  #      proxying to this project's api/web BY CONTAINER NAME over
+  #      proxy_shared
+  # Step 4 edits that deployment's configuration, so it needs its own
+  # deliberate decision rather than being bundled into this project's deploy.
 
 networks:
   internal:
-  proxy_shared:
-    external: true
 
 volumes:
   m1m5_v2_pgdata:

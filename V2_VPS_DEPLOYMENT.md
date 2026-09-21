@@ -110,11 +110,28 @@ nano backend/.env.production
 |---|---|
 | `POSTGRES_PASSWORD` | a real password, replacing `CHANGE_ME_STRONG_PASSWORD` |
 | `DATABASE_URL` | the same password inside the URL |
-| `API_HOST_PORT` / `WEB_HOST_PORT` | free ports from step 0 (3020/3021 are **unverified placeholders**) |
-| `M1M5_MT5_UID` / `M1M5_MT5_GID` | the uid/gid that will own the Wine prefix — `id -u deploy` and `id -g deploy` |
-| `M1M5_WINEPREFIX_PATH` | leave as `/home/deploy/.mt5-m1m5-v2` unless step 0 showed a clash |
+| `API_HOST_PORT` / `WEB_HOST_PORT` | 3020/3021, **verified free on 2026-09-22** — re-check in step 0, the host changes |
+| `M1M5_MT5_UID` / `M1M5_MT5_GID` | 1000/1000, **verified**: `deploy` is uid 1000, gid 1000, and owns both existing prefixes |
+| `M1M5_WINEPREFIX_PATH` | `/home/deploy/.mt5-m1m5-v2`, **verified distinct** from `.mt5` and `.mt5-v2` |
+
+Those three are already correct in the file as shipped. Only
+`POSTGRES_PASSWORD` genuinely needs your input.
 
 Leave `XAUUSD_M1M5_EXECUTION_MODE=OFF`. It stays off until step 9.
+
+### Reaching the dashboard
+
+`api` and `web` bind to loopback only and this project has no public domain,
+so reach them over an SSH tunnel rather than exposing a port:
+
+```bash
+ssh -L 3020:127.0.0.1:3020 -L 3021:127.0.0.1:3021 root@<vps>
+```
+
+The legacy deployment's Caddy owns ports 80 and 443. Publishing this
+project's dashboard later means editing **that** deployment's Caddyfile, which
+is a deliberate decision of its own rather than part of this deploy — see the
+topology note at the bottom of `docker-compose.prod.yml`.
 
 ## 5. Create this project's own Wine prefix
 

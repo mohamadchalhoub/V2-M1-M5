@@ -82,18 +82,41 @@ terminals one installation, which is exactly what must not happen.
 **The MT5 container publishes no host port**, so it cannot collide with
 anything. Only `api` and `web` need one, and both bind to `127.0.0.1`.
 
-`API_HOST_PORT=3020` and `WEB_HOST_PORT=3021` in `backend/.env.production` are
-**placeholders that have not been verified against the VPS**. Outbound SSH from
-the development environment to the VPS is not reachable (port 22 times out;
-443 works), so the live port list cannot be read from there.
+`API_HOST_PORT=3020` and `WEB_HOST_PORT=3021` were **verified free on the VPS
+on 2026-09-22** by direct inspection of its listening sockets. What is in use
+there:
 
-Before deploying, run on the VPS and act on the output:
+| Port | Owner |
+|---|---|
+| `127.0.0.1:3000` | `trading-monitor-api` (legacy deployment) |
+| `127.0.0.1:3010` | `autonomous-trading-api` (M1 revision-5 bot) |
+| `127.0.0.1:3011` | `autonomous-trading-web` |
+| `127.0.0.1:65529` | `monarx-agent` |
+| `0.0.0.0:80`, `:443` | `trading-monitor-caddy` |
+| `0.0.0.0:22` | `sshd` |
+| **`127.0.0.1:22346`** | **`wineserver`** — see below |
+
+Re-check before deploying, since the host changes:
 
 ```bash
 bash deploy/verify-vps-ports.sh
 ```
 
 It is read-only: it starts, stops and removes nothing.
+
+### The 22346 line is the constraint, observed live
+
+`127.0.0.1:22346` is held by a host-level `wineserver` process — the legacy
+deployment runs its MT5 terminal directly on the host under systemd and Xvfb,
+rather than in a container.
+
+That is precisely the fixed, per-host MT5 IPC port this design exists to work
+around, and it is occupied right now. A second host-level Wine-hosted terminal
+would collide with it regardless of having its own prefix. The M1 revision-5
+bot already solved this by containerising its terminal
+(`autonomous-trading-mt5-collector-1`, which publishes no ports), and this
+project does the same for the same reason. Its internal `127.0.0.1:22346` is a
+different address space from the host's, so the port above is irrelevant to it.
 
 ## One-time setup on the VPS
 
