@@ -73,15 +73,26 @@ echo
 echo "--- 6. MT5 terminals are separate processes ----------------------"
 ps -eo pid,args 2>/dev/null | grep -i '[t]erminal64.exe' | sed 's/^/  /' || info "no terminals visible from the host namespace (expected: containerised terminals are not listed here)"
 echo "  terminal inside THIS project's MT5 container:"
-docker exec "m1m5-v2-mt5-collector" pgrep -af terminal64.exe 2>/dev/null | sed 's/^/    /' \
-    || fail "no terminal running in m1m5-v2-mt5-collector"
+# Before the one-time MT5 install this container deliberately refuses to start,
+# so there is no terminal to find. That is the fail-closed gate working, not a
+# fault, and reporting it as FAIL trains an operator to ignore this script.
+# Only a container that IS running without a terminal is actually wrong.
+if docker ps --filter "name=m1m5-v2-mt5-collector" --filter "status=running" -q | grep -q .; then
+    docker exec m1m5-v2-mt5-collector pgrep -af terminal64.exe 2>/dev/null | sed 's/^/    /'         || fail "the MT5 container is running but no terminal process is present"
+else
+    info "MT5 container not running - expected until the one-time MT5 install is done; it refuses to start rather than attaching to another bot's terminal"
+fi
 echo
 
 echo "--- 7. Wine prefixes are distinct --------------------------------"
 OUR_PREFIX=$(docker inspect m1m5-v2-mt5-collector \
     --format '{{range .Mounts}}{{if eq .Destination "/wineprefix"}}{{.Source}}{{end}}{{end}}' 2>/dev/null)
 info "this project's prefix: ${OUR_PREFIX:-<unknown>}"
-for c in $(docker ps --format '{{.Names}}' | grep -v '^m1m5-v2-' || true); do
+# Same rule as section 8: ours is decided by the compose project label, not by
+# a name prefix. The prefix form happened to behave here only because this
+# project's other containers have no /wineprefix mount -- luck, not design.
+OUR_NAMES=$(docker ps --filter "label=com.docker.compose.project=$PROJECT" --format '{{.Names}}' | sort -u)
+for c in $(docker ps --format '{{.Names}}' | grep -vxF -f <(echo "$OUR_NAMES") || true); do
     other=$(docker inspect "$c" --format '{{range .Mounts}}{{if eq .Destination "/wineprefix"}}{{.Source}}{{end}}{{end}}' 2>/dev/null)
     [ -n "$other" ] || continue
     if [ "$other" = "$OUR_PREFIX" ]; then
@@ -94,13 +105,31 @@ echo
 
 echo "--- 8. Volumes are distinct --------------------------------------"
 docker volume ls --format '{{.Name}}' | grep -i m1m5 | sed 's/^/  ours: /' || info "no m1m5 volumes yet"
-SHARED=$(docker ps --filter "label=com.docker.compose.project=$PROJECT" -q \
-  | xargs -r docker inspect --format '{{range .Mounts}}{{.Name}} {{end}}' 2>/dev/null | tr ' ' '\n' | grep -v '^$' | sort -u)
+# Ownership is decided by the COMPOSE PROJECT LABEL, never by a container-name
+# prefix. Only three of this project's containers carry an explicit
+# container_name; the rest take Compose's default naming
+# (trading-monitor-m1m5-v2-prod-api-1 and so on). An earlier version matched
+# on "^m1m5-v2-" and so reported this project's OWN api, web and redis as
+# foreign, failing a deployment that was correctly isolated.
+#
+# A verification script that cries wolf is worse than no script, because an
+# operator learns to skip past it.
+OURS_IDS=$(docker ps -a --filter "label=com.docker.compose.project=$PROJECT" -q | sort -u)
+SHARED=$(echo "$OURS_IDS"   | xargs -r docker inspect --format '{{range .Mounts}}{{.Name}} {{end}}' 2>/dev/null   | tr ' ' '
+' | grep -v '^$' | sort -u)
+
+VOL_FAIL=0
 for v in $SHARED; do
-    users=$(docker ps -a --filter "volume=$v" --format '{{.Names}}' | grep -vc '^m1m5-v2-' || true)
-    [ "${users:-0}" -gt 0 ] && fail "volume $v is also used by a non-v2 container" || true
+    mounters=$(docker ps -a --filter "volume=$v" -q | sort -u)
+    foreign=$(comm -23 <(echo "$mounters") <(echo "$OURS_IDS") | grep -v '^$' || true)
+    if [ -n "$foreign" ]; then
+        for f in $foreign; do
+            fail "volume $v is also mounted by $(docker inspect --format '{{.Name}}' "$f" 2>/dev/null) (not in this project)"
+        done
+        VOL_FAIL=1
+    fi
 done
-pass "no v2 volume is mounted by a foreign container"
+[ "$VOL_FAIL" -eq 0 ] && pass "no volume of this project is mounted by a foreign container"
 echo
 
 echo "--- 9. Account identity ------------------------------------------"
