@@ -78,3 +78,40 @@ copy.
 The M1/M5 strategy is **not implemented**. This is the source project's code
 as of `bf083c8`, unmodified apart from the exclusions above, as a starting
 point.
+
+## Infrastructure isolation (applied 2026-09-21)
+
+The archive carried the source project's **compose identity verbatim**:
+project `autonomous-trading`, containers `autonomous-trading-postgres` /
+`-redis` (+ `-test` twins), ports 5443/6480 and 5444/6481. Those containers
+belong to the source checkout and were **running at the time of the copy**.
+Left as-is, `docker compose up` here would have adopted and recreated them,
+and `npm run test:db:down` (`docker compose down -v`) would have destroyed
+the source's test containers and volumes.
+
+All of it was therefore renamed and re-ported to be unique to this project.
+
+| | source (do not touch) | this project |
+|---|---|---|
+| Compose project | `autonomous-trading` | `trading-monitor-m1m5-v2` |
+| Dev Postgres | `autonomous-trading-postgres` :5443 | `m1m5-v2-postgres` :5453 |
+| Dev Redis | `autonomous-trading-redis` :6480 | `m1m5-v2-redis` :6490 |
+| Test Postgres | `autonomous-trading-postgres-test` :5444 | `m1m5-v2-postgres-test` :5454 |
+| Test Redis | `autonomous-trading-redis-test` :6481 | `m1m5-v2-redis-test` :6491 |
+| DB user / database | `autonomous_trading` | `m1m5_v2` (test: `m1m5_v2_test`) |
+| Named volumes | `autonomous_trading_*` | `m1m5_v2_*` |
+| Backend API port | 8420 | 8430 |
+| Prod compose project | `autonomous-trading` | `trading-monitor-m1m5-v2-prod` |
+
+An older generation, `trading-monitor-postgres` :5433 / `trading-monitor-redis`
+:6380, is also live on this machine and is likewise off limits.
+
+Verified after the change: `docker compose ps` in `backend/` lists **no**
+containers (this project owns none yet, so it sees none of its neighbours'),
+and all six neighbouring containers remain up and healthy.
+
+Still outstanding before anything here may run: a dedicated MT5 DEMO account,
+its own Telegram bot and chat ids, and a real `.env`. Every execution flag
+(`XAUUSD_RSI_EXECUTION_MODE`, `AUTONOMOUS_EXECUTION_ENABLED`,
+`TREND_BREAKOUT_EXECUTION_ENABLED`, `XAUUSD_RSI_EXECUTION_ENABLED`) is OFF in
+the templates and must stay OFF until that is configured and verified.

@@ -1,53 +1,52 @@
 # Explicit project name — root-cause fix, not just cosmetic. Docker Compose
 # derives its project identity from the current directory's BASENAME by
-# default, not its full path. v1's real project folder and this repo's
-# `backend/` directory happen to share that basename ("backend"), so
-# without this, `docker compose up` here silently adopts and "recreates"
-# whatever containers a previous `docker compose up` from v1's own folder
-# already created under the same default project name — which is exactly
-# what happened once already: it destroyed and replaced v1's real
-# "trading-monitor-postgres"/"trading-monitor-redis" containers (the
-# underlying named volumes survived, so no data was lost, and they were
-# restored under their original names — but the containers themselves were
-# briefly gone). This `name:` makes v2's compose project identity
-# unambiguous regardless of directory naming coincidences.
-name: autonomous-trading
+# default, not its full path, so several sibling checkouts that each have a
+# `backend/` directory would otherwise silently share one project and
+# adopt/recreate each other's containers.
+#
+# This project (trading-monitor-m1-m5-v2) is an independent COPY of
+# trading-monitor-autonomous (see PROVENANCE.md). The copy inherited that
+# project's compose identity verbatim: project `autonomous-trading`,
+# containers `autonomous-trading-postgres`/`-redis`, ports 5443/6480. Those
+# containers belong to the source checkout and are running right now, so
+# bringing this project up under the inherited identity would adopt and
+# recreate live infrastructure belonging to a deployed, trading system.
+#
+# Everything below is therefore renamed and re-ported to be unique to THIS
+# project. Known neighbours on this machine, none of which we may touch:
+#   trading-monitor-*            Postgres 5433, Redis 6380
+#   autonomous-trading-*         Postgres 5443/5444, Redis 6480/6481
+#   m1m5-v2-*  (this project)    Postgres 5453/5454, Redis 6490/6491
+name: trading-monitor-m1m5-v2
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: autonomous-trading-postgres
+    container_name: m1m5-v2-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: autonomous_trading
-      POSTGRES_PASSWORD: autonomous_trading_dev_password
-      POSTGRES_DB: autonomous_trading
+      POSTGRES_USER: m1m5_v2
+      POSTGRES_PASSWORD: m1m5_v2_dev_password
+      POSTGRES_DB: m1m5_v2
     ports:
-      # v2-dedicated port, distinct from v1's dev Postgres (5433) and its
-      # test twin (5434) on this same machine — v1 and v2 must never share a
-      # database instance (AUTONOMOUS_DEMO_TRADING_PLAN.md §1/§13.2:
-      # "no interference," enforced by full infrastructure separation, not
-      # just separate code).
-      - "5443:5432"
+      - "5453:5432"
     volumes:
-      - autonomous_trading_pgdata:/var/lib/postgresql/data
+      - m1m5_v2_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U autonomous_trading"]
+      test: ["CMD-SHELL", "pg_isready -U m1m5_v2"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: autonomous-trading-redis
+    container_name: m1m5-v2-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      # v2-dedicated port, distinct from v1's dev Redis (6380) and its test
-      # twin (6381) — same isolation reasoning as postgres above.
-      - "6480:6379"
+      - "6490:6379"
     volumes:
-      - autonomous_trading_redisdata:/data
+      - m1m5_v2_redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -55,5 +54,5 @@ services:
       retries: 10
 
 volumes:
-  autonomous_trading_pgdata:
-  autonomous_trading_redisdata:
+  m1m5_v2_pgdata:
+  m1m5_v2_redisdata:

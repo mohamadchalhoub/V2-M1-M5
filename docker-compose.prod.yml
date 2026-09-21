@@ -18,26 +18,26 @@
 # an accidental basename collision would make `docker compose up` here
 # silently adopt and "recreate" v1's real, live containers. This makes v2's
 # project identity unambiguous no matter what directory it's deployed from.
-name: autonomous-trading
+name: trading-monitor-m1m5-v2-prod
 
 services:
   postgres:
     image: postgres:16-alpine
-    # Explicit and distinct from the dev compose's "autonomous-trading-postgres"
+    # Explicit and distinct from the dev compose's "m1m5-v2-postgres"
     # (backend/docker-compose.yml) — backup.sh/restore.sh's POSTGRES_CONTAINER
     # override already existed as a mechanism; the container just had nothing
     # predictable to point it at. This name is what .env.production's
     # POSTGRES_CONTAINER should reference. Also distinct from v1's own prod
     # container name — this project must never share a container name (or a
     # database) with v1, even if it's ever deployed to the same VPS.
-    container_name: autonomous-trading-postgres-prod
+    container_name: m1m5-v2-postgres-prod
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - autonomous_trading_pgdata:/var/lib/postgresql/data
+      - m1m5_v2_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
@@ -53,7 +53,7 @@ services:
     # containers on a network that (unlike dev) isn't purely local-machine.
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
     volumes:
-      - autonomous_trading_redisdata:/data
+      - m1m5_v2_redisdata:/data
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 5s
@@ -299,8 +299,8 @@ networks:
     external: true
 
 volumes:
-  autonomous_trading_pgdata:
-  autonomous_trading_redisdata:
+  m1m5_v2_pgdata:
+  m1m5_v2_redisdata:
   gold_runtime_data:
   trend_breakout_runtime_data:
   # Kill switch, stop-new-entries, persisted indicator state and the
