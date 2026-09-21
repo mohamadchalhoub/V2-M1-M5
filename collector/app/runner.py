@@ -399,6 +399,10 @@ class CollectorApp:
             mt5_connected=mt5_connected,
             last_error=last_error,
             collector_version=COLLECTOR_VERSION,
+            # Read fresh each cycle: an operator can disable algorithmic
+            # trading at any moment, so a cached value would let the backend
+            # act on a permission that no longer holds.
+            terminal_info=self._client.get_terminal_info(),
             live_tick=live_tick,
             live_ticks=live_ticks,
         )

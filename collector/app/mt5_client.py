@@ -236,6 +236,13 @@ class Mt5Client:
             # safety-critical check (executor.py's verify_demo_account()):
             # MT5's ACCOUNT_TRADE_MODE_REAL/DEMO/CONTEST integer enum.
             "trade_mode": d.get("trade_mode"),
+            # Broker-set permission for expert-advisor (algorithmic) trading.
+            # Distinct from trade_allowed: an account can permit manual
+            # trading while refusing programmatic orders, and this collector
+            # only ever trades programmatically. Reported so the backend can
+            # surface it as an explicit execution blocker rather than
+            # discovering it when an order is rejected.
+            "trade_expert": d.get("trade_expert"),
             # ACCOUNT_MARGIN_MODE_* — how the broker accounts for positions.
             # Read alongside trade_mode because the active strategy's two
             # execution slots can only hold independent positions with

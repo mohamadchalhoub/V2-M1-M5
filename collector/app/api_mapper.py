@@ -58,6 +58,47 @@ def _trade_mode_label(trade_mode: int | None) -> str | None:
     return _TRADE_MODE_LABELS.get(trade_mode)
 
 
+def build_permissions_payload(
+    account: dict[str, Any] | None,
+    terminal: dict[str, Any] | None,
+    mt5_connected: bool | None,
+) -> dict[str, Any]:
+    """MT5 trading permissions, as the terminal and broker actually report them.
+
+    Every field is deliberately three-state: the value, or ``None`` when it
+    could not be read. ``None`` is not the same as ``False`` and must not be
+    collapsed into it -- the backend treats an unreadable permission as a
+    blocker, and encoding "unknown" as "granted" would be wrong in the
+    dangerous direction while encoding it as "denied" would hide a real fault.
+
+    This block exists because fresh quotes are not permission to trade. A
+    terminal with algorithmic trading switched off streams perfectly good
+    prices right up until an order is rejected.
+    """
+    account = account or {}
+    terminal = terminal or {}
+
+    def tri(value: Any) -> bool | None:
+        return None if value is None else bool(value)
+
+    return {
+        # Identity first: every other check is meaningless if this is the
+        # wrong account.
+        "login": account.get("login"),
+        "server": account.get("server"),
+        "tradeMode": _trade_mode_label(account.get("trade_mode")),
+        "marginMode": _margin_mode_label(account.get("margin_mode")),
+        "terminalConnected": tri(mt5_connected),
+        "terminalTradeAllowed": tri(terminal.get("trade_allowed")),
+        # Inverted sense: True is the BAD state. Reported as the terminal
+        # names it rather than flipped here, so the backend's own check reads
+        # the same way the MT5 documentation does.
+        "terminalTradeApiDisabled": tri(terminal.get("tradeapi_disabled")),
+        "accountTradeAllowed": tri(account.get("trade_allowed")),
+        "accountTradeExpert": tri(account.get("trade_expert")),
+    }
+
+
 def build_snapshot_payload(
     account_id: str,
     account: dict[str, Any] | None,
@@ -67,6 +108,7 @@ def build_snapshot_payload(
     collector_version: str,
     live_tick: dict[str, Any] | None = None,
     live_ticks: list[dict[str, Any]] | None = None,
+    terminal_info: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     account = account or {}
     payload = {
@@ -85,6 +127,9 @@ def build_snapshot_payload(
             **({"lastError": last_error} if last_error else {}),
         },
         "collectorVersion": collector_version,
+        # MT5 trading permissions, so the backend can block execution on a
+        # missing or unreadable one rather than discovering it at order time.
+        "permissions": build_permissions_payload(account, terminal_info, mt5_connected),
         "positions": [_position_payload(p) for p in positions],
     }
     # Global market data (not account-scoped) piggybacked onto this same,
