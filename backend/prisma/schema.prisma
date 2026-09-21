@@ -77,6 +77,14 @@ model TradingAccount {
   trendBreakoutCloseRequests      TrendBreakoutCloseRequest[]
   xauusdRsiDecisions              XauusdRsiDecision[]
 
+  // xauusd-m1-m5-rsi-threshold-v2 — the only enabled strategy in this project.
+  xauusdM1M5Decisions        XauusdM1M5Decision[]
+  xauusdM1M5SlotLocks        XauusdM1M5SlotLock[]
+  xauusdM1M5DirectionalLocks XauusdM1M5DirectionalLock[]
+  xauusdM1M5ReportPeriods    XauusdM1M5ReportPeriod[]
+  xauusdM1M5VolumeSetting    XauusdM1M5VolumeSetting?
+  xauusdM1M5VolumeAudits     XauusdM1M5VolumeAudit[]
+
   @@unique([platform, externalAccountId])
   @@map("trading_accounts")
 }
@@ -1661,4 +1669,304 @@ model XauusdRsiLiquidationItem {
   @@unique([deadlineAt, ticket])
   @@index([status, deadlineAt])
   @@map("xauusd_rsi_liquidation_items")
+}
+
+// =============================================================================
+// xauusd-m1-m5-rsi-threshold-v2
+//
+// The only ENABLED entry strategy in this project. Two independent execution
+// paths, M1 and M5, each holding at most one active, pending or uncertain
+// exposure, so the strategy's maximum concurrency is two.
+//
+// Every table here is this strategy's own. Nothing below is shared with the
+// retired strategies above, and nothing below is ever written by them. A
+// historical row's own strategyVersion and specHash say exactly which rule
+// set produced it, even after the rules change again.
+// =============================================================================
+
+// The two independent execution paths. Not a "rule family": these are
+// genuinely separate timeframes with separate indicators, separate candle
+// boundaries, separate crossing state and separate ownership. An M1 position
+// does not occupy M5 and vice versa.
+enum XauusdM1M5Timeframe {
+  M1
+  M5
+}
+
+enum XauusdM1M5Direction {
+  BUY
+  SELL
+}
+
+enum XauusdM1M5OrderStatus {
+  // The decision was recorded but never became an order attempt: a signal
+  // skipped by a post-loss lock, occupancy, the schedule, risk or a pre-send
+  // recheck. This is the audit trail section 12 asks for, and it is distinct
+  // from "an order that has no ticket yet".
+  NONE
+  PENDING
+  SENT
+  FILLED
+  FAILED
+  // The broker's response was lost or ambiguous. Never silently resolved:
+  // reconciliation against real broker state is what moves this on, and a
+  // timeframe holding an UNKNOWN counts as OCCUPIED until it does.
+  UNKNOWN
+}
+
+enum XauusdM1M5SlotState {
+  PENDING
+  SENT
+  FILLED
+  UNKNOWN
+}
+
+// One row per evaluated signal, including every skipped one (section 12).
+//
+// The unique constraint on (accountId, strategyVersion, eventId) IS the
+// durable signal identity: re-evaluating or replaying the same observation
+// can never create a second row, which is simultaneously the idempotency
+// guard and the enforcement of "a consumed signal is never reused".
+model XauusdM1M5Decision {
+  id String @id @default(uuid())
+
+  strategyVersion String @map("strategy_version")
+  // Hash of the frozen spec object at decision time, proving which exact
+  // thresholds were in force independently of the human-readable version.
+  specHash        String @map("spec_hash")
+
+  // Nullable with onDelete: SetNull, matching the existing convention:
+  // deleting a trading account must never delete the audit trail of what
+  // this strategy decided.
+  accountId String? @map("account_id")
+  symbol    String  @default("XAUUSD")
+
+  timeframe XauusdM1M5Timeframe
+  direction XauusdM1M5Direction
+
+  // When the OBSERVATION that produced this signal happened, i.e. the instant
+  // the rules were satisfied. Signal age is measured from here, never from
+  // evaluatedAt, so a decision delayed by queueing cannot look fresh.
+  observedAt  DateTime @map("observed_at")
+  evaluatedAt DateTime @default(now()) @map("evaluated_at")
+
+  // Stable identity of the observation that produced this row.
+  eventId String @map("event_id")
+
+  // Full-precision RSI either side of the crossing, plus the price the RSI
+  // was projected from: the numbers needed to re-derive the trigger.
+  // Decimal, not Float, because the rules compare at full precision and a
+  // stored approximation would make a boundary decision unauditable.
+  rsiValue    Decimal  @map("rsi_value") @db.Decimal(12, 8)
+  previousRsi Decimal? @map("previous_rsi") @db.Decimal(12, 8)
+  threshold   Decimal  @db.Decimal(12, 8)
+  basisPrice  Decimal  @map("basis_price") @db.Decimal(18, 6)
+
+  // TICK / SAMPLED_INTRABAR / CLOSED_BAR_ONLY. Section 10 requires the weaker
+  // modes be labelled, never presented as continuous intrabar observation.
+  observationMode String @map("observation_mode")
+
+  // Intended order. Null on a decision that never became an order attempt.
+  entryPrice Decimal? @map("entry_price") @db.Decimal(18, 6)
+  stopLoss   Decimal? @map("stop_loss") @db.Decimal(18, 6)
+  takeProfit Decimal? @map("take_profit") @db.Decimal(18, 6)
+  // The ONE risk-approved volume snapshot, persisted so the collector hand-off
+  // submits exactly what risk was computed against, never a later re-read.
+  volumeLots Decimal? @map("volume_lots") @db.Decimal(18, 6)
+
+  reasoning String
+  // Everything needed to reconstruct the signal without guesswork: engine
+  // evidence, thresholds in force, schedule state, lock state, risk inputs.
+  evidence  Json
+
+  approved Boolean @default(false)
+  // Why this decision did NOT become an order, in the operator's words:
+  // POST_SELL_LOSS_LOCKOUT / POST_BUY_LOSS_LOCKOUT / TIMEFRAME_OCCUPIED /
+  // SCHEDULE_BLOCKED, or a risk or pre-send reason.
+  skipReason String? @map("skip_reason")
+
+  orderStatus XauusdM1M5OrderStatus @default(NONE) @map("order_status")
+  // This timeframe's own magic number, recorded per row so ownership is a
+  // stored fact rather than something re-derived from configuration later.
+  magicNumber Int?                  @map("magic_number")
+  ticket      BigInt?
+  positionId  String?               @map("position_id")
+
+  sentAt   DateTime? @map("sent_at")
+  filledAt DateTime? @map("filled_at")
+  // Broker-reported fill detail, for the slippage and protection record
+  // section 7 requires.
+  fillPrice        Decimal? @map("fill_price") @db.Decimal(18, 6)
+  brokerStopLoss   Decimal? @map("broker_stop_loss") @db.Decimal(18, 6)
+  brokerTakeProfit Decimal? @map("broker_take_profit") @db.Decimal(18, 6)
+  failureReason    String?  @map("failure_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  account  TradingAccount?     @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  slotLock XauusdM1M5SlotLock?
+
+  @@unique([accountId, strategyVersion, eventId])
+  @@index([accountId, timeframe, orderStatus])
+  @@index([accountId, observedAt])
+  @@map("xauusd_m1m5_decisions")
+}
+
+// Atomic per-timeframe occupancy (section 4).
+//
+// The composite primary key (accountId, timeframe) is the whole mechanism: a
+// second worker attempting to claim a timeframe that is already held gets a
+// unique-constraint violation rather than a second position. This is why
+// occupancy is a ROW rather than a query over decisions. "Is this timeframe
+// free?" answered by a SELECT is a race; answered by an INSERT it is not.
+//
+// A row exists only while the timeframe is occupied. It is deleted on
+// broker-confirmed full closure, and that deletion is ordered AFTER the
+// closure has been classified and any post-loss lock activated, so no worker
+// can enter between the loss and the lock that the loss causes (section 6.4).
+model XauusdM1M5SlotLock {
+  accountId  String              @map("account_id")
+  timeframe  XauusdM1M5Timeframe
+  state      XauusdM1M5SlotState
+  decisionId String              @unique @map("decision_id")
+  claimedAt  DateTime            @default(now()) @map("claimed_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+
+  decision XauusdM1M5Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  account  TradingAccount     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, timeframe])
+  @@map("xauusd_m1m5_slot_locks")
+}
+
+// The four post-loss directional locks (section 6): M1 SELL, M1 BUY, M5 SELL,
+// M5 BUY.
+//
+// One row per (account, timeframe, direction), retained after release rather
+// than deleted, so the dashboard and the audit trail can still show what
+// caused the lock and what released it. The active flag is the state;
+// everything else is evidence.
+model XauusdM1M5DirectionalLock {
+  accountId String              @map("account_id")
+  timeframe XauusdM1M5Timeframe
+  direction XauusdM1M5Direction
+
+  strategyVersion String @map("strategy_version")
+  specHash        String @map("spec_hash")
+
+  active Boolean @default(false)
+
+  // What caused it. Null before the first loss in this direction.
+  losingPositionId     String?   @map("losing_position_id")
+  losingClosureEventId String?   @map("losing_closure_event_id")
+  netRealized          Decimal?  @map("net_realized") @db.Decimal(18, 6)
+  closedAt             DateTime? @map("closed_at")
+  activatedAt          DateTime? @map("activated_at")
+  rsiAtActivation      Decimal?  @map("rsi_at_activation") @db.Decimal(12, 8)
+
+  // What released it, retained after release.
+  unlockCondition String?   @map("unlock_condition")
+  unlockThreshold Decimal?  @map("unlock_threshold") @db.Decimal(12, 8)
+  unlockRsi       Decimal?  @map("unlock_rsi") @db.Decimal(12, 8)
+  unlockedAt      DateTime? @map("unlocked_at")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@id([accountId, timeframe, direction])
+  @@map("xauusd_m1m5_directional_locks")
+}
+
+// Closure events already applied to the lock lifecycle (section 6.4).
+//
+// This table IS the idempotency guarantee: a duplicate broker report of the
+// same closure hits the primary key and changes nothing, so it cannot
+// reactivate a lock that has since been legitimately unlocked.
+model XauusdM1M5ProcessedClosure {
+  accountId      String   @map("account_id")
+  closureEventId String   @map("closure_event_id")
+  positionId     String   @map("position_id")
+  processedAt    DateTime @default(now()) @map("processed_at")
+  // WIN / LOSS / ZERO / UNRESOLVED, recorded so a later reader can see how
+  // this closure was classified without re-deriving it.
+  classification String
+
+  @@id([accountId, closureEventId])
+  @@index([accountId, positionId])
+  @@map("xauusd_m1m5_processed_closures")
+}
+
+// Non-overlapping 24-hour reporting periods (section 13.1).
+//
+// The unique constraint on (accountId, startT) prevents two workers, or a
+// worker and a restart, from generating the same period twice. Included
+// position identities are persisted so a regenerated report is provably the
+// same report.
+model XauusdM1M5ReportPeriod {
+  id        String @id @default(uuid())
+  accountId String @map("account_id")
+
+  startT DateTime @map("start_t")
+  endT   DateTime @map("end_t")
+
+  m1Wins   Int @default(0) @map("m1_wins")
+  m1Losses Int @default(0) @map("m1_losses")
+  m5Wins   Int @default(0) @map("m5_wins")
+  m5Losses Int @default(0) @map("m5_losses")
+  // Reported separately, never folded into wins or losses.
+  zeroResults Int @default(0) @map("zero_results")
+  unresolved  Int @default(0)
+
+  netRealized Decimal @default(0) @map("net_realized") @db.Decimal(18, 6)
+
+  includedPositionIds String[] @map("included_position_ids")
+
+  generatedAt DateTime  @default(now()) @map("generated_at")
+  // Delivery is tracked per period, and a failure here never affects trading.
+  deliveredAt   DateTime? @map("delivered_at")
+  deliveryError String?   @map("delivery_error")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, startT])
+  @@index([accountId, endT])
+  @@map("xauusd_m1m5_report_periods")
+}
+
+// The configured order volume, with the audit trail section 7 requires. One
+// row per account; every change is additionally recorded in the audit table
+// below, so "what size was this strategy trading on that date, and who set
+// it" is answerable from the database rather than from memory.
+model XauusdM1M5VolumeSetting {
+  accountId String @id @map("account_id")
+
+  volumeLots Decimal @map("volume_lots") @db.Decimal(18, 6)
+  // V2_DEFAULT / V2_EXPLICIT_SETTING / V2_DEFAULT_AFTER_REJECTION.
+  source     String
+  provenance String
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("xauusd_m1m5_volume_settings")
+}
+
+model XauusdM1M5VolumeAudit {
+  id        String @id @default(uuid())
+  accountId String @map("account_id")
+
+  previousLots Decimal? @map("previous_lots") @db.Decimal(18, 6)
+  newLots      Decimal  @map("new_lots") @db.Decimal(18, 6)
+  source       String
+  provenance   String
+  changedBy    String   @map("changed_by")
+  changedAt    DateTime @default(now()) @map("changed_at")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, changedAt])
+  @@map("xauusd_m1m5_volume_audits")
 }

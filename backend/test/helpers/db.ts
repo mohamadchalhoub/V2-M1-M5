@@ -14,6 +14,17 @@ export async function resetDatabase(prisma: PrismaClient): Promise<void> {
   // one as an already-SUBMITTED attempt, which then suppresses the close
   // request that test was written to observe. Neither table has an FK to
   // anything cleared later in this function, so they go first.
+  // xauusd-m1-m5-rsi-threshold-v2 tables. Cleared first, children before
+  // parents: slot locks and the volume audit reference decisions and the
+  // account, and a leftover slot lock from an earlier test would make a later
+  // one see a timeframe as permanently occupied.
+  await prisma.xauusdM1M5SlotLock.deleteMany();
+  await prisma.xauusdM1M5DirectionalLock.deleteMany();
+  await prisma.xauusdM1M5ProcessedClosure.deleteMany();
+  await prisma.xauusdM1M5ReportPeriod.deleteMany();
+  await prisma.xauusdM1M5VolumeAudit.deleteMany();
+  await prisma.xauusdM1M5VolumeSetting.deleteMany();
+  await prisma.xauusdM1M5Decision.deleteMany();
   await prisma.xauusdRsiLiquidationItem.deleteMany();
   await prisma.xauusdRsiDecision.deleteMany();
   // Retired-strategy decisions. `accountId` is SetNull on account deletion, so
