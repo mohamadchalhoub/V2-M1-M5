@@ -1,0 +1,74 @@
+==============================================================================
+RSI verification against MetaTrader 5’s own iRSI output
+==============================================================================
+
+Source: C:\Users\user\AppData\Roaming\MetaQuotes\Terminal\D0E8209F77C8CF37AD8BF550E51FF075\MQL5\Files\rsi_reference.csv
+Bars:   5000
+First:  2026-09-15T05:40:00.000Z
+Last:   2026-09-18T22:59:00.000Z
+Settings compared: period 5, applied price CLOSE (MT5: PRICE_CLOSE)
+
+## 1. Whole-series agreement
+
+  Compared bars:                 4995
+  Max |difference| (all bars):   3.046e+1
+  Max |difference| (after 300):  4.999e-11
+  Mean |difference| (after 300): 2.496e-11
+  Bars before 300 are excluded from the headline figure because this run seeds
+  from the first bar in the file while the terminal's own buffer has been folding
+  the symbol’s full loaded history. Wilder’s recursive average converges, so the
+  early gap closes rather than persisting.
+
+  Worst converged disagreements:
+    bar 2081 2026-09-16T18:21:00.000Z close=4351.36 mt5=36.2564011160 mine=36.2564011160 diff=4.999e-11
+    bar 4741 2026-09-18T18:41:00.000Z close=4349.99 mt5=17.3979055122 mine=17.3979055122 diff=4.999e-11
+    bar 1265 2026-09-16T04:45:00.000Z close=4288.17 mt5=44.1551158838 mine=44.1551158838 diff=4.997e-11
+
+  VERDICT: MATCHES MT5 (tolerance 1e-6)
+
+## 2. Flat-price behaviour
+
+  The claim under test: MT5 reports RSI 100 when average loss is zero, so a run
+  of 5 unchanged closes reads 100. Checked against real runs of
+  unchanged closes in this data rather than asserted from the published formula.
+
+  Runs of >=2 unchanged closes: 21
+  Runs of >=5 unchanged closes: 0
+
+  No run of unchanged closes long enough to drive average loss to zero occurs in
+  this sample, so the terminal cannot be asked about it directly here. What CAN
+  be stated from the data is below; the fully-flat case is addressed after it.
+
+  This implementation’s zero-denominator convention:
+    rsiFromAverages(gain=1, loss=0) = 100
+    rsiFromAverages(gain=0, loss=0) = 100   <- fully flat series
+    rsiFromAverages(gain=0, loss=1) = 0
+    These reproduce RSI.mq5’s own branch: if average loss is non-zero use the
+    standard formula, else report 100 — including when average gain is also 0.
+
+## 3. Synthetic series (this implementation)
+
+  MetaTrader’s iRSI computes over a symbol’s chart data, so an arbitrary
+  synthetic array cannot be fed to it. These are this implementation’s outputs,
+  reported for the specific cases asked about; the terminal comparison above is
+  what establishes the implementation is faithful in the first place.
+    entirely flat initialised history              -> 100.000000
+    rising, then five flat closes                  -> 100.000000
+    mixed, then five flat closes                   -> 54.545455
+    falling, then five flat closes                 -> 0.000000
+
+    Note the third case: a mixed history leaves a NON-zero smoothed average loss,
+    which decays but never reaches zero, so five flat closes raise RSI without
+    pinning it to 100. Only a history with no downward change at all does that.
+
+## 4. Forming-bar projection vs completed bar
+
+  Projection at the forming bar’s price:  34.4439519785
+  Value once that price closes the bar:   34.4439519785
+  Identical: YES
+  MT5’s own value for that bar:           34.4439519785
+  |projection - MT5|:                      4.589e-11
+  Projection left committed state unchanged: YES
+  Repeated projection is stable (tick density has no effect): YES
+
+Done.

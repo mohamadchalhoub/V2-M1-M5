@@ -1,0 +1,22 @@
+# Single-VPS topology (DEPLOYMENT_SINGLE_VPS.md). Virtual X11 display MT5
+# renders into when nobody is actually watching. Wine/MT5 need a real X
+# display to start against even headless — Xvfb provides one entirely in
+# memory, nothing is ever actually drawn to a screen.
+#
+# Install: sudo cp deploy/systemd/xvfb.service /etc/systemd/system/
+#          sudo systemctl daemon-reload
+#          sudo systemctl enable --now xvfb.service
+
+[Unit]
+Description=Virtual X11 display :99 for headless MT5 (Wine)
+After=network.target
+
+[Service]
+Type=simple
+User=deploy
+ExecStart=/usr/bin/Xvfb :99 -screen 0 1280x1024x24 -nolisten tcp
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

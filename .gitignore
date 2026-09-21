@@ -1,0 +1,22 @@
+
+# Operational runtime artefacts — machine state, not source.
+backend/GOLD_KILL_SWITCH
+backend/XAUUSD_RSI_KILL_SWITCH
+backend/GOLD_STOP_NEW_ENTRIES
+backend/XAUUSD_RSI_STOP_NEW_ENTRIES
+backend/gold-execution-runtime/
+backend/xauusd-rsi-runtime/
+.xauusd-rsi-runtime/
+.gold-demo-runtime/
+**/dev.out.log
+collector/collector.run.log
+collector/logs/
+
+# --- Added when this project was created from trading-monitor-autonomous ----
+# The source repository had its Python virtualenv committed (3,297 files) and
+# several run logs, because neither was ignored there. They were excluded from
+# the copy; these rules stop them coming back.
+collector/.venv/
+.venv/
+venv/
+*.log

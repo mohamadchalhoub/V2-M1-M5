@@ -1,0 +1,20 @@
+[
+  {
+    "regime": "winter (US standard, EU standard)",
+    "date": "2025-01-15",
+    "intendedWindowBeirut": "03:00-12:00",
+    "barOpensAdmittedByBacktest_inTrueBeirutTime": "01:00 .. 09:00 (9 hourly opens)"
+  },
+  {
+    "regime": "US DST only (mismatch week)",
+    "date": "2025-03-19",
+    "intendedWindowBeirut": "03:00-12:00",
+    "barOpensAdmittedByBacktest_inTrueBeirutTime": "01:00 .. 09:00 (9 hourly opens)"
+  },
+  {
+    "regime": "summer (US DST, EU DST)",
+    "date": "2025-07-16",
+    "intendedWindowBeirut": "03:00-12:00",
+    "barOpensAdmittedByBacktest_inTrueBeirutTime": "00:00 .. 08:00 (9 hourly opens)"
+  }
+]

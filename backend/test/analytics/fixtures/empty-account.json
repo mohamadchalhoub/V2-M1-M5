@@ -1,0 +1,75 @@
+{
+  "description": "empty-account",
+  "account": { "tradingDayTimezone": "UTC", "tradingDayResetHour": 0 },
+  "now": "2026-01-10T12:00:00Z",
+  "snapshots": [],
+  "trades": [],
+  "positions": [],
+  "baselineWindowDays": 90,
+  "expectedCurrent": {
+    "account": {
+      "startingBalance": null,
+      "currentBalance": null,
+      "currentEquity": null,
+      "dailyPl": null,
+      "dailyProfit": null,
+      "dailyLoss": null,
+      "drawdown": null,
+      "maxDrawdown": null,
+      "margin": null,
+      "freeMargin": null,
+      "marginLevel": null
+    },
+    "activity": {
+      "totalTrades": 0,
+      "winningTrades": 0,
+      "losingTrades": 0,
+      "winRate": null,
+      "averageWinningTrade": null,
+      "averageLosingTrade": null,
+      "largestWinningTrade": null,
+      "largestLosingTrade": null,
+      "totalRealizedPlGross": 0,
+      "totalRealizedPl": 0,
+      "totalCommission": 0,
+      "totalSwap": 0
+    },
+    "position": {
+      "currentOpenPositions": 0,
+      "currentTotalVolume": 0,
+      "maximumPositionVolume": null,
+      "positionVolumeBySymbol": [],
+      "numberOfSimultaneousPositions": 0,
+      "averageHistoricalPositionVolume": null,
+      "openPositionsWithoutStopLoss": 0,
+      "maximumSymbolConcentrationPct": null,
+      "maximumDirectionConcentrationPct": null
+    },
+    "frequency": {
+      "tradesPerDay": 0,
+      "tradesPerHour": 0,
+      "averageTimeBetweenTrades": null,
+      "averageTradesPerSession": null
+    },
+    "sequences": {
+      "currentConsecutiveWins": 0,
+      "currentConsecutiveLosses": 0,
+      "maxConsecutiveWins": 0,
+      "maxConsecutiveLosses": 0
+    }
+  },
+  "expectedBaselines": {
+    "windowDays": 90,
+    "windowStart": "2026-01-10T00:00:00.000Z",
+    "windowEnd": "2026-01-10T00:00:00.000Z",
+    "averageDailyPl": null,
+    "averageDailyLoss": null,
+    "averageTradesPerDay": null,
+    "averagePositionVolume": null,
+    "maximumNormalPositionVolume": null,
+    "averageTradeDuration": null,
+    "averageLosingTrade": null,
+    "averageWinningTrade": null,
+    "averageTradesPerHour": null
+  }
+}

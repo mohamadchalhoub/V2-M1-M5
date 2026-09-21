@@ -1,0 +1,29 @@
+== bar set ==
+ h4_bars |    first_server     |     last_server     
+---------+---------------------+---------------------
+    5618 | 2023-01-26 00:00:00 | 2026-09-11 16:00:00
+
+== price precision: stored values that are not multiples of symbol_metadata.trade_tick_size ==
+ digits |   point    | trade_tick_size | h4_rows_off_tick_grid | h4_rows 
+--------+------------+-----------------+-----------------------+---------
+      2 | 0.01000000 |      0.01000000 |                     0 |    5619
+
+CREATE VIEW
+CREATE VIEW
+== pivot and rejection counts ==
+    role    | candidates | qualified | rejected_no_10usd_close 
+------------+------------+-----------+-------------------------
+ RESISTANCE |        774 |       573 |                     201
+ SUPPORT    |        793 |       635 |                     158
+
+== every same-role pair with EXACTLY equal stored price, any distance ==
+  role   |    price    | first_h4_index | first_pivot_server_time | second_h4_index | second_pivot_server_time | h4_index_separation | first_qualified | second_qualified 
+---------+-------------+----------------+-------------------------+-----------------+--------------------------+---------------------+-----------------+------------------
+ SUPPORT | 1956.710000 |            502 | 2023-05-24 16:00:00     |            1215 | 2023-11-07 12:00:00      |                 713 | f               | t
+
+== same-role pairs whose index separation is within 5..120 (this is the ~25,000 population), by exact stored price difference ==
+    role    | pairs_in_5_120_window | both_qualified | exact_equal | diff_1_to_5_ticks | diff_6_to_10_ticks | both_qualified_within_10_ticks 
+------------+-----------------------+----------------+-------------+-------------------+--------------------+--------------------------------
+ RESISTANCE |                 12317 |           6995 |           0 |                 6 |                 13 |                             10
+ SUPPORT    |                 12809 |           8749 |           0 |                 9 |                 17 |                             18
+

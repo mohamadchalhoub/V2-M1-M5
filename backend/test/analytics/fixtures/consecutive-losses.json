@@ -1,0 +1,99 @@
+{
+  "description": "consecutive-losses",
+  "account": { "tradingDayTimezone": "UTC", "tradingDayResetHour": 0 },
+  "now": "2026-06-01T12:00:00Z",
+  "snapshots": [
+    { "capturedAt": "2026-05-31T00:00:00Z", "balance": 1000, "equity": 1000 },
+    { "capturedAt": "2026-06-01T00:00:00Z", "balance": 965, "equity": 965 },
+    { "capturedAt": "2026-06-01T12:00:00Z", "balance": 965, "equity": 965 }
+  ],
+  "trades": [
+    { "externalTradeId": "T1", "positionId": "POS1", "symbol": "NZDUSD", "dealEntry": "IN", "volume": 0.10, "price": 0.6000, "profit": 0, "executedAt": "2026-05-31T08:00:00Z" },
+    { "externalTradeId": "T2", "positionId": "POS1", "symbol": "NZDUSD", "dealEntry": "OUT", "volume": 0.10, "price": 0.5990, "profit": -10, "executedAt": "2026-05-31T08:05:00Z" },
+    { "externalTradeId": "T3", "positionId": "POS2", "symbol": "NZDUSD", "dealEntry": "IN", "volume": 0.10, "price": 0.6000, "profit": 0, "executedAt": "2026-05-31T08:10:00Z" },
+    { "externalTradeId": "T4", "positionId": "POS2", "symbol": "NZDUSD", "dealEntry": "OUT", "volume": 0.10, "price": 0.5990, "profit": -10, "executedAt": "2026-05-31T08:15:00Z" },
+    { "externalTradeId": "T5", "positionId": "POS3", "symbol": "NZDUSD", "dealEntry": "IN", "volume": 0.10, "price": 0.6000, "profit": 0, "executedAt": "2026-05-31T08:20:00Z" },
+    { "externalTradeId": "T6", "positionId": "POS3", "symbol": "NZDUSD", "dealEntry": "OUT", "volume": 0.10, "price": 0.5990, "profit": -10, "executedAt": "2026-05-31T08:25:00Z" },
+    { "externalTradeId": "T7", "positionId": "POS4", "symbol": "NZDUSD", "dealEntry": "IN", "volume": 0.10, "price": 0.6000, "profit": 0, "executedAt": "2026-05-31T08:30:00Z" },
+    { "externalTradeId": "T8", "positionId": "POS4", "symbol": "NZDUSD", "dealEntry": "OUT", "volume": 0.10, "price": 0.6015, "profit": 15, "executedAt": "2026-05-31T08:35:00Z" },
+    { "externalTradeId": "T9", "positionId": "POS5", "symbol": "NZDUSD", "dealEntry": "IN", "volume": 0.10, "price": 0.6000, "profit": 0, "executedAt": "2026-05-31T08:40:00Z" },
+    { "externalTradeId": "T10", "positionId": "POS5", "symbol": "NZDUSD", "dealEntry": "OUT", "volume": 0.10, "price": 0.5990, "profit": -10, "executedAt": "2026-05-31T08:45:00Z" },
+    { "externalTradeId": "T11", "positionId": "POS6", "symbol": "NZDUSD", "dealEntry": "IN", "volume": 0.10, "price": 0.6000, "profit": 0, "executedAt": "2026-05-31T08:50:00Z" },
+    { "externalTradeId": "T12", "positionId": "POS6", "symbol": "NZDUSD", "dealEntry": "OUT", "volume": 0.10, "price": 0.5990, "profit": -10, "executedAt": "2026-05-31T08:55:00Z" }
+  ],
+  "positions": [
+    { "externalPositionId": "POS1", "symbol": "NZDUSD", "volume": 0.10, "openPrice": 0.6000, "status": "CLOSED", "openedAt": "2026-05-31T08:00:00Z" },
+    { "externalPositionId": "POS2", "symbol": "NZDUSD", "volume": 0.10, "openPrice": 0.6000, "status": "CLOSED", "openedAt": "2026-05-31T08:10:00Z" },
+    { "externalPositionId": "POS3", "symbol": "NZDUSD", "volume": 0.10, "openPrice": 0.6000, "status": "CLOSED", "openedAt": "2026-05-31T08:20:00Z" },
+    { "externalPositionId": "POS4", "symbol": "NZDUSD", "volume": 0.10, "openPrice": 0.6000, "status": "CLOSED", "openedAt": "2026-05-31T08:30:00Z" },
+    { "externalPositionId": "POS5", "symbol": "NZDUSD", "volume": 0.10, "openPrice": 0.6000, "status": "CLOSED", "openedAt": "2026-05-31T08:40:00Z" },
+    { "externalPositionId": "POS6", "symbol": "NZDUSD", "volume": 0.10, "openPrice": 0.6000, "status": "CLOSED", "openedAt": "2026-05-31T08:50:00Z" }
+  ],
+  "baselineWindowDays": 90,
+  "expectedCurrent": {
+    "account": {
+      "startingBalance": 965,
+      "currentBalance": 965,
+      "currentEquity": 965,
+      "dailyPl": 0,
+      "dailyProfit": 0,
+      "dailyLoss": 0,
+      "drawdown": 0.035,
+      "maxDrawdown": 0.035,
+      "margin": 0,
+      "freeMargin": 965,
+      "marginLevel": null
+    },
+    "activity": {
+      "totalTrades": 6,
+      "winningTrades": 1,
+      "losingTrades": 5,
+      "winRate": 0.1667,
+      "averageWinningTrade": 15,
+      "averageLosingTrade": -10,
+      "largestWinningTrade": 15,
+      "largestLosingTrade": -10,
+      "totalRealizedPlGross": -35,
+      "totalRealizedPl": -35,
+      "totalCommission": 0,
+      "totalSwap": 0
+    },
+    "position": {
+      "currentOpenPositions": 0,
+      "currentTotalVolume": 0,
+      "maximumPositionVolume": null,
+      "positionVolumeBySymbol": [],
+      "numberOfSimultaneousPositions": 0,
+      "averageHistoricalPositionVolume": 0.10,
+      "openPositionsWithoutStopLoss": 0,
+      "maximumSymbolConcentrationPct": null,
+      "maximumDirectionConcentrationPct": null
+    },
+    "frequency": {
+      "tradesPerDay": 0,
+      "tradesPerHour": 0,
+      "averageTimeBetweenTrades": 10,
+      "averageTradesPerSession": 6
+    },
+    "sequences": {
+      "currentConsecutiveWins": 0,
+      "currentConsecutiveLosses": 2,
+      "maxConsecutiveWins": 1,
+      "maxConsecutiveLosses": 3
+    }
+  },
+  "expectedBaselines": {
+    "windowDays": 90,
+    "windowStart": "2026-05-31T00:00:00.000Z",
+    "windowEnd": "2026-06-01T00:00:00.000Z",
+    "averageDailyPl": -35,
+    "averageDailyLoss": 35,
+    "averageTradesPerDay": 6,
+    "averagePositionVolume": 0.10,
+    "maximumNormalPositionVolume": 0.10,
+    "averageTradeDuration": 5,
+    "averageLosingTrade": -10,
+    "averageWinningTrade": 15,
+    "averageTradesPerHour": 0.25
+  }
+}

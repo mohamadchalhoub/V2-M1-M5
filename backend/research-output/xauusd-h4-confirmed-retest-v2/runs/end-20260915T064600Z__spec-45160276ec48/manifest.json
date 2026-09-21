@@ -1,0 +1,263 @@
+{
+  "strategyVersion": "xauusd-h4-confirmed-retest-v2",
+  "specHash": "45160276ec48c41b00648abc91866b04d9a4c0be1086379eb54f5683e14de0e6",
+  "specRevision": 1,
+  "runId": "end-20260915T064600Z__spec-45160276ec48",
+  "runCommand": "npm run confirmed-retest-v2:study -- --end 2026-09-15T06:46:00.000Z",
+  "generatedAtUtc": "2026-09-15T08:32:44.679Z",
+  "gitCommit": "8f8de41e68d6ec2b6ec78a02f1ba8234f0d344f0",
+  "gitDirty": true,
+  "dataHash": "d9686b633f55618ee129bc169102b2b8173d6e4ae479d522f8e51630b34be09c",
+  "provenance": {
+    "database": "postgresql://***@127.0.0.1:5443/autonomous_trading",
+    "symbolMetadata": {
+      "symbol": "XAUUSD",
+      "volumeMin": "0.01",
+      "volumeMax": "100",
+      "volumeStep": "0.01",
+      "digits": 2,
+      "point": "0.01",
+      "contractSize": "100",
+      "profitCurrency": "USD",
+      "brokerSymbol": null,
+      "server": "MetaQuotes-Demo",
+      "path": "Metals\\XAUUSD",
+      "currencyBase": "XAU",
+      "currencyProfit": "USD",
+      "currencyMargin": "USD",
+      "tradeTickSize": "0.01",
+      "tradeTickValue": "0.1",
+      "tradeStopsLevel": 0,
+      "tradeFreezeLevel": 0,
+      "tradeMode": 4,
+      "swapMode": 1,
+      "swapLong": "-12.6",
+      "swapShort": "-4.6",
+      "swapRollover3Days": 3,
+      "expirationMode": 15,
+      "expirationTime": null,
+      "source": "MT5",
+      "updatedAt": "2026-09-15T06:46:31.045Z"
+    },
+    "candleRowServerColumn": [
+      {
+        "timeframe": "D1",
+        "rows": 1008,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "H1",
+        "rows": 15396,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "H4",
+        "rows": 5627,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "M1",
+        "rows": 881173,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "M15",
+        "rows": 59835,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "M30",
+        "rows": 30119,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "M5",
+        "rows": 176481,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "MN1",
+        "rows": 149,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "W1",
+        "rows": 288,
+        "rowsWithServer": 0,
+        "servers": null
+      }
+    ],
+    "ledger": [
+      {
+        "dataType": "CANDLE",
+        "timeframe": "D1",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2022-10-17T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "H1",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2024-01-30T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "H4",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2023-01-25T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "M1",
+        "status": "COMPLETED",
+        "intervals": 32,
+        "rangeStart": "2024-02-29T21:59:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "M15",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2024-02-24T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "M30",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2024-02-19T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "M5",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2024-02-27T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "M5",
+        "status": "PENDING",
+        "intervals": 1,
+        "rangeStart": "2023-10-24T22:00:00.000Z",
+        "rangeEnd": "2024-02-29T22:00:00.000Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "MN1",
+        "status": "COMPLETED",
+        "intervals": 32,
+        "rangeStart": "2014-03-03T22:00:00.000Z",
+        "rangeEnd": "2026-08-19T00:00:00.000Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "MN1",
+        "status": "EMPTY_CONFIRMED",
+        "intervals": 2,
+        "rangeStart": "2026-08-19T00:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "W1",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2021-03-01T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T00:00:00.000Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "W1",
+        "status": "EMPTY_CONFIRMED",
+        "intervals": 1,
+        "rangeStart": "2026-09-13T00:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "TICK",
+        "timeframe": "_TICK_",
+        "status": "COMPLETED",
+        "intervals": 28,
+        "rangeStart": "2026-09-15T00:54:40.470Z",
+        "rangeEnd": "2026-09-15T07:02:10.613Z"
+      },
+      {
+        "dataType": "TICK",
+        "timeframe": "_TICK_",
+        "status": "EMPTY_UNCONFIRMED",
+        "intervals": 3,
+        "rangeStart": "2026-09-15T00:39:24.055Z",
+        "rangeEnd": "2026-09-15T00:55:10.470Z"
+      },
+      {
+        "dataType": "TICK",
+        "timeframe": "_TICK_",
+        "status": "FAILED",
+        "intervals": 12,
+        "rangeStart": "2024-02-29T22:00:00.000Z",
+        "rangeEnd": "2026-09-15T08:22:54.675Z"
+      },
+      {
+        "dataType": "TICK",
+        "timeframe": "_TICK_",
+        "status": "PENDING",
+        "intervals": 1,
+        "rangeStart": "2024-03-04T22:00:00.000Z",
+        "rangeEnd": "2024-03-05T22:00:00.000Z"
+      }
+    ],
+    "storedTicks": 17151,
+    "liveTicks": 1,
+    "accountSnapshots": 3569,
+    "backfillLogInstrumentVerification": "collector/logs/gold_backfill_run5.log (2026-09-13T10:08:23Z): login 5055783885, server MetaQuotes-Demo, account_trade_mode 0 (DEMO), symbol XAUUSD path Metals\\XAUUSD \"Gold vs US Dollar\", currency_base XAU, currency_profit USD, no real expiration. Per-row candle provenance columns (server/broker_symbol) are NULL for every stored row, so provenance rests on this log and symbol_metadata."
+  },
+  "mode": "HISTORICAL_STUDY",
+  "frozenEndUtc": "2026-09-15T06:46:00.000Z",
+  "studyStartUtc": "2024-02-29T22:00:00.000Z",
+  "warmupStartUtc": "2023-01-25T22:00:00.000Z",
+  "runtime": {
+    "node": "24.4.1",
+    "icu": "77.1",
+    "tzdata": "2025b"
+  },
+  "executionBoundary": "NO ORDER PATH — research replay / watch-only",
+  "conclusion": {
+    "conclusion": "LOSING_UNDER_TESTED_ASSUMPTIONS",
+    "reason": "Wilson 95% upper bound 50.1% of 19/52 is below the 52.0% ASSUMED_BASE breakeven"
+  },
+  "files": [
+    "manifest.json",
+    "spec.json",
+    "coverage.json",
+    "formation.json",
+    "levels.json",
+    "levels.csv",
+    "pivots.csv",
+    "retests.csv",
+    "events.json",
+    "events.csv",
+    "event-study.json",
+    "paper-summary.json",
+    "paper-branches.json",
+    "REPORT.md"
+  ]
+}

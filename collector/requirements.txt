@@ -1,0 +1,8 @@
+MetaTrader5>=5.0.45
+python-dotenv>=1.0.1
+requests>=2.32.0
+# Windows has no built-in IANA timezone database (unlike Linux/macOS) —
+# zoneinfo.ZoneInfo() raises ZoneInfoNotFoundError without this. Needed to
+# correctly convert MT5's broker-server-time position/deal timestamps to
+# true UTC (see mt5_client.py's _mt5_time_to_utc).
+tzdata>=2024.1

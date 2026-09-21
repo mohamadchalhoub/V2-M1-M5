@@ -1,0 +1,89 @@
+{
+  "description": "multiple-positions",
+  "account": { "tradingDayTimezone": "UTC", "tradingDayResetHour": 0 },
+  "now": "2026-04-01T10:00:00Z",
+  "snapshots": [
+    { "capturedAt": "2026-04-01T00:00:00Z", "balance": 1000, "equity": 1000 },
+    { "capturedAt": "2026-04-01T10:00:00Z", "balance": 1000, "equity": 1018 }
+  ],
+  "trades": [
+    { "externalTradeId": "T1", "positionId": "P1", "symbol": "EURUSD", "dealEntry": "IN", "volume": 0.50, "price": 1.1000, "commission": -1, "profit": 0, "executedAt": "2026-04-01T08:00:00Z" },
+    { "externalTradeId": "T2", "positionId": "P2", "symbol": "EURUSD", "dealEntry": "IN", "volume": 0.30, "price": 1.1000, "commission": -1, "profit": 0, "executedAt": "2026-04-01T09:00:00Z" },
+    { "externalTradeId": "T3", "positionId": "P3", "symbol": "GBPUSD", "dealEntry": "IN", "volume": 1.20, "price": 1.2500, "commission": -2, "profit": 0, "executedAt": "2026-04-01T09:30:00Z" }
+  ],
+  "positions": [
+    { "externalPositionId": "P1", "symbol": "EURUSD", "volume": 0.50, "openPrice": 1.1000, "status": "OPEN", "openedAt": "2026-04-01T08:00:00Z", "profit": 15 },
+    { "externalPositionId": "P2", "symbol": "EURUSD", "volume": 0.30, "openPrice": 1.1000, "status": "OPEN", "openedAt": "2026-04-01T09:00:00Z", "profit": -5 },
+    { "externalPositionId": "P3", "symbol": "GBPUSD", "volume": 1.20, "openPrice": 1.2500, "status": "OPEN", "openedAt": "2026-04-01T09:30:00Z", "profit": 8, "swap": 0.5 }
+  ],
+  "baselineWindowDays": 90,
+  "expectedCurrent": {
+    "account": {
+      "startingBalance": 1000,
+      "currentBalance": 1000,
+      "currentEquity": 1018,
+      "dailyPl": 18,
+      "dailyProfit": 18,
+      "dailyLoss": 0,
+      "drawdown": 0,
+      "maxDrawdown": 0,
+      "margin": 0,
+      "freeMargin": 1000,
+      "marginLevel": null
+    },
+    "activity": {
+      "totalTrades": 0,
+      "winningTrades": 0,
+      "losingTrades": 0,
+      "winRate": null,
+      "averageWinningTrade": null,
+      "averageLosingTrade": null,
+      "largestWinningTrade": null,
+      "largestLosingTrade": null,
+      "totalRealizedPlGross": 0,
+      "totalRealizedPl": 0,
+      "totalCommission": -4,
+      "totalSwap": 0
+    },
+    "position": {
+      "currentOpenPositions": 3,
+      "currentTotalVolume": 2.00,
+      "maximumPositionVolume": 1.20,
+      "positionVolumeBySymbol": [
+        { "symbol": "EURUSD", "totalVolume": 0.80, "count": 2 },
+        { "symbol": "GBPUSD", "totalVolume": 1.20, "count": 1 }
+      ],
+      "numberOfSimultaneousPositions": 3,
+      "averageHistoricalPositionVolume": 0.67,
+      "openPositionsWithoutStopLoss": 3,
+      "maximumSymbolConcentrationPct": 0.6,
+      "maximumDirectionConcentrationPct": 1
+    },
+    "frequency": {
+      "tradesPerDay": 0,
+      "tradesPerHour": 0,
+      "averageTimeBetweenTrades": null,
+      "averageTradesPerSession": null
+    },
+    "sequences": {
+      "currentConsecutiveWins": 0,
+      "currentConsecutiveLosses": 0,
+      "maxConsecutiveWins": 0,
+      "maxConsecutiveLosses": 0
+    }
+  },
+  "expectedBaselines": {
+    "windowDays": 90,
+    "windowStart": "2026-04-01T00:00:00.000Z",
+    "windowEnd": "2026-04-01T00:00:00.000Z",
+    "averageDailyPl": null,
+    "averageDailyLoss": null,
+    "averageTradesPerDay": null,
+    "averagePositionVolume": null,
+    "maximumNormalPositionVolume": null,
+    "averageTradeDuration": null,
+    "averageLosingTrade": null,
+    "averageWinningTrade": null,
+    "averageTradesPerHour": null
+  }
+}

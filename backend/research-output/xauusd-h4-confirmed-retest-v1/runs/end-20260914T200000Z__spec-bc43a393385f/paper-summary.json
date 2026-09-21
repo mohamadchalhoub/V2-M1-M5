@@ -1,0 +1,354 @@
+[
+  {
+    "summary": {
+      "balanceId": "ASSUMED_1000_PRIMARY",
+      "costId": "IDEALIZED_GROSS",
+      "startingBalanceUsd": 1000,
+      "branches": 1,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        0,
+        0
+      ],
+      "wins": [
+        0,
+        0
+      ],
+      "losses": [
+        0,
+        0
+      ],
+      "netPnlUsd": [
+        0,
+        0
+      ],
+      "netExpectancyUsdPerTrade": null,
+      "profitFactor": null,
+      "maxEquityDrawdownUsd": [
+        0,
+        0
+      ],
+      "maxEquityDrawdownPct": [
+        0,
+        0
+      ],
+      "exposurePct": [
+        0,
+        0
+      ],
+      "decisionTally": {},
+      "exact": true
+    },
+    "decisionsByEvent": {}
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_1000_PRIMARY",
+      "costId": "ASSUMED_LOW",
+      "startingBalanceUsd": 1000,
+      "branches": 1,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        0,
+        0
+      ],
+      "wins": [
+        0,
+        0
+      ],
+      "losses": [
+        0,
+        0
+      ],
+      "netPnlUsd": [
+        0,
+        0
+      ],
+      "netExpectancyUsdPerTrade": null,
+      "profitFactor": null,
+      "maxEquityDrawdownUsd": [
+        0,
+        0
+      ],
+      "maxEquityDrawdownPct": [
+        0,
+        0
+      ],
+      "exposurePct": [
+        0,
+        0
+      ],
+      "decisionTally": {},
+      "exact": true
+    },
+    "decisionsByEvent": {}
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_1000_PRIMARY",
+      "costId": "ASSUMED_BASE",
+      "startingBalanceUsd": 1000,
+      "branches": 1,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        0,
+        0
+      ],
+      "wins": [
+        0,
+        0
+      ],
+      "losses": [
+        0,
+        0
+      ],
+      "netPnlUsd": [
+        0,
+        0
+      ],
+      "netExpectancyUsdPerTrade": null,
+      "profitFactor": null,
+      "maxEquityDrawdownUsd": [
+        0,
+        0
+      ],
+      "maxEquityDrawdownPct": [
+        0,
+        0
+      ],
+      "exposurePct": [
+        0,
+        0
+      ],
+      "decisionTally": {},
+      "exact": true
+    },
+    "decisionsByEvent": {}
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_1000_PRIMARY",
+      "costId": "ASSUMED_STRESS",
+      "startingBalanceUsd": 1000,
+      "branches": 1,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        0,
+        0
+      ],
+      "wins": [
+        0,
+        0
+      ],
+      "losses": [
+        0,
+        0
+      ],
+      "netPnlUsd": [
+        0,
+        0
+      ],
+      "netExpectancyUsdPerTrade": null,
+      "profitFactor": null,
+      "maxEquityDrawdownUsd": [
+        0,
+        0
+      ],
+      "maxEquityDrawdownPct": [
+        0,
+        0
+      ],
+      "exposurePct": [
+        0,
+        0
+      ],
+      "decisionTally": {},
+      "exact": true
+    },
+    "decisionsByEvent": {}
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_10000_SENSITIVITY",
+      "costId": "IDEALIZED_GROSS",
+      "startingBalanceUsd": 10000,
+      "branches": 1,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        0,
+        0
+      ],
+      "wins": [
+        0,
+        0
+      ],
+      "losses": [
+        0,
+        0
+      ],
+      "netPnlUsd": [
+        0,
+        0
+      ],
+      "netExpectancyUsdPerTrade": null,
+      "profitFactor": null,
+      "maxEquityDrawdownUsd": [
+        0,
+        0
+      ],
+      "maxEquityDrawdownPct": [
+        0,
+        0
+      ],
+      "exposurePct": [
+        0,
+        0
+      ],
+      "decisionTally": {},
+      "exact": true
+    },
+    "decisionsByEvent": {}
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_10000_SENSITIVITY",
+      "costId": "ASSUMED_LOW",
+      "startingBalanceUsd": 10000,
+      "branches": 1,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        0,
+        0
+      ],
+      "wins": [
+        0,
+        0
+      ],
+      "losses": [
+        0,
+        0
+      ],
+      "netPnlUsd": [
+        0,
+        0
+      ],
+      "netExpectancyUsdPerTrade": null,
+      "profitFactor": null,
+      "maxEquityDrawdownUsd": [
+        0,
+        0
+      ],
+      "maxEquityDrawdownPct": [
+        0,
+        0
+      ],
+      "exposurePct": [
+        0,
+        0
+      ],
+      "decisionTally": {},
+      "exact": true
+    },
+    "decisionsByEvent": {}
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_10000_SENSITIVITY",
+      "costId": "ASSUMED_BASE",
+      "startingBalanceUsd": 10000,
+      "branches": 1,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        0,
+        0
+      ],
+      "wins": [
+        0,
+        0
+      ],
+      "losses": [
+        0,
+        0
+      ],
+      "netPnlUsd": [
+        0,
+        0
+      ],
+      "netExpectancyUsdPerTrade": null,
+      "profitFactor": null,
+      "maxEquityDrawdownUsd": [
+        0,
+        0
+      ],
+      "maxEquityDrawdownPct": [
+        0,
+        0
+      ],
+      "exposurePct": [
+        0,
+        0
+      ],
+      "decisionTally": {},
+      "exact": true
+    },
+    "decisionsByEvent": {}
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_10000_SENSITIVITY",
+      "costId": "ASSUMED_STRESS",
+      "startingBalanceUsd": 10000,
+      "branches": 1,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        0,
+        0
+      ],
+      "wins": [
+        0,
+        0
+      ],
+      "losses": [
+        0,
+        0
+      ],
+      "netPnlUsd": [
+        0,
+        0
+      ],
+      "netExpectancyUsdPerTrade": null,
+      "profitFactor": null,
+      "maxEquityDrawdownUsd": [
+        0,
+        0
+      ],
+      "maxEquityDrawdownPct": [
+        0,
+        0
+      ],
+      "exposurePct": [
+        0,
+        0
+      ],
+      "decisionTally": {},
+      "exact": true
+    },
+    "decisionsByEvent": {}
+  }
+]

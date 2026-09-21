@@ -1,0 +1,37 @@
+# See docker-compose.yml's own comment on this field — same fix, same reason.
+name: autonomous-trading
+
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: autonomous-trading-postgres-test
+    environment:
+      POSTGRES_USER: autonomous_trading
+      POSTGRES_PASSWORD: autonomous_trading_test_password
+      POSTGRES_DB: autonomous_trading_test
+    ports:
+      # v2-dedicated test port — distinct from both v1's dev/test Postgres
+      # (5433/5434) AND v2's own dev Postgres (5443) above.
+      - "5444:5432"
+    tmpfs:
+      # RAM-backed, no named volume — genuinely disposable, same convention
+      # as v1's own docker-compose.test.yml.
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autonomous_trading"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: autonomous-trading-redis-test
+    ports:
+      # v2-dedicated test port — distinct from v1's dev/test Redis
+      # (6380/6381) AND v2's own dev Redis (6480) above.
+      - "6481:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 15

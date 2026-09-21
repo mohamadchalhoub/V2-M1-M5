@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+
+# Timestamped .env backups (contain real credentials, same as .env itself)
+.env.bak-*

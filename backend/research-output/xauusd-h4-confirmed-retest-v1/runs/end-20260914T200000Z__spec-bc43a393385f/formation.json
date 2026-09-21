@@ -1,0 +1,31 @@
+{
+  "h4BarsProcessed": 5624,
+  "d1BarsProcessed": 1007,
+  "pivotCandidates": {
+    "SUPPORT": 794,
+    "RESISTANCE": 775
+  },
+  "qualifiedPivots": {
+    "SUPPORT": 636,
+    "RESISTANCE": 574
+  },
+  "rejectedNoRejectionClose": {
+    "SUPPORT": 158,
+    "RESISTANCE": 201
+  },
+  "exactPriceRepeatPairsAnyDistance": {
+    "SUPPORT": 1,
+    "RESISTANCE": 0
+  },
+  "exactPriceRepeatPairsInDistanceWindow": {
+    "SUPPORT": 0,
+    "RESISTANCE": 0
+  },
+  "pairOutcomes": {},
+  "levelsActivated": {
+    "SUPPORT": 0,
+    "RESISTANCE": 0
+  },
+  "activationsBlocked": {},
+  "d1AgreementTagged": 0
+}

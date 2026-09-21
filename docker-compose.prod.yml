@@ -1,0 +1,309 @@
+# Phase 11 — DEPLOYMENT.md. The LINUX-HOST HALF of the two-host topology
+# (Phase 0 §25): NestJS, PostgreSQL, Redis, and the web dashboard, all here,
+# behind Caddy as the TLS-terminating reverse proxy. The Windows VPS running
+# MT5 + the Python collector is deliberately NOT a service in this file — it
+# runs outside Docker, on its own host, and only ever pushes outbound HTTPS
+# to whatever domain Caddy serves `api` on (see collector/.env's
+# COLLECTOR_API_BASE_URL). No inbound port is ever opened toward it.
+#
+# Usage: cp backend/.env.production.example backend/.env.production (fill
+# in real secrets), same for frontend/, then:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Explicit project name — same root-cause fix as backend/docker-compose.yml
+# (dev), applied here too. Compose derives project identity from the
+# CURRENT DIRECTORY'S BASENAME by default, not the full path — on a VPS
+# that also hosts v1 (whose own prod compose project is literally named
+# "trading-monitor", derived the same default way from its own directory),
+# an accidental basename collision would make `docker compose up` here
+# silently adopt and "recreate" v1's real, live containers. This makes v2's
+# project identity unambiguous no matter what directory it's deployed from.
+name: autonomous-trading
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    # Explicit and distinct from the dev compose's "autonomous-trading-postgres"
+    # (backend/docker-compose.yml) — backup.sh/restore.sh's POSTGRES_CONTAINER
+    # override already existed as a mechanism; the container just had nothing
+    # predictable to point it at. This name is what .env.production's
+    # POSTGRES_CONTAINER should reference. Also distinct from v1's own prod
+    # container name — this project must never share a container name (or a
+    # database) with v1, even if it's ever deployed to the same VPS.
+    container_name: autonomous-trading-postgres-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - autonomous_trading_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # AOF persistence, same reasoning as dev (backend/docker-compose.yml) —
+    # plus a password, since this instance is reachable from other
+    # containers on a network that (unlike dev) isn't purely local-machine.
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - autonomous_trading_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  # One-shot: applies pending Prisma migrations, then exits. `api` waits for
+  # this to exit 0 before starting — never runs migrations from its own
+  # boot path, so a rolling restart of `api` never re-runs `migrate deploy`.
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: build
+    env_file: ./backend/.env.production
+    command: ["npx", "prisma", "migrate", "deploy"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./backend/.env.production
+    # Loopback-only (single-VPS topology, DEPLOYMENT_SINGLE_VPS.md): the
+    # Wine-hosted collector runs on this same host, outside Docker, and
+    # needs to reach the API without round-tripping through the public
+    # domain/Caddy. Bound to 127.0.0.1 specifically — never 0.0.0.0 — so
+    # nothing outside this machine can reach port 3000 directly; the public
+    # path through Caddy (443) is unaffected and still the only externally
+    # reachable route to this service.
+    #
+    # Host port is ${API_HOST_PORT} (default 3010), NOT 3000 — on a VPS
+    # that also runs v1 (whose own api container already binds host
+    # 127.0.0.1:3000), reusing 3000 here would collide. Set API_HOST_PORT
+    # explicitly in .env.production on any host where 3010 is also taken.
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-3010}:3000"
+    # Gold's file-based runtime state (kill switch, stop-new-entries,
+    # runtime settings, AI summaries) defaults to paths under process.cwd()
+    # (/app inside this container, per the *_PATH env vars' own defaults —
+    # see gold-kill-switch.ts etc.) — without a volume, any of that state
+    # (most importantly the kill switch) would silently reset on every
+    # `docker compose up --build`/container recreation. Mounted here so a
+    # redeploy never silently re-arms new entries by discarding an engaged
+    # kill switch.
+    volumes:
+      - gold_runtime_data:/app/gold-execution-runtime
+      - trend_breakout_runtime_data:/app/trend-breakout-execution-runtime
+      # The active strategy's runtime state, shared with xauusd-rsi-scheduler.
+      # The api container is what writes the kill switch, the stop-new-entries
+      # file and the recorded volume when an operator uses the dashboard, so
+      # without this mount those writes land in this container's own /app and
+      # the scheduler never sees them — the kill switch would appear to do
+      # nothing.
+      - xauusd_rsi_runtime_data:/app/xauusd-rsi-runtime
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    # Dashboard authentication (Option B) put a bearer-token guard in front
+    # of the rich /health endpoint, which this container obviously can't
+    # carry — so it polls /health/live instead: a deliberately separate,
+    # deliberately unauthenticated, deliberately minimal endpoint
+    # (health.controller.ts) that answers only 200/503 with no per-component
+    # detail. The 503 logic (fail on DATABASE/REDIS specifically — api's own
+    # direct infrastructure, not external systems a restart can't fix
+    # anyway) now lives server-side in that endpoint, not duplicated here.
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks: [internal, proxy_shared]
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./frontend/.env.production
+    depends_on:
+      api:
+        # Genuinely useful here (not just added for symmetry): the
+        # dashboard's own pages call the API server-side on nearly every
+        # request, so waiting for api's healthcheck avoids a startup window
+        # where web is "up" but every page it serves errors immediately.
+        condition: service_healthy
+    # Only checks that the Next.js server itself answers a request at all
+    # (a hung event loop won't) — deliberately does NOT check whether the
+    # page it serves can reach the API, which would just duplicate api's
+    # own healthcheck and couple the two containers' health together.
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3001/').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    # No domain/Caddy yet — host port lets you reach the dashboard over an
+    # SSH tunnel (`ssh -L 3011:localhost:3011 ...`) in the meantime. Loopback
+    # only, same reasoning as api's WEB_HOST_PORT below; add this service to
+    # v1's shared Caddy later (see the NOTE below) once a domain exists,
+    # dropping this host-port publish at that point if you want it gone.
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT:-3011}:3001"
+    networks: [internal, proxy_shared]
+
+  # Isolated MT5 terminal + Wine-hosted Python collector — see
+  # deploy/docker/mt5-collector/Dockerfile's own header for why this needs
+  # its own container at all (a real port conflict with v1's MT5 terminal,
+  # confirmed by direct testing, not a guess). No host ports: reaches `api`
+  # purely over the internal Docker network. `user` must match the uid/gid
+  # that owns the bind-mounted WINEPREFIX on the host (created once via a
+  # one-time interactive VNC install — see DEPLOYMENT_SINGLE_VPS.md's
+  # "alongside an existing v1" addendum) or Wine refuses to touch it.
+  mt5-collector:
+    build:
+      context: .
+      dockerfile: deploy/docker/mt5-collector/Dockerfile
+    restart: unless-stopped
+    user: "${MT5_COLLECTOR_UID:-1000}:${MT5_COLLECTOR_GID:-1000}"
+    env_file: ./collector/.env.production
+    volumes:
+      - ${MT5_V2_WINEPREFIX_PATH:-/home/deploy/.mt5-v2}:/wineprefix
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [internal]
+
+  # Gold-execution scheduler — the piece that actually evaluates signals on
+  # a fixed interval and queues orders; without this running, the rest of
+  # the stack (api/collector) is just plumbing with nothing deciding to
+  # trade. Reuses the SAME image as `api` (identical Dockerfile/build), just
+  # overrides the entrypoint command to run the compiled scheduler script
+  # instead of the HTTP server. Shares `gold_runtime_data` with `api` (same
+  # mount path) — both processes read/write the same kill-switch/settings
+  # files, so they must never point at divergent volumes.
+  gold-scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./backend/.env.production
+    command: ["node", "dist/scripts/gold-execution-scheduler.js"]
+    volumes:
+      - gold_runtime_data:/app/gold-execution-runtime
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [internal]
+
+  # Trend-breakout (EURUSD + XAUUSD) execution scheduler — the piece that
+  # actually evaluates the H4-trend/H1-breakout signal on a fixed interval
+  # for BOTH instruments and queues orders; without this running, the
+  # strategy's own coordinator/collector plumbing has nothing calling it.
+  # Reuses the SAME image as `api` (identical Dockerfile/build), same
+  # pattern as `gold-scheduler` above. Uses its OWN volume
+  # (`trend_breakout_runtime_data`), deliberately NOT shared with
+  # `gold_runtime_data` — trend-breakout's kill switch/stop-new-entries
+  # files must stay fully isolated from gold's, per the confirmed
+  # per-strategy isolation decision.
+  trend-breakout-scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./backend/.env.production
+    command: ["node", "dist/scripts/trend-breakout-execution-scheduler.js"]
+    volumes:
+      - trend_breakout_runtime_data:/app/trend-breakout-execution-runtime
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [internal]
+
+  # XAUUSD M1 RSI retest/extremes — THE ACTIVE ENTRY STRATEGY.
+  #
+  # Without this service nothing evaluates the strategy: the API serves
+  # pending orders and the collector polls for them, but the watch loop is
+  # what observes XAUUSD, runs the RSI state machine, and queues an entry in
+  # the first place. A deployment that pulls the new code without adding this
+  # service comes up looking healthy and never trades.
+  #
+  # Runs at the spec's one-second cadence, so it is a long-lived process
+  # rather than a cron. Its own volume holds the kill switch, the
+  # stop-new-entries file, the persisted indicator state and the recorded
+  # volume setting — deliberately NOT shared with the retired strategies'
+  # runtime volumes, matching the per-strategy isolation already used above.
+  #
+  # The persisted indicator state is why this volume matters operationally:
+  # a restart that keeps it resumes warm, while losing it forces a fresh
+  # 256-bar warm-up before any signal can fire.
+  xauusd-rsi-scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./backend/.env.production
+    command: ["node", "dist/scripts/xauusd-rsi-scheduler.js"]
+    volumes:
+      - xauusd_rsi_runtime_data:/app/xauusd-rsi-runtime
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [internal]
+
+  # NOTE (single-VPS-alongside-v1 topology): no `caddy` service is defined
+  # in this file, on purpose. v1 already owns host ports 80/443 with its
+  # own Caddy container — a second container binding the same ports on the
+  # same host would simply fail to start. Instead, `api`/`web` above join
+  # the EXTERNAL `proxy_shared` network (created once, manually, on the
+  # host: `docker network create proxy_shared`; v1's existing Caddy
+  # container is then attached to it with `docker network connect
+  # proxy_shared <v1-caddy-container-name>` — v1's own compose file and
+  # containers are never modified). v1's Caddy gets two new site blocks
+  # added to ITS OWN Caddyfile (reverse_proxy to this project's
+  # `autonomous-trading-api-1:3000` / `autonomous-trading-web-1:3001` by
+  # container name, reachable over `proxy_shared`), so ONE already-running
+  # Caddy instance TLS-terminates both systems' public domains, each
+  # proxying into its own completely separate containers/volumes/DB. See
+  # DEPLOYMENT_SINGLE_VPS.md's "alongside an existing v1" addendum for the
+  # exact commands.
+
+networks:
+  internal:
+  proxy_shared:
+    external: true
+
+volumes:
+  autonomous_trading_pgdata:
+  autonomous_trading_redisdata:
+  gold_runtime_data:
+  trend_breakout_runtime_data:
+  # Kill switch, stop-new-entries, persisted indicator state and the
+  # recorded volume setting for the active strategy. Keep this volume across
+  # deployments: losing it costs a full 256-bar warm-up.
+  xauusd_rsi_runtime_data:

@@ -1,0 +1,91 @@
+{
+  "description": "normal-trading-history",
+  "account": { "tradingDayTimezone": "UTC", "tradingDayResetHour": 0 },
+  "now": "2026-01-05T15:00:00Z",
+  "snapshots": [
+    { "capturedAt": "2026-01-03T09:00:00Z", "balance": 1000, "equity": 1000 },
+    { "capturedAt": "2026-01-03T11:00:00Z", "balance": 1050, "equity": 1050 },
+    { "capturedAt": "2026-01-04T23:59:00Z", "balance": 1060, "equity": 1060 },
+    { "capturedAt": "2026-01-05T15:00:00Z", "balance": 1060, "equity": 1060 }
+  ],
+  "trades": [
+    { "externalTradeId": "T1", "positionId": "POS1", "symbol": "EURUSD", "dealEntry": "IN", "volume": 0.10, "price": 1.1000, "profit": 0, "executedAt": "2026-01-03T10:00:00Z" },
+    { "externalTradeId": "T2", "positionId": "POS1", "symbol": "EURUSD", "dealEntry": "OUT", "volume": 0.10, "price": 1.1050, "profit": 50, "executedAt": "2026-01-03T10:30:00Z" },
+    { "externalTradeId": "T3", "positionId": "POS2", "symbol": "EURUSD", "dealEntry": "IN", "volume": 0.10, "price": 1.1000, "profit": 0, "executedAt": "2026-01-04T09:00:00Z" },
+    { "externalTradeId": "T4", "positionId": "POS2", "symbol": "EURUSD", "dealEntry": "OUT", "volume": 0.10, "price": 1.0980, "profit": -20, "executedAt": "2026-01-04T09:20:00Z" },
+    { "externalTradeId": "T5", "positionId": "POS3", "symbol": "EURUSD", "dealEntry": "IN", "volume": 0.10, "price": 1.1000, "profit": 0, "executedAt": "2026-01-04T14:00:00Z" },
+    { "externalTradeId": "T6", "positionId": "POS3", "symbol": "EURUSD", "dealEntry": "OUT", "volume": 0.10, "price": 1.1030, "profit": 30, "executedAt": "2026-01-04T14:15:00Z" }
+  ],
+  "positions": [
+    { "externalPositionId": "POS1", "symbol": "EURUSD", "volume": 0.10, "openPrice": 1.1000, "status": "CLOSED", "openedAt": "2026-01-03T10:00:00Z" },
+    { "externalPositionId": "POS2", "symbol": "EURUSD", "volume": 0.10, "openPrice": 1.1000, "status": "CLOSED", "openedAt": "2026-01-04T09:00:00Z" },
+    { "externalPositionId": "POS3", "symbol": "EURUSD", "volume": 0.10, "openPrice": 1.1000, "status": "CLOSED", "openedAt": "2026-01-04T14:00:00Z" }
+  ],
+  "baselineWindowDays": 90,
+  "expectedCurrent": {
+    "account": {
+      "startingBalance": 1060,
+      "currentBalance": 1060,
+      "currentEquity": 1060,
+      "dailyPl": 0,
+      "dailyProfit": 0,
+      "dailyLoss": 0,
+      "drawdown": 0,
+      "maxDrawdown": 0,
+      "margin": 0,
+      "freeMargin": 1060,
+      "marginLevel": null
+    },
+    "activity": {
+      "totalTrades": 3,
+      "winningTrades": 2,
+      "losingTrades": 1,
+      "winRate": 0.6667,
+      "averageWinningTrade": 40,
+      "averageLosingTrade": -20,
+      "largestWinningTrade": 50,
+      "largestLosingTrade": -20,
+      "totalRealizedPlGross": 60,
+      "totalRealizedPl": 60,
+      "totalCommission": 0,
+      "totalSwap": 0
+    },
+    "position": {
+      "currentOpenPositions": 0,
+      "currentTotalVolume": 0,
+      "maximumPositionVolume": null,
+      "positionVolumeBySymbol": [],
+      "numberOfSimultaneousPositions": 0,
+      "averageHistoricalPositionVolume": 0.10,
+      "openPositionsWithoutStopLoss": 0,
+      "maximumSymbolConcentrationPct": null,
+      "maximumDirectionConcentrationPct": null
+    },
+    "frequency": {
+      "tradesPerDay": 0,
+      "tradesPerHour": 0,
+      "averageTimeBetweenTrades": 832.5,
+      "averageTradesPerSession": 1.5
+    },
+    "sequences": {
+      "currentConsecutiveWins": 1,
+      "currentConsecutiveLosses": 0,
+      "maxConsecutiveWins": 1,
+      "maxConsecutiveLosses": 1
+    }
+  },
+  "expectedBaselines": {
+    "windowDays": 90,
+    "windowStart": "2026-01-03T00:00:00.000Z",
+    "windowEnd": "2026-01-05T00:00:00.000Z",
+    "averageDailyPl": 10,
+    "averageDailyLoss": null,
+    "averageTradesPerDay": 1.5,
+    "averagePositionVolume": 0.10,
+    "maximumNormalPositionVolume": 0.10,
+    "averageTradeDuration": 21.67,
+    "averageLosingTrade": -20,
+    "averageWinningTrade": 40,
+    "averageTradesPerHour": 0.06
+  }
+}

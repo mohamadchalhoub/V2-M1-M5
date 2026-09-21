@@ -1,0 +1,162 @@
+[
+  {
+    "balanceId": "ASSUMED_1000_PRIMARY",
+    "costId": "IDEALIZED_GROSS",
+    "branchCapHit": false,
+    "leaves": [
+      {
+        "labels": [],
+        "trades": [],
+        "decisions": {},
+        "finalEquityUsd": 1000,
+        "netPnlUsd": 0,
+        "maxDrawdownUsd": 0,
+        "maxDrawdownPct": 0,
+        "exposurePct": 0,
+        "drawdownBlockedAtT": null,
+        "halted": null,
+        "openAtEnd": null
+      }
+    ]
+  },
+  {
+    "balanceId": "ASSUMED_1000_PRIMARY",
+    "costId": "ASSUMED_LOW",
+    "branchCapHit": false,
+    "leaves": [
+      {
+        "labels": [],
+        "trades": [],
+        "decisions": {},
+        "finalEquityUsd": 1000,
+        "netPnlUsd": 0,
+        "maxDrawdownUsd": 0,
+        "maxDrawdownPct": 0,
+        "exposurePct": 0,
+        "drawdownBlockedAtT": null,
+        "halted": null,
+        "openAtEnd": null
+      }
+    ]
+  },
+  {
+    "balanceId": "ASSUMED_1000_PRIMARY",
+    "costId": "ASSUMED_BASE",
+    "branchCapHit": false,
+    "leaves": [
+      {
+        "labels": [],
+        "trades": [],
+        "decisions": {},
+        "finalEquityUsd": 1000,
+        "netPnlUsd": 0,
+        "maxDrawdownUsd": 0,
+        "maxDrawdownPct": 0,
+        "exposurePct": 0,
+        "drawdownBlockedAtT": null,
+        "halted": null,
+        "openAtEnd": null
+      }
+    ]
+  },
+  {
+    "balanceId": "ASSUMED_1000_PRIMARY",
+    "costId": "ASSUMED_STRESS",
+    "branchCapHit": false,
+    "leaves": [
+      {
+        "labels": [],
+        "trades": [],
+        "decisions": {},
+        "finalEquityUsd": 1000,
+        "netPnlUsd": 0,
+        "maxDrawdownUsd": 0,
+        "maxDrawdownPct": 0,
+        "exposurePct": 0,
+        "drawdownBlockedAtT": null,
+        "halted": null,
+        "openAtEnd": null
+      }
+    ]
+  },
+  {
+    "balanceId": "ASSUMED_10000_SENSITIVITY",
+    "costId": "IDEALIZED_GROSS",
+    "branchCapHit": false,
+    "leaves": [
+      {
+        "labels": [],
+        "trades": [],
+        "decisions": {},
+        "finalEquityUsd": 10000,
+        "netPnlUsd": 0,
+        "maxDrawdownUsd": 0,
+        "maxDrawdownPct": 0,
+        "exposurePct": 0,
+        "drawdownBlockedAtT": null,
+        "halted": null,
+        "openAtEnd": null
+      }
+    ]
+  },
+  {
+    "balanceId": "ASSUMED_10000_SENSITIVITY",
+    "costId": "ASSUMED_LOW",
+    "branchCapHit": false,
+    "leaves": [
+      {
+        "labels": [],
+        "trades": [],
+        "decisions": {},
+        "finalEquityUsd": 10000,
+        "netPnlUsd": 0,
+        "maxDrawdownUsd": 0,
+        "maxDrawdownPct": 0,
+        "exposurePct": 0,
+        "drawdownBlockedAtT": null,
+        "halted": null,
+        "openAtEnd": null
+      }
+    ]
+  },
+  {
+    "balanceId": "ASSUMED_10000_SENSITIVITY",
+    "costId": "ASSUMED_BASE",
+    "branchCapHit": false,
+    "leaves": [
+      {
+        "labels": [],
+        "trades": [],
+        "decisions": {},
+        "finalEquityUsd": 10000,
+        "netPnlUsd": 0,
+        "maxDrawdownUsd": 0,
+        "maxDrawdownPct": 0,
+        "exposurePct": 0,
+        "drawdownBlockedAtT": null,
+        "halted": null,
+        "openAtEnd": null
+      }
+    ]
+  },
+  {
+    "balanceId": "ASSUMED_10000_SENSITIVITY",
+    "costId": "ASSUMED_STRESS",
+    "branchCapHit": false,
+    "leaves": [
+      {
+        "labels": [],
+        "trades": [],
+        "decisions": {},
+        "finalEquityUsd": 10000,
+        "netPnlUsd": 0,
+        "maxDrawdownUsd": 0,
+        "maxDrawdownPct": 0,
+        "exposurePct": 0,
+        "drawdownBlockedAtT": null,
+        "halted": null,
+        "openAtEnd": null
+      }
+    ]
+  }
+]

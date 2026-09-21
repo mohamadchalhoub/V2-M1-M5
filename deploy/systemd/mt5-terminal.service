@@ -1,0 +1,38 @@
+# Single-VPS topology (DEPLOYMENT_SINGLE_VPS.md). The real MetaTrader 5
+# terminal (terminal64.exe, MetaQuotes' own binary — installed via their
+# official mt5linux.sh script, which is itself a Wine bootstrapper; see
+# https://www.metatrader5.com/en/terminal/help/start_advanced/install_linux
+# — there is no terminal build that isn't Wine underneath). Kept running
+# continuously and supervised here rather than launched ad hoc by the
+# collector, so the collector's own mt5.initialize() call attaches to an
+# already-warm terminal instead of cold-starting one on every restart.
+#
+# Login happens from the Python side (collector/.env's MT5_LOGIN/PASSWORD/
+# SERVER, passed into mt5.initialize()), not from a terminal-level config
+# file — this deliberately does not pass any /config: startup file. Adjust
+# the ExecStart path below if your WINEPREFIX or install location differs
+# from the deployment guide's defaults.
+#
+# Install: sudo cp deploy/systemd/mt5-terminal.service /etc/systemd/system/
+#          sudo systemctl daemon-reload
+#          sudo systemctl enable --now mt5-terminal.service
+
+[Unit]
+Description=MetaTrader 5 terminal (MetaQuotes official Linux build, Wine-hosted)
+After=xvfb.service network-online.target
+Requires=xvfb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=deploy
+Environment=HOME=/home/deploy
+Environment=WINEPREFIX=/home/deploy/.mt5
+Environment=DISPLAY=:99
+ExecStart=/usr/bin/wine "/home/deploy/.mt5/drive_c/Program Files/MetaTrader 5/terminal64.exe"
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,219 @@
+==============================================================================
+Historical evaluation — xauusd-m1-rsi-retest-extremes-v1
+Spec hash f189d2bb39ab8a5d (frozen and committed before this run)
+
+These results describe SPECIFICATION REVISION 2: extreme SELL at 98.5, two
+independent execution slots, and the corrected spread accounting. Revision 1
+results (extreme SELL 98, one position total, spread deducted from P&L) do NOT
+describe this configuration and are retained only as history, in this file’s
+own git history at commit 56ee479.
+==============================================================================
+
+## 1. Data coverage
+
+  M1 bars:            882,817
+  First bar:          2024-03-01T01:00:00.000Z
+  Last bar:           2026-09-16T20:02:00.000Z
+  Requested range:    2024-03-01T00:00:00.000Z -> 2026-09-20T21:28:32.789Z
+  Warm-up consumed:   256 bars before any signal may be emitted
+  Contiguous runs:    795 (a run ends wherever a minute is missing)
+  Missing minutes:    456,086 inside the covered span
+  Largest gap:        12890 minutes, starting 2026-05-19T21:59:00.000Z
+  NOTE: most gaps are weekends and broker closures, which are expected. Pattern
+        state is reset across every gap, exactly as the live engine does.
+
+  Tick coverage (for the faithful TICK_REPLAY model):
+    ticks:            141,626
+    span:             2026-09-15T01:00:00.517Z -> 2026-09-16T13:58:25.473Z
+    covers:           1.5 of 930 days (0.17%)
+    -> Tick coverage is a tiny fraction of the period. The faithful model can only
+       describe that fraction, and says nothing about the rest.
+
+## 2. CLOSED_M1_APPROXIMATION — a DIFFERENT observation model
+
+  This is not a backtest of the live strategy. One observation per closed bar
+  means intrabar invalidation and intrabar crossings are invisible, and entry
+  timing is quantised to bar boundaries. Read it as "what would a bar-close
+  version of these rules have done", not as "what this strategy would have done".
+
+  --- CLOSED_M1_APPROXIMATION ---
+  Signals emitted:    527
+  Trades opened:      463
+  Signals skipped:    64
+           45  DAILY_PAUSE
+           13  FRIDAY_ENTRY_CUTOFF
+            6  Occupancy
+
+  Per setup (every setup reported separately, spec §12):
+      setup                 trades      TP      SL  Friday  indet.  unres.   resolved WR
+      SELL_PEAK_RETEST         205      99     105       1       0       0        48.8%
+      BUY_TROUGH_RETEST        163      91      71       0       1       0        56.2%
+      EXTREME_SELL              52      23      29       0       0       0        44.2%
+      EXTREME_BUY               43      18      24       0       1       0        42.9%
+
+  Per execution slot:
+      RETEST slot              368     190     176       1       1       0        52.0%
+      EXTREME slot              95      41      53       0       1       0        43.6%
+      COMBINED (two slots)     463     231     229       1       2       0        50.3%
+
+  Observed concurrency: 9 trade(s) opened while the other slot was already holding.
+
+  Outcome accounting:
+      resolved:            461
+      indeterminate:       2  (one M1 bar contained BOTH TP and SL — closed OHLC cannot say which came first)
+      unresolved at end:   0  (still open when the data ran out)
+
+  Performance (RESOLVED trades only):
+      wins / losses:       232 / 229
+      resolved win rate:   50.33%
+      with uncertainty:    50.11% .. 50.54%  (indeterminate trades all losing .. all winning)
+      net P&L:             513.50 USD at 0.5 lots (contract size 100)
+      expectancy / trade:  1.11 USD
+      max drawdown:        4500.00 USD
+      longest loss streak: 10
+
+  Reconciliation:
+      trades opened:       463
+      = resolved 461 + indeterminate 2 + unresolved 0  -> BALANCES
+      resolved 461 = TP 231 + SL 229 + Friday 1  -> BALANCES
+      P&L from counts:     513.50 USD  (TP 231 x +250, SL 229 x -250, Friday 13.50)
+      P&L from trades:     513.50 USD  -> BALANCES
+      mean x count:        513.50 USD  -> BALANCES
+      win-rate denominator is RESOLVED (461), not opened (463).
+      Indeterminate and unresolved trades are excluded from P&L entirely, not counted as zero.
+
+  Geometry:
+      break-even win rate: 50.00% on a symmetric $5/$5 bracket
+      observed:            50.33%
+      The spread is NOT deducted from P&L — a resolved trade realises exactly
+      +/-$250. It acts on the WIN RATE instead: the bid must travel
+      $5.18 to reach a target but only $4.82 to be stopped out.
+
+  Exit reasons:
+      STOP_LOSS            229
+      TAKE_PROFIT          231
+      FRIDAY_CLOSE         1
+      INDETERMINATE        2
+
+      Friday forced closes produced partial results, not $5 outcomes:
+      range 13.50 .. 13.50 USD
+
+  Frequency:
+      0.50 trades/day, 0.57 signals/day over 928 days
+      first Fri 2024-03-01 19:52:59 Beirut
+      last  Wed 2026-09-16 04:59:59 Beirut
+
+  Cost assumptions applied:
+      spread:      $0.18 of gold price, applied as entry/exit SIDE (never deducted from P&L)
+                   observed range this deployment: $0.18 liquid hours, $0.43 at the Sunday reopen
+      commission:  $0 per lot round trip (assumed)
+      swap:        $0 per night (assumed)
+      slippage:    NOT modelled — real fills will differ
+
+## 3. TICK_REPLAY — the faithful model, where ticks exist
+
+  Replaying 141,626 ordered ticks through the live engine.
+  The engine is warmed from closed bars first, exactly as the live path warms up.
+
+  --- TICK_REPLAY ---
+  Signals emitted:    39
+  Trades opened:      11
+  Signals skipped:    28
+           28  Occupancy
+
+  Per setup (every setup reported separately, spec §12):
+      setup                 trades      TP      SL  Friday  indet.  unres.   resolved WR
+      SELL_PEAK_RETEST           6       4       2       0       0       0        66.7%
+      BUY_TROUGH_RETEST          4       2       2       0       0       0        50.0%
+      EXTREME_SELL               0       0       0       0       0       0          n/a
+      EXTREME_BUY                1       0       1       0       0       0         0.0%
+
+  Per execution slot:
+      RETEST slot               10       6       4       0       0       0        60.0%
+      EXTREME slot               1       0       1       0       0       0         0.0%
+      COMBINED (two slots)      11       6       5       0       0       0        54.5%
+
+  Observed concurrency: 2 trade(s) opened while the other slot was already holding.
+
+  Outcome accounting:
+      resolved:            11
+      indeterminate:       0  (one M1 bar contained BOTH TP and SL — closed OHLC cannot say which came first)
+      unresolved at end:   0  (still open when the data ran out)
+
+  Performance (RESOLVED trades only):
+      wins / losses:       6 / 5
+      resolved win rate:   54.55%
+      with uncertainty:    54.55% .. 54.55%  (indeterminate trades all losing .. all winning)
+      net P&L:             250.00 USD at 0.5 lots (contract size 100)
+      expectancy / trade:  22.73 USD
+      max drawdown:        1000.00 USD
+      longest loss streak: 3
+
+  Reconciliation:
+      trades opened:       11
+      = resolved 11 + indeterminate 0 + unresolved 0  -> BALANCES
+      resolved 11 = TP 6 + SL 5 + Friday 0  -> BALANCES
+      P&L from counts:     250.00 USD  (TP 6 x +250, SL 5 x -250, Friday 0.00)
+      P&L from trades:     250.00 USD  -> BALANCES
+      mean x count:        250.00 USD  -> BALANCES
+      win-rate denominator is RESOLVED (11), not opened (11).
+      Indeterminate and unresolved trades are excluded from P&L entirely, not counted as zero.
+
+  Geometry:
+      break-even win rate: 50.00% on a symmetric $5/$5 bracket
+      observed:            54.55%
+      The spread is NOT deducted from P&L — a resolved trade realises exactly
+      +/-$250. It acts on the WIN RATE instead: the bid must travel
+      $5.18 to reach a target but only $4.82 to be stopped out.
+
+  Exit reasons:
+      TAKE_PROFIT          6
+      STOP_LOSS            5
+
+  Frequency:
+      8.67 trades/day, 30.75 signals/day over 1 days
+      first Tue 2026-09-15 09:45:02 Beirut
+      last  Wed 2026-09-16 16:11:08 Beirut
+
+  Cost assumptions applied:
+      spread:      $0.18 of gold price, applied as entry/exit SIDE (never deducted from P&L)
+                   observed range this deployment: $0.18 liquid hours, $0.43 at the Sunday reopen
+      commission:  $0 per lot round trip (assumed)
+      swap:        $0 per night (assumed)
+      slippage:    NOT modelled — real fills will differ
+
+  This covers only the span listed under tick coverage above. It is a faithful
+  reproduction for that span and makes no claim about any other period.
+
+## 4. The two models do NOT agree, and that is the headline
+
+  Over the SAME interval (2026-09-15T01:00:00.517Z -> 2026-09-16T13:58:25.473Z, 1.54 days):
+      CLOSED_M1_APPROXIMATION:  1 signals, 1 trades
+      TICK_REPLAY (faithful):   39 signals, 11 trades
+      ratio:                    39.0x more signals under the faithful model
+
+  Over each model's own full span:
+      CLOSED_M1_APPROXIMATION:  0.57 signals/day
+      TICK_REPLAY (faithful):   30.75 signals/day
+
+  This gap is expected, and it is the point. One observation per closed bar can
+  only see a crossing that survives to the bar boundary; the live engine sees
+  every crossing as it happens, including the many that form and reverse inside
+  a single minute. The two models therefore trade different opportunities at
+  very different rates.
+
+  The practical consequence: the long-horizon approximation numbers above must
+  NOT be read as an estimate of live performance, not even a rough one. They
+  describe a different strategy. The faithful numbers are the right ones, and
+  there are far too few of them to conclude anything from.
+
+## 5. What would make this evaluation stronger
+
+  The only way to evaluate this strategy faithfully over a long period is ordered
+  tick data over that period. This deployment currently has ~2 days. Running the
+  collector with the live tick stream enabled accumulates it going forward, and
+  the same replay above can then be re-run over a genuinely representative span.
+  Until then, the approximation is the only long-horizon number available, and it
+  is a different strategy from the one that trades.
+
+JSON written to xauusd-rsi-evaluation.json

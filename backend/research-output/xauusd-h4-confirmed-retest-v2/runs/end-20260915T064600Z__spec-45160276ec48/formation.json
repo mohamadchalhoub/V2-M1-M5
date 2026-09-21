@@ -1,0 +1,42 @@
+{
+  "h4BarsProcessed": 5627,
+  "d1BarsProcessed": 1008,
+  "pivotCandidates": {
+    "SUPPORT": 795,
+    "RESISTANCE": 775
+  },
+  "qualifiedPivots": {
+    "SUPPORT": 637,
+    "RESISTANCE": 574
+  },
+  "rejectedNoRejectionClose": {
+    "SUPPORT": 158,
+    "RESISTANCE": 201
+  },
+  "bodyViolationBeforeRetest": {
+    "SUPPORT": 254,
+    "RESISTANCE": 295
+  },
+  "bodyViolationDuringConfirmation": {
+    "SUPPORT": 61,
+    "RESISTANCE": 71
+  },
+  "noRetestWithinWindow": {
+    "SUPPORT": 157,
+    "RESISTANCE": 67
+  },
+  "retestFound": {
+    "SUPPORT": 225,
+    "RESISTANCE": 202
+  },
+  "confirmationFailedAfterRetest": {
+    "SUPPORT": 38,
+    "RESISTANCE": 33
+  },
+  "levelsActivated": {
+    "SUPPORT": 126,
+    "RESISTANCE": 98
+  },
+  "activationsBlocked": {},
+  "d1AgreementTagged": 24
+}

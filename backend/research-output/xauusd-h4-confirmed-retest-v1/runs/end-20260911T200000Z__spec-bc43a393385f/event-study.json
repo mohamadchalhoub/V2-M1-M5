@@ -1,0 +1,130 @@
+{
+  "scope": "Output A — every qualifying level first return (overlap allowed). Conditional historical price-movement statistics, NOT achievable account performance.",
+  "studyEventsByKind": {},
+  "ineligibleByReason": {},
+  "full": {
+    "eligibleEvents": 0,
+    "counts": {
+      "WIN": 0,
+      "LOSS": 0,
+      "AMBIGUOUS": 0,
+      "INDETERMINATE": 0,
+      "UNRESOLVED": 0
+    },
+    "resolvedWinRate": {
+      "numerator": 0,
+      "denominator": 0,
+      "rate": null,
+      "wilson95": null
+    },
+    "allEligibleBounds": {
+      "low": null,
+      "high": null,
+      "lowFormula": "W/N = 0/0",
+      "highFormula": "(N-L)/N = 0/0"
+    },
+    "meanMaeUsdPerOz": null
+  },
+  "byDirection": {
+    "BUY": {
+      "eligibleEvents": 0,
+      "counts": {
+        "WIN": 0,
+        "LOSS": 0,
+        "AMBIGUOUS": 0,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 0,
+        "denominator": 0,
+        "rate": null,
+        "wilson95": null
+      },
+      "allEligibleBounds": {
+        "low": null,
+        "high": null,
+        "lowFormula": "W/N = 0/0",
+        "highFormula": "(N-L)/N = 0/0"
+      },
+      "meanMaeUsdPerOz": null
+    },
+    "SELL": {
+      "eligibleEvents": 0,
+      "counts": {
+        "WIN": 0,
+        "LOSS": 0,
+        "AMBIGUOUS": 0,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 0,
+        "denominator": 0,
+        "rate": null,
+        "wilson95": null
+      },
+      "allEligibleBounds": {
+        "low": null,
+        "high": null,
+        "lowFormula": "W/N = 0/0",
+        "highFormula": "(N-L)/N = 0/0"
+      },
+      "meanMaeUsdPerOz": null
+    }
+  },
+  "byYear": {},
+  "byHalfYear": {},
+  "withD1Agreement": {
+    "eligibleEvents": 0,
+    "counts": {
+      "WIN": 0,
+      "LOSS": 0,
+      "AMBIGUOUS": 0,
+      "INDETERMINATE": 0,
+      "UNRESOLVED": 0
+    },
+    "resolvedWinRate": {
+      "numerator": 0,
+      "denominator": 0,
+      "rate": null,
+      "wilson95": null
+    },
+    "allEligibleBounds": {
+      "low": null,
+      "high": null,
+      "lowFormula": "W/N = 0/0",
+      "highFormula": "(N-L)/N = 0/0"
+    },
+    "meanMaeUsdPerOz": null
+  },
+  "withoutD1Agreement": {
+    "eligibleEvents": 0,
+    "counts": {
+      "WIN": 0,
+      "LOSS": 0,
+      "AMBIGUOUS": 0,
+      "INDETERMINATE": 0,
+      "UNRESOLVED": 0
+    },
+    "resolvedWinRate": {
+      "numerator": 0,
+      "denominator": 0,
+      "rate": null,
+      "wilson95": null
+    },
+    "allEligibleBounds": {
+      "low": null,
+      "high": null,
+      "lowFormula": "W/N = 0/0",
+      "highFormula": "(N-L)/N = 0/0"
+    },
+    "meanMaeUsdPerOz": null
+  },
+  "dependence": {
+    "distinctBeirutDaysWithEligibleEvents": 0,
+    "maxEligibleEventsOnOneDay": 0,
+    "overlappingEligiblePairs": 0,
+    "note": "Wilson intervals assume independent events. Events sharing a day, a price regime or an open-trade window are not independent, so the true uncertainty is wider than shown. Previously inspected history is not a pristine holdout."
+  }
+}

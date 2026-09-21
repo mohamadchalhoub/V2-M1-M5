@@ -1,0 +1,96 @@
+{
+  "description": "mixed-history",
+  "account": { "tradingDayTimezone": "UTC", "tradingDayResetHour": 0 },
+  "now": "2026-03-05T12:00:00Z",
+  "snapshots": [
+    { "capturedAt": "2026-03-04T00:00:00Z", "balance": 1000, "equity": 1000 },
+    { "capturedAt": "2026-03-05T00:00:00Z", "balance": 1080, "equity": 1080 },
+    { "capturedAt": "2026-03-05T12:00:00Z", "balance": 1080, "equity": 1080 }
+  ],
+  "trades": [
+    { "externalTradeId": "T1", "positionId": "POS1", "symbol": "AUDUSD", "dealEntry": "IN", "volume": 0.5, "price": 0.6600, "commission": -1, "profit": 0, "executedAt": "2026-03-04T08:00:00Z" },
+    { "externalTradeId": "T2", "positionId": "POS1", "symbol": "AUDUSD", "dealEntry": "OUT", "volume": 0.5, "price": 0.6620, "commission": -2, "swap": 0, "profit": 100, "executedAt": "2026-03-04T08:15:00Z" },
+    { "externalTradeId": "T3", "positionId": "POS2", "symbol": "AUDUSD", "dealEntry": "IN", "volume": 0.5, "price": 0.6600, "commission": -1, "profit": 0, "executedAt": "2026-03-04T09:00:00Z" },
+    { "externalTradeId": "T4", "positionId": "POS2", "symbol": "AUDUSD", "dealEntry": "OUT", "volume": 0.5, "price": 0.6590, "commission": -2, "swap": 0, "profit": -50, "executedAt": "2026-03-04T09:10:00Z" },
+    { "externalTradeId": "T5", "positionId": "POS3", "symbol": "AUDUSD", "dealEntry": "IN", "volume": 0.5, "price": 0.6600, "commission": -1, "profit": 0, "executedAt": "2026-03-04T10:00:00Z" },
+    { "externalTradeId": "T6", "positionId": "POS3", "symbol": "AUDUSD", "dealEntry": "OUT", "volume": 0.5, "price": 0.6612, "commission": -2, "swap": 1, "profit": 60, "executedAt": "2026-03-04T10:05:00Z" },
+    { "externalTradeId": "T7", "positionId": "POS4", "symbol": "AUDUSD", "dealEntry": "IN", "volume": 0.5, "price": 0.6600, "commission": -1, "profit": 0, "executedAt": "2026-03-04T11:00:00Z" },
+    { "externalTradeId": "T8", "positionId": "POS4", "symbol": "AUDUSD", "dealEntry": "OUT", "volume": 0.5, "price": 0.6592, "commission": -2, "swap": -1, "profit": -40, "executedAt": "2026-03-04T11:30:00Z" },
+    { "externalTradeId": "T9", "positionId": "POS5", "symbol": "AUDUSD", "dealEntry": "IN", "volume": 0.5, "price": 0.6600, "commission": -1, "profit": 0, "executedAt": "2026-03-04T13:00:00Z" },
+    { "externalTradeId": "T10", "positionId": "POS5", "symbol": "AUDUSD", "dealEntry": "OUT", "volume": 0.5, "price": 0.6604, "commission": -2, "swap": 0, "profit": 20, "executedAt": "2026-03-04T13:05:00Z" }
+  ],
+  "positions": [
+    { "externalPositionId": "POS1", "symbol": "AUDUSD", "volume": 0.5, "openPrice": 0.6600, "status": "CLOSED", "openedAt": "2026-03-04T08:00:00Z" },
+    { "externalPositionId": "POS2", "symbol": "AUDUSD", "volume": 0.5, "openPrice": 0.6600, "status": "CLOSED", "openedAt": "2026-03-04T09:00:00Z" },
+    { "externalPositionId": "POS3", "symbol": "AUDUSD", "volume": 0.5, "openPrice": 0.6600, "status": "CLOSED", "openedAt": "2026-03-04T10:00:00Z" },
+    { "externalPositionId": "POS4", "symbol": "AUDUSD", "volume": 0.5, "openPrice": 0.6600, "status": "CLOSED", "openedAt": "2026-03-04T11:00:00Z" },
+    { "externalPositionId": "POS5", "symbol": "AUDUSD", "volume": 0.5, "openPrice": 0.6600, "status": "CLOSED", "openedAt": "2026-03-04T13:00:00Z" }
+  ],
+  "baselineWindowDays": 90,
+  "expectedCurrent": {
+    "account": {
+      "startingBalance": 1080,
+      "currentBalance": 1080,
+      "currentEquity": 1080,
+      "dailyPl": 0,
+      "dailyProfit": 0,
+      "dailyLoss": 0,
+      "drawdown": 0,
+      "maxDrawdown": 0,
+      "margin": 0,
+      "freeMargin": 1080,
+      "marginLevel": null
+    },
+    "activity": {
+      "totalTrades": 5,
+      "winningTrades": 3,
+      "losingTrades": 2,
+      "winRate": 0.6,
+      "averageWinningTrade": 58.33,
+      "averageLosingTrade": -47.5,
+      "largestWinningTrade": 98,
+      "largestLosingTrade": -52,
+      "totalRealizedPlGross": 90,
+      "totalRealizedPl": 80,
+      "totalCommission": -15,
+      "totalSwap": 0
+    },
+    "position": {
+      "currentOpenPositions": 0,
+      "currentTotalVolume": 0,
+      "maximumPositionVolume": null,
+      "positionVolumeBySymbol": [],
+      "numberOfSimultaneousPositions": 0,
+      "averageHistoricalPositionVolume": 0.5,
+      "openPositionsWithoutStopLoss": 0,
+      "maximumSymbolConcentrationPct": null,
+      "maximumDirectionConcentrationPct": null
+    },
+    "frequency": {
+      "tradesPerDay": 0,
+      "tradesPerHour": 0,
+      "averageTimeBetweenTrades": 72.5,
+      "averageTradesPerSession": 5
+    },
+    "sequences": {
+      "currentConsecutiveWins": 1,
+      "currentConsecutiveLosses": 0,
+      "maxConsecutiveWins": 1,
+      "maxConsecutiveLosses": 1
+    }
+  },
+  "expectedBaselines": {
+    "windowDays": 90,
+    "windowStart": "2026-03-04T00:00:00.000Z",
+    "windowEnd": "2026-03-05T00:00:00.000Z",
+    "averageDailyPl": 80,
+    "averageDailyLoss": null,
+    "averageTradesPerDay": 5,
+    "averagePositionVolume": 0.5,
+    "maximumNormalPositionVolume": 0.5,
+    "averageTradeDuration": 13,
+    "averageLosingTrade": -47.5,
+    "averageWinningTrade": 58.33,
+    "averageTradesPerHour": 0.21
+  }
+}

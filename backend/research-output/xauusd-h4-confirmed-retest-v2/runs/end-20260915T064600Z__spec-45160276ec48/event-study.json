@@ -1,0 +1,389 @@
+{
+  "scope": "Output A — every qualifying level first return (overlap allowed). Conditional historical price-movement statistics, NOT achievable account performance.",
+  "studyEventsByKind": {
+    "ORDINARY": 167,
+    "UNOBSERVABLE": 21,
+    "GAP_CROSS": 2
+  },
+  "ineligibleByReason": {
+    "OUTSIDE_WINDOW": 110,
+    "UNOBSERVABLE": 21,
+    "GAP_CROSS": 2
+  },
+  "full": {
+    "eligibleEvents": 57,
+    "counts": {
+      "WIN": 19,
+      "LOSS": 33,
+      "AMBIGUOUS": 5,
+      "INDETERMINATE": 0,
+      "UNRESOLVED": 0
+    },
+    "resolvedWinRate": {
+      "numerator": 19,
+      "denominator": 52,
+      "rate": 0.36538461538461536,
+      "wilson95": [
+        0.2480051371130184,
+        0.5012857141519882
+      ]
+    },
+    "allEligibleBounds": {
+      "low": 0.3333333333333333,
+      "high": 0.42105263157894735,
+      "lowFormula": "W/N = 19/57",
+      "highFormula": "(N-L)/N = 24/57"
+    },
+    "meanMaeUsdPerOz": 9.239649122807016
+  },
+  "byDirection": {
+    "BUY": {
+      "eligibleEvents": 36,
+      "counts": {
+        "WIN": 10,
+        "LOSS": 21,
+        "AMBIGUOUS": 5,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 10,
+        "denominator": 31,
+        "rate": 0.3225806451612903,
+        "wilson95": [
+          0.18569230747313034,
+          0.49859314440049185
+        ]
+      },
+      "allEligibleBounds": {
+        "low": 0.2777777777777778,
+        "high": 0.4166666666666667,
+        "lowFormula": "W/N = 10/36",
+        "highFormula": "(N-L)/N = 15/36"
+      },
+      "meanMaeUsdPerOz": 9.938333333333334
+    },
+    "SELL": {
+      "eligibleEvents": 21,
+      "counts": {
+        "WIN": 9,
+        "LOSS": 12,
+        "AMBIGUOUS": 0,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 9,
+        "denominator": 21,
+        "rate": 0.42857142857142855,
+        "wilson95": [
+          0.24469699486521043,
+          0.6345378370296754
+        ]
+      },
+      "allEligibleBounds": {
+        "low": 0.42857142857142855,
+        "high": 0.42857142857142855,
+        "lowFormula": "W/N = 9/21",
+        "highFormula": "(N-L)/N = 9/21"
+      },
+      "meanMaeUsdPerOz": 8.041904761904762
+    }
+  },
+  "byYear": {
+    "2024": {
+      "eligibleEvents": 11,
+      "counts": {
+        "WIN": 7,
+        "LOSS": 4,
+        "AMBIGUOUS": 0,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 7,
+        "denominator": 11,
+        "rate": 0.6363636363636364,
+        "wilson95": [
+          0.35379677689163724,
+          0.8483377638586862
+        ]
+      },
+      "allEligibleBounds": {
+        "low": 0.6363636363636364,
+        "high": 0.6363636363636364,
+        "lowFormula": "W/N = 7/11",
+        "highFormula": "(N-L)/N = 7/11"
+      },
+      "meanMaeUsdPerOz": 6.531818181818181
+    },
+    "2025": {
+      "eligibleEvents": 16,
+      "counts": {
+        "WIN": 1,
+        "LOSS": 15,
+        "AMBIGUOUS": 0,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 1,
+        "denominator": 16,
+        "rate": 0.0625,
+        "wilson95": [
+          0.01111905730833121,
+          0.2832926836802987
+        ]
+      },
+      "allEligibleBounds": {
+        "low": 0.0625,
+        "high": 0.0625,
+        "lowFormula": "W/N = 1/16",
+        "highFormula": "(N-L)/N = 1/16"
+      },
+      "meanMaeUsdPerOz": 10.228125
+    },
+    "2026": {
+      "eligibleEvents": 30,
+      "counts": {
+        "WIN": 11,
+        "LOSS": 14,
+        "AMBIGUOUS": 5,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 11,
+        "denominator": 25,
+        "rate": 0.44,
+        "wilson95": [
+          0.2666537494700256,
+          0.6293298298043557
+        ]
+      },
+      "allEligibleBounds": {
+        "low": 0.36666666666666664,
+        "high": 0.5333333333333333,
+        "lowFormula": "W/N = 11/30",
+        "highFormula": "(N-L)/N = 16/30"
+      },
+      "meanMaeUsdPerOz": 9.705333333333337
+    }
+  },
+  "byHalfYear": {
+    "2024-H1": {
+      "eligibleEvents": 1,
+      "counts": {
+        "WIN": 0,
+        "LOSS": 1,
+        "AMBIGUOUS": 0,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 0,
+        "denominator": 1,
+        "rate": 0,
+        "wilson95": [
+          0,
+          0.7934567085261071
+        ]
+      },
+      "allEligibleBounds": {
+        "low": 0,
+        "high": 0,
+        "lowFormula": "W/N = 0/1",
+        "highFormula": "(N-L)/N = 0/1"
+      },
+      "meanMaeUsdPerOz": 10.1
+    },
+    "2024-H2": {
+      "eligibleEvents": 10,
+      "counts": {
+        "WIN": 7,
+        "LOSS": 3,
+        "AMBIGUOUS": 0,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 7,
+        "denominator": 10,
+        "rate": 0.7,
+        "wilson95": [
+          0.39677321997956516,
+          0.892210712513788
+        ]
+      },
+      "allEligibleBounds": {
+        "low": 0.7,
+        "high": 0.7,
+        "lowFormula": "W/N = 7/10",
+        "highFormula": "(N-L)/N = 7/10"
+      },
+      "meanMaeUsdPerOz": 6.175
+    },
+    "2025-H1": {
+      "eligibleEvents": 9,
+      "counts": {
+        "WIN": 0,
+        "LOSS": 9,
+        "AMBIGUOUS": 0,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 0,
+        "denominator": 9,
+        "rate": 0,
+        "wilson95": [
+          0,
+          0.2991527535509594
+        ]
+      },
+      "allEligibleBounds": {
+        "low": 0,
+        "high": 0,
+        "lowFormula": "W/N = 0/9",
+        "highFormula": "(N-L)/N = 0/9"
+      },
+      "meanMaeUsdPerOz": 10.614444444444446
+    },
+    "2025-H2": {
+      "eligibleEvents": 7,
+      "counts": {
+        "WIN": 1,
+        "LOSS": 6,
+        "AMBIGUOUS": 0,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 1,
+        "denominator": 7,
+        "rate": 0.14285714285714285,
+        "wilson95": [
+          0.02567895594897479,
+          0.51313450331903
+        ]
+      },
+      "allEligibleBounds": {
+        "low": 0.14285714285714285,
+        "high": 0.14285714285714285,
+        "lowFormula": "W/N = 1/7",
+        "highFormula": "(N-L)/N = 1/7"
+      },
+      "meanMaeUsdPerOz": 9.731428571428571
+    },
+    "2026-H1": {
+      "eligibleEvents": 20,
+      "counts": {
+        "WIN": 6,
+        "LOSS": 10,
+        "AMBIGUOUS": 4,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 6,
+        "denominator": 16,
+        "rate": 0.375,
+        "wilson95": [
+          0.18480982554752806,
+          0.613593529020652
+        ]
+      },
+      "allEligibleBounds": {
+        "low": 0.3,
+        "high": 0.5,
+        "lowFormula": "W/N = 6/20",
+        "highFormula": "(N-L)/N = 10/20"
+      },
+      "meanMaeUsdPerOz": 10.715500000000002
+    },
+    "2026-H2": {
+      "eligibleEvents": 10,
+      "counts": {
+        "WIN": 5,
+        "LOSS": 4,
+        "AMBIGUOUS": 1,
+        "INDETERMINATE": 0,
+        "UNRESOLVED": 0
+      },
+      "resolvedWinRate": {
+        "numerator": 5,
+        "denominator": 9,
+        "rate": 0.5555555555555556,
+        "wilson95": [
+          0.2666473457440297,
+          0.811224570528086
+        ]
+      },
+      "allEligibleBounds": {
+        "low": 0.5,
+        "high": 0.6,
+        "lowFormula": "W/N = 5/10",
+        "highFormula": "(N-L)/N = 6/10"
+      },
+      "meanMaeUsdPerOz": 7.685
+    }
+  },
+  "withD1Agreement": {
+    "eligibleEvents": 7,
+    "counts": {
+      "WIN": 3,
+      "LOSS": 3,
+      "AMBIGUOUS": 1,
+      "INDETERMINATE": 0,
+      "UNRESOLVED": 0
+    },
+    "resolvedWinRate": {
+      "numerator": 3,
+      "denominator": 6,
+      "rate": 0.5,
+      "wilson95": [
+        0.18761280689940868,
+        0.8123871931005913
+      ]
+    },
+    "allEligibleBounds": {
+      "low": 0.42857142857142855,
+      "high": 0.5714285714285714,
+      "lowFormula": "W/N = 3/7",
+      "highFormula": "(N-L)/N = 4/7"
+    },
+    "meanMaeUsdPerOz": 8.097142857142858
+  },
+  "withoutD1Agreement": {
+    "eligibleEvents": 50,
+    "counts": {
+      "WIN": 16,
+      "LOSS": 30,
+      "AMBIGUOUS": 4,
+      "INDETERMINATE": 0,
+      "UNRESOLVED": 0
+    },
+    "resolvedWinRate": {
+      "numerator": 16,
+      "denominator": 46,
+      "rate": 0.34782608695652173,
+      "wilson95": [
+        0.22680806269918055,
+        0.49230207822727434
+      ]
+    },
+    "allEligibleBounds": {
+      "low": 0.32,
+      "high": 0.4,
+      "lowFormula": "W/N = 16/50",
+      "highFormula": "(N-L)/N = 20/50"
+    },
+    "meanMaeUsdPerOz": 9.399600000000003
+  },
+  "dependence": {
+    "distinctBeirutDaysWithEligibleEvents": 40,
+    "maxEligibleEventsOnOneDay": 5,
+    "overlappingEligiblePairs": 18,
+    "note": "Wilson intervals assume independent events. Events sharing a day, a price regime or an open-trade window are not independent, so the true uncertainty is wider than shown. Previously inspected history is not a pristine holdout."
+  }
+}

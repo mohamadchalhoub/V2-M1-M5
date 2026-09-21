@@ -1,0 +1,99 @@
+{
+  "description": "consecutive-wins",
+  "account": { "tradingDayTimezone": "UTC", "tradingDayResetHour": 0 },
+  "now": "2026-06-15T12:00:00Z",
+  "snapshots": [
+    { "capturedAt": "2026-06-14T00:00:00Z", "balance": 1000, "equity": 1000 },
+    { "capturedAt": "2026-06-15T00:00:00Z", "balance": 1052, "equity": 1052 },
+    { "capturedAt": "2026-06-15T12:00:00Z", "balance": 1052, "equity": 1052 }
+  ],
+  "trades": [
+    { "externalTradeId": "T1", "positionId": "POS1", "symbol": "CADJPY", "dealEntry": "IN", "volume": 0.15, "price": 110.00, "profit": 0, "executedAt": "2026-06-14T08:00:00Z" },
+    { "externalTradeId": "T2", "positionId": "POS1", "symbol": "CADJPY", "dealEntry": "OUT", "volume": 0.15, "price": 110.10, "profit": 12, "executedAt": "2026-06-14T08:05:00Z" },
+    { "externalTradeId": "T3", "positionId": "POS2", "symbol": "CADJPY", "dealEntry": "IN", "volume": 0.15, "price": 110.00, "profit": 0, "executedAt": "2026-06-14T08:10:00Z" },
+    { "externalTradeId": "T4", "positionId": "POS2", "symbol": "CADJPY", "dealEntry": "OUT", "volume": 0.15, "price": 110.10, "profit": 12, "executedAt": "2026-06-14T08:15:00Z" },
+    { "externalTradeId": "T5", "positionId": "POS3", "symbol": "CADJPY", "dealEntry": "IN", "volume": 0.15, "price": 110.00, "profit": 0, "executedAt": "2026-06-14T08:20:00Z" },
+    { "externalTradeId": "T6", "positionId": "POS3", "symbol": "CADJPY", "dealEntry": "OUT", "volume": 0.15, "price": 110.10, "profit": 12, "executedAt": "2026-06-14T08:25:00Z" },
+    { "externalTradeId": "T7", "positionId": "POS4", "symbol": "CADJPY", "dealEntry": "IN", "volume": 0.15, "price": 110.00, "profit": 0, "executedAt": "2026-06-14T08:30:00Z" },
+    { "externalTradeId": "T8", "positionId": "POS4", "symbol": "CADJPY", "dealEntry": "OUT", "volume": 0.15, "price": 109.93, "profit": -8, "executedAt": "2026-06-14T08:35:00Z" },
+    { "externalTradeId": "T9", "positionId": "POS5", "symbol": "CADJPY", "dealEntry": "IN", "volume": 0.15, "price": 110.00, "profit": 0, "executedAt": "2026-06-14T08:40:00Z" },
+    { "externalTradeId": "T10", "positionId": "POS5", "symbol": "CADJPY", "dealEntry": "OUT", "volume": 0.15, "price": 110.10, "profit": 12, "executedAt": "2026-06-14T08:45:00Z" },
+    { "externalTradeId": "T11", "positionId": "POS6", "symbol": "CADJPY", "dealEntry": "IN", "volume": 0.15, "price": 110.00, "profit": 0, "executedAt": "2026-06-14T08:50:00Z" },
+    { "externalTradeId": "T12", "positionId": "POS6", "symbol": "CADJPY", "dealEntry": "OUT", "volume": 0.15, "price": 110.10, "profit": 12, "executedAt": "2026-06-14T08:55:00Z" }
+  ],
+  "positions": [
+    { "externalPositionId": "POS1", "symbol": "CADJPY", "volume": 0.15, "openPrice": 110.00, "status": "CLOSED", "openedAt": "2026-06-14T08:00:00Z" },
+    { "externalPositionId": "POS2", "symbol": "CADJPY", "volume": 0.15, "openPrice": 110.00, "status": "CLOSED", "openedAt": "2026-06-14T08:10:00Z" },
+    { "externalPositionId": "POS3", "symbol": "CADJPY", "volume": 0.15, "openPrice": 110.00, "status": "CLOSED", "openedAt": "2026-06-14T08:20:00Z" },
+    { "externalPositionId": "POS4", "symbol": "CADJPY", "volume": 0.15, "openPrice": 110.00, "status": "CLOSED", "openedAt": "2026-06-14T08:30:00Z" },
+    { "externalPositionId": "POS5", "symbol": "CADJPY", "volume": 0.15, "openPrice": 110.00, "status": "CLOSED", "openedAt": "2026-06-14T08:40:00Z" },
+    { "externalPositionId": "POS6", "symbol": "CADJPY", "volume": 0.15, "openPrice": 110.00, "status": "CLOSED", "openedAt": "2026-06-14T08:50:00Z" }
+  ],
+  "baselineWindowDays": 90,
+  "expectedCurrent": {
+    "account": {
+      "startingBalance": 1052,
+      "currentBalance": 1052,
+      "currentEquity": 1052,
+      "dailyPl": 0,
+      "dailyProfit": 0,
+      "dailyLoss": 0,
+      "drawdown": 0,
+      "maxDrawdown": 0,
+      "margin": 0,
+      "freeMargin": 1052,
+      "marginLevel": null
+    },
+    "activity": {
+      "totalTrades": 6,
+      "winningTrades": 5,
+      "losingTrades": 1,
+      "winRate": 0.8333,
+      "averageWinningTrade": 12,
+      "averageLosingTrade": -8,
+      "largestWinningTrade": 12,
+      "largestLosingTrade": -8,
+      "totalRealizedPlGross": 52,
+      "totalRealizedPl": 52,
+      "totalCommission": 0,
+      "totalSwap": 0
+    },
+    "position": {
+      "currentOpenPositions": 0,
+      "currentTotalVolume": 0,
+      "maximumPositionVolume": null,
+      "positionVolumeBySymbol": [],
+      "numberOfSimultaneousPositions": 0,
+      "averageHistoricalPositionVolume": 0.15,
+      "openPositionsWithoutStopLoss": 0,
+      "maximumSymbolConcentrationPct": null,
+      "maximumDirectionConcentrationPct": null
+    },
+    "frequency": {
+      "tradesPerDay": 0,
+      "tradesPerHour": 0,
+      "averageTimeBetweenTrades": 10,
+      "averageTradesPerSession": 6
+    },
+    "sequences": {
+      "currentConsecutiveWins": 2,
+      "currentConsecutiveLosses": 0,
+      "maxConsecutiveWins": 3,
+      "maxConsecutiveLosses": 1
+    }
+  },
+  "expectedBaselines": {
+    "windowDays": 90,
+    "windowStart": "2026-06-14T00:00:00.000Z",
+    "windowEnd": "2026-06-15T00:00:00.000Z",
+    "averageDailyPl": 52,
+    "averageDailyLoss": null,
+    "averageTradesPerDay": 6,
+    "averagePositionVolume": 0.15,
+    "maximumNormalPositionVolume": 0.15,
+    "averageTradeDuration": 5,
+    "averageLosingTrade": -8,
+    "averageWinningTrade": 12,
+    "averageTradesPerHour": 0.25
+  }
+}

@@ -1,0 +1,5150 @@
+[
+  {
+    "summary": {
+      "balanceId": "ASSUMED_1000_PRIMARY",
+      "costId": "IDEALIZED_GROSS",
+      "startingBalanceUsd": 1000,
+      "branches": 1,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        0,
+        0
+      ],
+      "wins": [
+        0,
+        0
+      ],
+      "losses": [
+        0,
+        0
+      ],
+      "netPnlUsd": [
+        0,
+        0
+      ],
+      "netExpectancyUsdPerTrade": null,
+      "profitFactor": null,
+      "maxEquityDrawdownUsd": [
+        0,
+        0
+      ],
+      "maxEquityDrawdownPct": [
+        0,
+        0
+      ],
+      "exposurePct": [
+        0,
+        0
+      ],
+      "decisionTally": {
+        "NOT_ELIGIBLE_GAP_CROSS": [
+          2,
+          2
+        ],
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": [
+          110,
+          110
+        ],
+        "NOT_ELIGIBLE_UNOBSERVABLE": [
+          21,
+          21
+        ],
+        "NOT_SELECTED_NEAREST": [
+          3,
+          3
+        ],
+        "STOP_RISK_EXCEEDS_0_5_PCT": [
+          54,
+          54
+        ]
+      },
+      "exact": true
+    },
+    "decisionsByEvent": {
+      "evt:lvl:S:216643:g1:19": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:239553:g1:23": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:239818:g1:22": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:233386:g1:21": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:232585:g1:20": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:233205:g1:24": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:232617:g1:25": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:232546:g1:28": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:231003:g1:29": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:233713:g1:30": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:243012:g1:33": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247480:g1:32": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:245840:g1:35": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247561:g1:38": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247682:g1:37": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247761:g1:36": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:249723:g1:40": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:249355:g1:41": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:248994:g1:42": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:252331:g1:46": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:252675:g1:45": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:252860:g1:44": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:252890:g1:43": {
+        "NOT_SELECTED_NEAREST": 1
+      },
+      "evt:lvl:R:258682:g1:47": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:264102:g1:48": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:263690:g1:49": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:263191:g1:50": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:266140:g1:51": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:273164:g1:53": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:273055:g1:56": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:272789:g1:55": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:272472:g1:54": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:270878:g1:57": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:264317:g1:52": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:261696:g1:58": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:270410:g1:59": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:266423:g1:61": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:272131:g1:60": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:288249:g1:63": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:288181:g1:64": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:292426:g1:66": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:291861:g1:65": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:289198:g1:68": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:292776:g1:70": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:292652:g1:72": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:293006:g1:71": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:295491:g1:67": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:303322:g1:73": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:297037:g1:74": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:328384:g1:75": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:326819:g1:77": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:321162:g1:78": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:336717:g1:76": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:322278:g1:79": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:332544:g1:80": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:334380:g1:82": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:333816:g1:84": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:334908:g1:85": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:337560:g1:86": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:338465:g1:83": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:339224:g1:81": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:337318:g1:88": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:336615:g1:89": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:334037:g1:91": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:333867:g1:90": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:331198:g1:93": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:330194:g1:92": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:344440:g1:87": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:329645:g1:95": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:334418:g1:94": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:336574:g1:96": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:332025:g1:99": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:336673:g1:98": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:337492:g1:97": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:331012:g1:100": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:334507:g1:101": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:370306:g1:103": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:362029:g1:102": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:377921:g1:104": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:385335:g1:105": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:389534:g1:106": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:405793:g1:108": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:405925:g1:107": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:409064:g1:110": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:437918:g1:109": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:403022:g1:112": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:398919:g1:113": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:401955:g1:114": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:414414:g1:115": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:403239:g1:116": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:405551:g1:117": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:405578:g1:118": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:403855:g1:119": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:421882:g1:122": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:424135:g1:120": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:417507:g1:121": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:434903:g1:125": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:435024:g1:124": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:435351:g1:123": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:452594:g1:126": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:444833:g1:127": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:430658:g1:128": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:430862:g1:129": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:431977:g1:130": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:444260:g1:131": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:450042:g1:133": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:463013:g1:134": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:442348:g1:132": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:523523:g1:138": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:498986:g1:139": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:475593:g1:140": {
+        "NOT_ELIGIBLE_GAP_CROSS": 1
+      },
+      "evt:lvl:S:465950:g1:141": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:457356:g1:136": {
+        "NOT_SELECTED_NEAREST": 1
+      },
+      "evt:lvl:S:458114:g1:137": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:456958:g1:135": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:453685:g1:142": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:488086:g1:144": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:507872:g1:147": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:508661:g1:146": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:509194:g1:145": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:493376:g1:148": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:487871:g1:149": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:500103:g1:151": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:501110:g1:152": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:440773:g1:143": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:485908:g1:150": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:514634:g1:153": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:524976:g1:154": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:513065:g1:156": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:509414:g1:155": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:519501:g1:159": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:514928:g1:160": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:506282:g1:158": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:506104:g1:161": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:505088:g1:157": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:499597:g1:163": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:498940:g1:162": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:458060:g1:165": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:460246:g1:164": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:473584:g1:166": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:469975:g1:167": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:479503:g1:170": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:485771:g1:171": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:476759:g1:174": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:475216:g1:173": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:466829:g1:175": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:467206:g1:176": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:461623:g1:168": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:460728:g1:169": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:458532:g1:177": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:464689:g1:178": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:464814:g1:183": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:451002:g1:179": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:450098:g1:184": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:448030:g1:185": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:457094:g1:186": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:474951:g1:182": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:476481:g1:181": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:477235:g1:180": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:449182:g1:189": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:448869:g1:188": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:453808:g1:190": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:458003:g1:187": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:446294:g1:193": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:434662:g1:194": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:436350:g1:195": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:405288:g1:197": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:398299:g1:199": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:409603:g1:200": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:419542:g1:202": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:419857:g1:201": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:409117:g1:203": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:413398:g1:204": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:405408:g1:205": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:397122:g1:206": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:402372:g1:208": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:408145:g1:209": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:413810:g1:210": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:402182:g1:211": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:401151:g1:212": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:402094:g1:217": {
+        "NOT_ELIGIBLE_GAP_CROSS": 1
+      },
+      "evt:lvl:R:411620:g1:216": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:411623:g1:215": {
+        "NOT_SELECTED_NEAREST": 1
+      },
+      "evt:lvl:S:435596:g1:218": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:431647:g1:219": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:458295:g1:222": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:430772:g1:220": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:431073:g1:221": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:438103:g1:224": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:461803:g1:223": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      }
+    }
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_1000_PRIMARY",
+      "costId": "ASSUMED_LOW",
+      "startingBalanceUsd": 1000,
+      "branches": 1,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        0,
+        0
+      ],
+      "wins": [
+        0,
+        0
+      ],
+      "losses": [
+        0,
+        0
+      ],
+      "netPnlUsd": [
+        0,
+        0
+      ],
+      "netExpectancyUsdPerTrade": null,
+      "profitFactor": null,
+      "maxEquityDrawdownUsd": [
+        0,
+        0
+      ],
+      "maxEquityDrawdownPct": [
+        0,
+        0
+      ],
+      "exposurePct": [
+        0,
+        0
+      ],
+      "decisionTally": {
+        "NOT_ELIGIBLE_GAP_CROSS": [
+          2,
+          2
+        ],
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": [
+          110,
+          110
+        ],
+        "NOT_ELIGIBLE_UNOBSERVABLE": [
+          21,
+          21
+        ],
+        "NOT_SELECTED_NEAREST": [
+          3,
+          3
+        ],
+        "STOP_RISK_EXCEEDS_0_5_PCT": [
+          54,
+          54
+        ]
+      },
+      "exact": true
+    },
+    "decisionsByEvent": {
+      "evt:lvl:S:216643:g1:19": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:239553:g1:23": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:239818:g1:22": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:233386:g1:21": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:232585:g1:20": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:233205:g1:24": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:232617:g1:25": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:232546:g1:28": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:231003:g1:29": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:233713:g1:30": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:243012:g1:33": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247480:g1:32": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:245840:g1:35": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247561:g1:38": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247682:g1:37": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247761:g1:36": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:249723:g1:40": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:249355:g1:41": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:248994:g1:42": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:252331:g1:46": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:252675:g1:45": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:252860:g1:44": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:252890:g1:43": {
+        "NOT_SELECTED_NEAREST": 1
+      },
+      "evt:lvl:R:258682:g1:47": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:264102:g1:48": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:263690:g1:49": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:263191:g1:50": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:266140:g1:51": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:273164:g1:53": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:273055:g1:56": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:272789:g1:55": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:272472:g1:54": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:270878:g1:57": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:264317:g1:52": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:261696:g1:58": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:270410:g1:59": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:266423:g1:61": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:272131:g1:60": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:288249:g1:63": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:288181:g1:64": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:292426:g1:66": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:291861:g1:65": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:289198:g1:68": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:292776:g1:70": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:292652:g1:72": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:293006:g1:71": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:295491:g1:67": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:303322:g1:73": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:297037:g1:74": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:328384:g1:75": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:326819:g1:77": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:321162:g1:78": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:336717:g1:76": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:322278:g1:79": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:332544:g1:80": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:334380:g1:82": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:333816:g1:84": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:334908:g1:85": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:337560:g1:86": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:338465:g1:83": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:339224:g1:81": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:337318:g1:88": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:336615:g1:89": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:334037:g1:91": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:333867:g1:90": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:331198:g1:93": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:330194:g1:92": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:344440:g1:87": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:329645:g1:95": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:334418:g1:94": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:336574:g1:96": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:332025:g1:99": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:336673:g1:98": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:337492:g1:97": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:331012:g1:100": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:334507:g1:101": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:370306:g1:103": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:362029:g1:102": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:377921:g1:104": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:385335:g1:105": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:389534:g1:106": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:405793:g1:108": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:405925:g1:107": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:409064:g1:110": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:437918:g1:109": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:403022:g1:112": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:398919:g1:113": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:401955:g1:114": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:414414:g1:115": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:403239:g1:116": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:405551:g1:117": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:405578:g1:118": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:403855:g1:119": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:421882:g1:122": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:424135:g1:120": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:417507:g1:121": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:434903:g1:125": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:435024:g1:124": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:435351:g1:123": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:452594:g1:126": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:444833:g1:127": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:430658:g1:128": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:430862:g1:129": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:431977:g1:130": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:444260:g1:131": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:450042:g1:133": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:463013:g1:134": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:442348:g1:132": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:523523:g1:138": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:498986:g1:139": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:475593:g1:140": {
+        "NOT_ELIGIBLE_GAP_CROSS": 1
+      },
+      "evt:lvl:S:465950:g1:141": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:457356:g1:136": {
+        "NOT_SELECTED_NEAREST": 1
+      },
+      "evt:lvl:S:458114:g1:137": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:456958:g1:135": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:453685:g1:142": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:488086:g1:144": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:507872:g1:147": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:508661:g1:146": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:509194:g1:145": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:493376:g1:148": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:487871:g1:149": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:500103:g1:151": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:501110:g1:152": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:440773:g1:143": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:485908:g1:150": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:514634:g1:153": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:524976:g1:154": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:513065:g1:156": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:509414:g1:155": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:519501:g1:159": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:514928:g1:160": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:506282:g1:158": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:506104:g1:161": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:505088:g1:157": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:499597:g1:163": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:498940:g1:162": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:458060:g1:165": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:460246:g1:164": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:473584:g1:166": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:469975:g1:167": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:479503:g1:170": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:485771:g1:171": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:476759:g1:174": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:475216:g1:173": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:466829:g1:175": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:467206:g1:176": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:461623:g1:168": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:460728:g1:169": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:458532:g1:177": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:464689:g1:178": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:464814:g1:183": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:451002:g1:179": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:450098:g1:184": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:448030:g1:185": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:457094:g1:186": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:474951:g1:182": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:476481:g1:181": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:477235:g1:180": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:449182:g1:189": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:448869:g1:188": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:453808:g1:190": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:458003:g1:187": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:446294:g1:193": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:434662:g1:194": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:436350:g1:195": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:405288:g1:197": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:398299:g1:199": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:409603:g1:200": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:419542:g1:202": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:419857:g1:201": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:409117:g1:203": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:413398:g1:204": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:405408:g1:205": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:397122:g1:206": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:402372:g1:208": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:408145:g1:209": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:413810:g1:210": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:402182:g1:211": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:401151:g1:212": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:402094:g1:217": {
+        "NOT_ELIGIBLE_GAP_CROSS": 1
+      },
+      "evt:lvl:R:411620:g1:216": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:411623:g1:215": {
+        "NOT_SELECTED_NEAREST": 1
+      },
+      "evt:lvl:S:435596:g1:218": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:431647:g1:219": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:458295:g1:222": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:430772:g1:220": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:431073:g1:221": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:438103:g1:224": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:461803:g1:223": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      }
+    }
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_1000_PRIMARY",
+      "costId": "ASSUMED_BASE",
+      "startingBalanceUsd": 1000,
+      "branches": 1,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        0,
+        0
+      ],
+      "wins": [
+        0,
+        0
+      ],
+      "losses": [
+        0,
+        0
+      ],
+      "netPnlUsd": [
+        0,
+        0
+      ],
+      "netExpectancyUsdPerTrade": null,
+      "profitFactor": null,
+      "maxEquityDrawdownUsd": [
+        0,
+        0
+      ],
+      "maxEquityDrawdownPct": [
+        0,
+        0
+      ],
+      "exposurePct": [
+        0,
+        0
+      ],
+      "decisionTally": {
+        "NOT_ELIGIBLE_GAP_CROSS": [
+          2,
+          2
+        ],
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": [
+          110,
+          110
+        ],
+        "NOT_ELIGIBLE_UNOBSERVABLE": [
+          21,
+          21
+        ],
+        "NOT_SELECTED_NEAREST": [
+          3,
+          3
+        ],
+        "STOP_RISK_EXCEEDS_0_5_PCT": [
+          54,
+          54
+        ]
+      },
+      "exact": true
+    },
+    "decisionsByEvent": {
+      "evt:lvl:S:216643:g1:19": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:239553:g1:23": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:239818:g1:22": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:233386:g1:21": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:232585:g1:20": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:233205:g1:24": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:232617:g1:25": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:232546:g1:28": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:231003:g1:29": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:233713:g1:30": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:243012:g1:33": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247480:g1:32": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:245840:g1:35": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247561:g1:38": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247682:g1:37": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247761:g1:36": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:249723:g1:40": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:249355:g1:41": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:248994:g1:42": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:252331:g1:46": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:252675:g1:45": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:252860:g1:44": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:252890:g1:43": {
+        "NOT_SELECTED_NEAREST": 1
+      },
+      "evt:lvl:R:258682:g1:47": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:264102:g1:48": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:263690:g1:49": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:263191:g1:50": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:266140:g1:51": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:273164:g1:53": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:273055:g1:56": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:272789:g1:55": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:272472:g1:54": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:270878:g1:57": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:264317:g1:52": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:261696:g1:58": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:270410:g1:59": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:266423:g1:61": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:272131:g1:60": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:288249:g1:63": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:288181:g1:64": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:292426:g1:66": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:291861:g1:65": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:289198:g1:68": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:292776:g1:70": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:292652:g1:72": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:293006:g1:71": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:295491:g1:67": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:303322:g1:73": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:297037:g1:74": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:328384:g1:75": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:326819:g1:77": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:321162:g1:78": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:336717:g1:76": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:322278:g1:79": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:332544:g1:80": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:334380:g1:82": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:333816:g1:84": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:334908:g1:85": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:337560:g1:86": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:338465:g1:83": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:339224:g1:81": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:337318:g1:88": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:336615:g1:89": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:334037:g1:91": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:333867:g1:90": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:331198:g1:93": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:330194:g1:92": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:344440:g1:87": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:329645:g1:95": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:334418:g1:94": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:336574:g1:96": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:332025:g1:99": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:336673:g1:98": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:337492:g1:97": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:331012:g1:100": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:334507:g1:101": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:370306:g1:103": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:362029:g1:102": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:377921:g1:104": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:385335:g1:105": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:389534:g1:106": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:405793:g1:108": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:405925:g1:107": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:409064:g1:110": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:437918:g1:109": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:403022:g1:112": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:398919:g1:113": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:401955:g1:114": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:414414:g1:115": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:403239:g1:116": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:405551:g1:117": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:405578:g1:118": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:403855:g1:119": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:421882:g1:122": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:424135:g1:120": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:417507:g1:121": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:434903:g1:125": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:435024:g1:124": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:435351:g1:123": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:452594:g1:126": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:444833:g1:127": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:430658:g1:128": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:430862:g1:129": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:431977:g1:130": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:444260:g1:131": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:450042:g1:133": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:463013:g1:134": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:442348:g1:132": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:523523:g1:138": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:498986:g1:139": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:475593:g1:140": {
+        "NOT_ELIGIBLE_GAP_CROSS": 1
+      },
+      "evt:lvl:S:465950:g1:141": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:457356:g1:136": {
+        "NOT_SELECTED_NEAREST": 1
+      },
+      "evt:lvl:S:458114:g1:137": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:456958:g1:135": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:453685:g1:142": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:488086:g1:144": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:507872:g1:147": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:508661:g1:146": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:509194:g1:145": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:493376:g1:148": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:487871:g1:149": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:500103:g1:151": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:501110:g1:152": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:440773:g1:143": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:485908:g1:150": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:514634:g1:153": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:524976:g1:154": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:513065:g1:156": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:509414:g1:155": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:519501:g1:159": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:514928:g1:160": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:506282:g1:158": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:506104:g1:161": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:505088:g1:157": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:499597:g1:163": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:498940:g1:162": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:458060:g1:165": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:460246:g1:164": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:473584:g1:166": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:469975:g1:167": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:479503:g1:170": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:485771:g1:171": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:476759:g1:174": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:475216:g1:173": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:466829:g1:175": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:467206:g1:176": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:461623:g1:168": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:460728:g1:169": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:458532:g1:177": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:464689:g1:178": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:464814:g1:183": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:451002:g1:179": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:450098:g1:184": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:448030:g1:185": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:457094:g1:186": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:474951:g1:182": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:476481:g1:181": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:477235:g1:180": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:449182:g1:189": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:448869:g1:188": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:453808:g1:190": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:458003:g1:187": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:446294:g1:193": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:434662:g1:194": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:436350:g1:195": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:405288:g1:197": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:398299:g1:199": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:409603:g1:200": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:419542:g1:202": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:419857:g1:201": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:409117:g1:203": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:413398:g1:204": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:405408:g1:205": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:397122:g1:206": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:402372:g1:208": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:408145:g1:209": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:413810:g1:210": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:402182:g1:211": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:401151:g1:212": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:402094:g1:217": {
+        "NOT_ELIGIBLE_GAP_CROSS": 1
+      },
+      "evt:lvl:R:411620:g1:216": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:411623:g1:215": {
+        "NOT_SELECTED_NEAREST": 1
+      },
+      "evt:lvl:S:435596:g1:218": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:431647:g1:219": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:458295:g1:222": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:430772:g1:220": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:431073:g1:221": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:438103:g1:224": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:461803:g1:223": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      }
+    }
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_1000_PRIMARY",
+      "costId": "ASSUMED_STRESS",
+      "startingBalanceUsd": 1000,
+      "branches": 1,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        0,
+        0
+      ],
+      "wins": [
+        0,
+        0
+      ],
+      "losses": [
+        0,
+        0
+      ],
+      "netPnlUsd": [
+        0,
+        0
+      ],
+      "netExpectancyUsdPerTrade": null,
+      "profitFactor": null,
+      "maxEquityDrawdownUsd": [
+        0,
+        0
+      ],
+      "maxEquityDrawdownPct": [
+        0,
+        0
+      ],
+      "exposurePct": [
+        0,
+        0
+      ],
+      "decisionTally": {
+        "NOT_ELIGIBLE_GAP_CROSS": [
+          2,
+          2
+        ],
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": [
+          110,
+          110
+        ],
+        "NOT_ELIGIBLE_UNOBSERVABLE": [
+          21,
+          21
+        ],
+        "NOT_SELECTED_NEAREST": [
+          3,
+          3
+        ],
+        "STOP_RISK_EXCEEDS_0_5_PCT": [
+          54,
+          54
+        ]
+      },
+      "exact": true
+    },
+    "decisionsByEvent": {
+      "evt:lvl:S:216643:g1:19": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:239553:g1:23": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:239818:g1:22": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:233386:g1:21": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:232585:g1:20": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:233205:g1:24": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:232617:g1:25": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:232546:g1:28": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:231003:g1:29": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:233713:g1:30": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:243012:g1:33": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247480:g1:32": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:245840:g1:35": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247561:g1:38": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247682:g1:37": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:247761:g1:36": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:249723:g1:40": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:249355:g1:41": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:248994:g1:42": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:252331:g1:46": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:252675:g1:45": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:252860:g1:44": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:252890:g1:43": {
+        "NOT_SELECTED_NEAREST": 1
+      },
+      "evt:lvl:R:258682:g1:47": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:264102:g1:48": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:263690:g1:49": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:263191:g1:50": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:266140:g1:51": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:273164:g1:53": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:273055:g1:56": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:272789:g1:55": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:272472:g1:54": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:270878:g1:57": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:264317:g1:52": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:261696:g1:58": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:270410:g1:59": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:266423:g1:61": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:272131:g1:60": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:288249:g1:63": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:288181:g1:64": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:292426:g1:66": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:291861:g1:65": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:289198:g1:68": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:292776:g1:70": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:292652:g1:72": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:293006:g1:71": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:295491:g1:67": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:303322:g1:73": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:297037:g1:74": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:328384:g1:75": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:326819:g1:77": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:321162:g1:78": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:336717:g1:76": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:322278:g1:79": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:332544:g1:80": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:334380:g1:82": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:333816:g1:84": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:334908:g1:85": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:337560:g1:86": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:338465:g1:83": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:339224:g1:81": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:337318:g1:88": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:336615:g1:89": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:334037:g1:91": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:333867:g1:90": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:331198:g1:93": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:330194:g1:92": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:344440:g1:87": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:329645:g1:95": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:334418:g1:94": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:336574:g1:96": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:332025:g1:99": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:336673:g1:98": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:337492:g1:97": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:331012:g1:100": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:334507:g1:101": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:370306:g1:103": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:362029:g1:102": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:377921:g1:104": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:385335:g1:105": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:389534:g1:106": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:405793:g1:108": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:405925:g1:107": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:409064:g1:110": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:437918:g1:109": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:403022:g1:112": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:398919:g1:113": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:401955:g1:114": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:414414:g1:115": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:403239:g1:116": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:405551:g1:117": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:405578:g1:118": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:403855:g1:119": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:421882:g1:122": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:424135:g1:120": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:417507:g1:121": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:434903:g1:125": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:435024:g1:124": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:435351:g1:123": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:452594:g1:126": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:444833:g1:127": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:430658:g1:128": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:430862:g1:129": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:431977:g1:130": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:444260:g1:131": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:450042:g1:133": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:463013:g1:134": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:442348:g1:132": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:523523:g1:138": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:498986:g1:139": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:475593:g1:140": {
+        "NOT_ELIGIBLE_GAP_CROSS": 1
+      },
+      "evt:lvl:S:465950:g1:141": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:457356:g1:136": {
+        "NOT_SELECTED_NEAREST": 1
+      },
+      "evt:lvl:S:458114:g1:137": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:456958:g1:135": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:453685:g1:142": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:488086:g1:144": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:507872:g1:147": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:508661:g1:146": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:509194:g1:145": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:493376:g1:148": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:487871:g1:149": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:500103:g1:151": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:501110:g1:152": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:440773:g1:143": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:485908:g1:150": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:514634:g1:153": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:524976:g1:154": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:513065:g1:156": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:509414:g1:155": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:519501:g1:159": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:514928:g1:160": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:506282:g1:158": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:506104:g1:161": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:505088:g1:157": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:499597:g1:163": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:498940:g1:162": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:458060:g1:165": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:460246:g1:164": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:473584:g1:166": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:469975:g1:167": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:479503:g1:170": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:485771:g1:171": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:476759:g1:174": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:475216:g1:173": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:466829:g1:175": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:467206:g1:176": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:461623:g1:168": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:460728:g1:169": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:458532:g1:177": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:464689:g1:178": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:464814:g1:183": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:451002:g1:179": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:450098:g1:184": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:448030:g1:185": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:457094:g1:186": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:474951:g1:182": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:476481:g1:181": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:R:477235:g1:180": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      },
+      "evt:lvl:S:449182:g1:189": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:448869:g1:188": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:453808:g1:190": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:458003:g1:187": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:446294:g1:193": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:434662:g1:194": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:436350:g1:195": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:405288:g1:197": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:398299:g1:199": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:409603:g1:200": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:419542:g1:202": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:419857:g1:201": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:409117:g1:203": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:413398:g1:204": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:405408:g1:205": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:397122:g1:206": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:402372:g1:208": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:408145:g1:209": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:413810:g1:210": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:402182:g1:211": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:401151:g1:212": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:402094:g1:217": {
+        "NOT_ELIGIBLE_GAP_CROSS": 1
+      },
+      "evt:lvl:R:411620:g1:216": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:R:411623:g1:215": {
+        "NOT_SELECTED_NEAREST": 1
+      },
+      "evt:lvl:S:435596:g1:218": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:431647:g1:219": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:458295:g1:222": {
+        "STOP_RISK_EXCEEDS_0_5_PCT": 1
+      },
+      "evt:lvl:S:430772:g1:220": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:431073:g1:221": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:S:438103:g1:224": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 1
+      },
+      "evt:lvl:R:461803:g1:223": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 1
+      }
+    }
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_10000_SENSITIVITY",
+      "costId": "IDEALIZED_GROSS",
+      "startingBalanceUsd": 10000,
+      "branches": 32,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        44,
+        45
+      ],
+      "wins": [
+        14,
+        18
+      ],
+      "losses": [
+        27,
+        30
+      ],
+      "netPnlUsd": [
+        -160,
+        -90
+      ],
+      "netExpectancyUsdPerTrade": [
+        -3.6363636363636362,
+        -2
+      ],
+      "profitFactor": [
+        0.4666666666666667,
+        0.6666666666666666
+      ],
+      "maxEquityDrawdownUsd": [
+        157.61000000000058,
+        207.61000000000058
+      ],
+      "maxEquityDrawdownPct": [
+        1.571385842472588,
+        2.0698903290129667
+      ],
+      "exposurePct": [
+        0.3815697544818176,
+        0.38201857207187667
+      ],
+      "decisionTally": {
+        "ENTERED": [
+          44,
+          45
+        ],
+        "NOT_ELIGIBLE_GAP_CROSS": [
+          2,
+          2
+        ],
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": [
+          110,
+          110
+        ],
+        "NOT_ELIGIBLE_UNOBSERVABLE": [
+          21,
+          21
+        ],
+        "NOT_SELECTED_NEAREST": [
+          3,
+          3
+        ],
+        "POSITION_OPEN": [
+          8,
+          8
+        ],
+        "SAME_MINUTE_AS_EXIT": [
+          1,
+          2
+        ]
+      },
+      "exact": false
+    },
+    "decisionsByEvent": {
+      "evt:lvl:S:216643:g1:19": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:239553:g1:23": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:239818:g1:22": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:233386:g1:21": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:232585:g1:20": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:233205:g1:24": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:232617:g1:25": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:232546:g1:28": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:231003:g1:29": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:233713:g1:30": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:243012:g1:33": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247480:g1:32": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:245840:g1:35": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247561:g1:38": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247682:g1:37": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247761:g1:36": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:249723:g1:40": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:249355:g1:41": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:248994:g1:42": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:252331:g1:46": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:252675:g1:45": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:R:252860:g1:44": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:R:252890:g1:43": {
+        "NOT_SELECTED_NEAREST": 32
+      },
+      "evt:lvl:R:258682:g1:47": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:264102:g1:48": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:263690:g1:49": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:263191:g1:50": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:266140:g1:51": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:273164:g1:53": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:273055:g1:56": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:272789:g1:55": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:272472:g1:54": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:270878:g1:57": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:264317:g1:52": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:261696:g1:58": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:270410:g1:59": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:266423:g1:61": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:272131:g1:60": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:288249:g1:63": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:288181:g1:64": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:292426:g1:66": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:291861:g1:65": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:289198:g1:68": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:292776:g1:70": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:292652:g1:72": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:293006:g1:71": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:295491:g1:67": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:303322:g1:73": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:297037:g1:74": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:328384:g1:75": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:326819:g1:77": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:321162:g1:78": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:336717:g1:76": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:322278:g1:79": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:332544:g1:80": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:334380:g1:82": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:333816:g1:84": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:334908:g1:85": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:337560:g1:86": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:338465:g1:83": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:339224:g1:81": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:337318:g1:88": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:336615:g1:89": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:334037:g1:91": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:333867:g1:90": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:331198:g1:93": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:330194:g1:92": {
+        "SAME_MINUTE_AS_EXIT": 32
+      },
+      "evt:lvl:R:344440:g1:87": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:329645:g1:95": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:334418:g1:94": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:336574:g1:96": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:332025:g1:99": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:336673:g1:98": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:337492:g1:97": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:331012:g1:100": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:334507:g1:101": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:370306:g1:103": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:362029:g1:102": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:377921:g1:104": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:385335:g1:105": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:389534:g1:106": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:405793:g1:108": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:405925:g1:107": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:409064:g1:110": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:437918:g1:109": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:403022:g1:112": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:398919:g1:113": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:401955:g1:114": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:414414:g1:115": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:403239:g1:116": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:405551:g1:117": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:405578:g1:118": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:403855:g1:119": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:421882:g1:122": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:424135:g1:120": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:417507:g1:121": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:434903:g1:125": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:435024:g1:124": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:435351:g1:123": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:452594:g1:126": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:444833:g1:127": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:430658:g1:128": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:430862:g1:129": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:431977:g1:130": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:444260:g1:131": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:450042:g1:133": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:463013:g1:134": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:442348:g1:132": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:523523:g1:138": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:498986:g1:139": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:475593:g1:140": {
+        "NOT_ELIGIBLE_GAP_CROSS": 32
+      },
+      "evt:lvl:S:465950:g1:141": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:457356:g1:136": {
+        "NOT_SELECTED_NEAREST": 32
+      },
+      "evt:lvl:S:458114:g1:137": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:456958:g1:135": {
+        "SAME_MINUTE_AS_EXIT": 16,
+        "ENTERED": 16
+      },
+      "evt:lvl:S:453685:g1:142": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:488086:g1:144": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:507872:g1:147": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:508661:g1:146": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:509194:g1:145": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:493376:g1:148": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:487871:g1:149": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:500103:g1:151": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:501110:g1:152": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:440773:g1:143": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:485908:g1:150": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:514634:g1:153": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:524976:g1:154": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:513065:g1:156": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:509414:g1:155": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:519501:g1:159": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:514928:g1:160": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:506282:g1:158": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:506104:g1:161": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:505088:g1:157": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:499597:g1:163": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:498940:g1:162": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:R:458060:g1:165": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:460246:g1:164": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:473584:g1:166": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:469975:g1:167": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:479503:g1:170": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:485771:g1:171": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:476759:g1:174": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:475216:g1:173": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:466829:g1:175": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:467206:g1:176": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:461623:g1:168": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:460728:g1:169": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:458532:g1:177": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:464689:g1:178": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:464814:g1:183": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:451002:g1:179": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:450098:g1:184": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:448030:g1:185": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:457094:g1:186": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:474951:g1:182": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:476481:g1:181": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:477235:g1:180": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:449182:g1:189": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:448869:g1:188": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:453808:g1:190": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:458003:g1:187": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:446294:g1:193": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:434662:g1:194": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:436350:g1:195": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:405288:g1:197": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:398299:g1:199": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:409603:g1:200": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:419542:g1:202": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:419857:g1:201": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:409117:g1:203": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:413398:g1:204": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:405408:g1:205": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:397122:g1:206": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:402372:g1:208": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:408145:g1:209": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:413810:g1:210": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:402182:g1:211": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:401151:g1:212": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:402094:g1:217": {
+        "NOT_ELIGIBLE_GAP_CROSS": 32
+      },
+      "evt:lvl:R:411620:g1:216": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:411623:g1:215": {
+        "NOT_SELECTED_NEAREST": 32
+      },
+      "evt:lvl:S:435596:g1:218": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:431647:g1:219": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:458295:g1:222": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:430772:g1:220": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:431073:g1:221": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:438103:g1:224": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:461803:g1:223": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      }
+    }
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_10000_SENSITIVITY",
+      "costId": "ASSUMED_LOW",
+      "startingBalanceUsd": 10000,
+      "branches": 32,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        44,
+        45
+      ],
+      "wins": [
+        14,
+        18
+      ],
+      "losses": [
+        27,
+        30
+      ],
+      "netPnlUsd": [
+        -168.80000000003201,
+        -99.00000000003274
+      ],
+      "netExpectancyUsdPerTrade": [
+        -3.836363636363633,
+        -2.200000000000002
+      ],
+      "profitFactor": [
+        0.44836601307189566,
+        0.6405228758169939
+      ],
+      "maxEquityDrawdownUsd": [
+        164.41000000002532,
+        214.2100000000246
+      ],
+      "maxEquityDrawdownPct": [
+        1.6393458968992458,
+        2.1359058729686375
+      ],
+      "exposurePct": [
+        0.3815697544818176,
+        0.38201857207187667
+      ],
+      "decisionTally": {
+        "ENTERED": [
+          44,
+          45
+        ],
+        "NOT_ELIGIBLE_GAP_CROSS": [
+          2,
+          2
+        ],
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": [
+          110,
+          110
+        ],
+        "NOT_ELIGIBLE_UNOBSERVABLE": [
+          21,
+          21
+        ],
+        "NOT_SELECTED_NEAREST": [
+          3,
+          3
+        ],
+        "POSITION_OPEN": [
+          8,
+          8
+        ],
+        "SAME_MINUTE_AS_EXIT": [
+          1,
+          2
+        ]
+      },
+      "exact": false
+    },
+    "decisionsByEvent": {
+      "evt:lvl:S:216643:g1:19": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:239553:g1:23": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:239818:g1:22": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:233386:g1:21": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:232585:g1:20": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:233205:g1:24": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:232617:g1:25": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:232546:g1:28": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:231003:g1:29": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:233713:g1:30": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:243012:g1:33": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247480:g1:32": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:245840:g1:35": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247561:g1:38": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247682:g1:37": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247761:g1:36": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:249723:g1:40": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:249355:g1:41": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:248994:g1:42": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:252331:g1:46": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:252675:g1:45": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:R:252860:g1:44": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:R:252890:g1:43": {
+        "NOT_SELECTED_NEAREST": 32
+      },
+      "evt:lvl:R:258682:g1:47": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:264102:g1:48": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:263690:g1:49": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:263191:g1:50": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:266140:g1:51": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:273164:g1:53": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:273055:g1:56": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:272789:g1:55": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:272472:g1:54": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:270878:g1:57": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:264317:g1:52": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:261696:g1:58": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:270410:g1:59": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:266423:g1:61": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:272131:g1:60": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:288249:g1:63": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:288181:g1:64": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:292426:g1:66": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:291861:g1:65": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:289198:g1:68": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:292776:g1:70": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:292652:g1:72": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:293006:g1:71": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:295491:g1:67": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:303322:g1:73": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:297037:g1:74": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:328384:g1:75": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:326819:g1:77": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:321162:g1:78": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:336717:g1:76": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:322278:g1:79": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:332544:g1:80": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:334380:g1:82": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:333816:g1:84": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:334908:g1:85": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:337560:g1:86": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:338465:g1:83": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:339224:g1:81": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:337318:g1:88": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:336615:g1:89": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:334037:g1:91": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:333867:g1:90": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:331198:g1:93": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:330194:g1:92": {
+        "SAME_MINUTE_AS_EXIT": 32
+      },
+      "evt:lvl:R:344440:g1:87": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:329645:g1:95": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:334418:g1:94": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:336574:g1:96": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:332025:g1:99": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:336673:g1:98": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:337492:g1:97": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:331012:g1:100": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:334507:g1:101": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:370306:g1:103": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:362029:g1:102": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:377921:g1:104": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:385335:g1:105": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:389534:g1:106": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:405793:g1:108": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:405925:g1:107": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:409064:g1:110": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:437918:g1:109": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:403022:g1:112": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:398919:g1:113": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:401955:g1:114": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:414414:g1:115": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:403239:g1:116": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:405551:g1:117": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:405578:g1:118": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:403855:g1:119": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:421882:g1:122": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:424135:g1:120": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:417507:g1:121": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:434903:g1:125": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:435024:g1:124": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:435351:g1:123": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:452594:g1:126": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:444833:g1:127": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:430658:g1:128": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:430862:g1:129": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:431977:g1:130": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:444260:g1:131": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:450042:g1:133": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:463013:g1:134": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:442348:g1:132": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:523523:g1:138": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:498986:g1:139": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:475593:g1:140": {
+        "NOT_ELIGIBLE_GAP_CROSS": 32
+      },
+      "evt:lvl:S:465950:g1:141": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:457356:g1:136": {
+        "NOT_SELECTED_NEAREST": 32
+      },
+      "evt:lvl:S:458114:g1:137": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:456958:g1:135": {
+        "SAME_MINUTE_AS_EXIT": 16,
+        "ENTERED": 16
+      },
+      "evt:lvl:S:453685:g1:142": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:488086:g1:144": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:507872:g1:147": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:508661:g1:146": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:509194:g1:145": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:493376:g1:148": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:487871:g1:149": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:500103:g1:151": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:501110:g1:152": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:440773:g1:143": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:485908:g1:150": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:514634:g1:153": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:524976:g1:154": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:513065:g1:156": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:509414:g1:155": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:519501:g1:159": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:514928:g1:160": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:506282:g1:158": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:506104:g1:161": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:505088:g1:157": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:499597:g1:163": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:498940:g1:162": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:R:458060:g1:165": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:460246:g1:164": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:473584:g1:166": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:469975:g1:167": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:479503:g1:170": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:485771:g1:171": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:476759:g1:174": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:475216:g1:173": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:466829:g1:175": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:467206:g1:176": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:461623:g1:168": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:460728:g1:169": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:458532:g1:177": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:464689:g1:178": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:464814:g1:183": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:451002:g1:179": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:450098:g1:184": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:448030:g1:185": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:457094:g1:186": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:474951:g1:182": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:476481:g1:181": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:477235:g1:180": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:449182:g1:189": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:448869:g1:188": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:453808:g1:190": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:458003:g1:187": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:446294:g1:193": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:434662:g1:194": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:436350:g1:195": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:405288:g1:197": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:398299:g1:199": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:409603:g1:200": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:419542:g1:202": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:419857:g1:201": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:409117:g1:203": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:413398:g1:204": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:405408:g1:205": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:397122:g1:206": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:402372:g1:208": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:408145:g1:209": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:413810:g1:210": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:402182:g1:211": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:401151:g1:212": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:402094:g1:217": {
+        "NOT_ELIGIBLE_GAP_CROSS": 32
+      },
+      "evt:lvl:R:411620:g1:216": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:411623:g1:215": {
+        "NOT_SELECTED_NEAREST": 32
+      },
+      "evt:lvl:S:435596:g1:218": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:431647:g1:219": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:458295:g1:222": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:430772:g1:220": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:431073:g1:221": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:438103:g1:224": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:461803:g1:223": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      }
+    }
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_10000_SENSITIVITY",
+      "costId": "ASSUMED_BASE",
+      "startingBalanceUsd": 10000,
+      "branches": 32,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        44,
+        45
+      ],
+      "wins": [
+        14,
+        18
+      ],
+      "losses": [
+        27,
+        30
+      ],
+      "netPnlUsd": [
+        -178.40000000002692,
+        -108.4500000000262
+      ],
+      "netExpectancyUsdPerTrade": [
+        -4.054545454545451,
+        -2.4099999999999993
+      ],
+      "profitFactor": [
+        0.43094098883572596,
+        0.6156299840510372
+      ],
+      "maxEquityDrawdownUsd": [
+        171.91000000002168,
+        221.76000000002205
+      ],
+      "maxEquityDrawdownPct": [
+        1.7142743177956226,
+        2.211374979433117
+      ],
+      "exposurePct": [
+        0.3815697544818176,
+        0.38201857207187667
+      ],
+      "decisionTally": {
+        "ENTERED": [
+          44,
+          45
+        ],
+        "NOT_ELIGIBLE_GAP_CROSS": [
+          2,
+          2
+        ],
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": [
+          110,
+          110
+        ],
+        "NOT_ELIGIBLE_UNOBSERVABLE": [
+          21,
+          21
+        ],
+        "NOT_SELECTED_NEAREST": [
+          3,
+          3
+        ],
+        "POSITION_OPEN": [
+          8,
+          8
+        ],
+        "SAME_MINUTE_AS_EXIT": [
+          1,
+          2
+        ]
+      },
+      "exact": false
+    },
+    "decisionsByEvent": {
+      "evt:lvl:S:216643:g1:19": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:239553:g1:23": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:239818:g1:22": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:233386:g1:21": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:232585:g1:20": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:233205:g1:24": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:232617:g1:25": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:232546:g1:28": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:231003:g1:29": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:233713:g1:30": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:243012:g1:33": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247480:g1:32": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:245840:g1:35": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247561:g1:38": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247682:g1:37": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247761:g1:36": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:249723:g1:40": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:249355:g1:41": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:248994:g1:42": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:252331:g1:46": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:252675:g1:45": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:R:252860:g1:44": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:R:252890:g1:43": {
+        "NOT_SELECTED_NEAREST": 32
+      },
+      "evt:lvl:R:258682:g1:47": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:264102:g1:48": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:263690:g1:49": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:263191:g1:50": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:266140:g1:51": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:273164:g1:53": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:273055:g1:56": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:272789:g1:55": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:272472:g1:54": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:270878:g1:57": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:264317:g1:52": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:261696:g1:58": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:270410:g1:59": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:266423:g1:61": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:272131:g1:60": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:288249:g1:63": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:288181:g1:64": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:292426:g1:66": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:291861:g1:65": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:289198:g1:68": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:292776:g1:70": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:292652:g1:72": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:293006:g1:71": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:295491:g1:67": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:303322:g1:73": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:297037:g1:74": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:328384:g1:75": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:326819:g1:77": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:321162:g1:78": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:336717:g1:76": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:322278:g1:79": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:332544:g1:80": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:334380:g1:82": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:333816:g1:84": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:334908:g1:85": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:337560:g1:86": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:338465:g1:83": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:339224:g1:81": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:337318:g1:88": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:336615:g1:89": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:334037:g1:91": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:333867:g1:90": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:331198:g1:93": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:330194:g1:92": {
+        "SAME_MINUTE_AS_EXIT": 32
+      },
+      "evt:lvl:R:344440:g1:87": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:329645:g1:95": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:334418:g1:94": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:336574:g1:96": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:332025:g1:99": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:336673:g1:98": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:337492:g1:97": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:331012:g1:100": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:334507:g1:101": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:370306:g1:103": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:362029:g1:102": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:377921:g1:104": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:385335:g1:105": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:389534:g1:106": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:405793:g1:108": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:405925:g1:107": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:409064:g1:110": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:437918:g1:109": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:403022:g1:112": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:398919:g1:113": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:401955:g1:114": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:414414:g1:115": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:403239:g1:116": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:405551:g1:117": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:405578:g1:118": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:403855:g1:119": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:421882:g1:122": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:424135:g1:120": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:417507:g1:121": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:434903:g1:125": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:435024:g1:124": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:435351:g1:123": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:452594:g1:126": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:444833:g1:127": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:430658:g1:128": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:430862:g1:129": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:431977:g1:130": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:444260:g1:131": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:450042:g1:133": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:463013:g1:134": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:442348:g1:132": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:523523:g1:138": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:498986:g1:139": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:475593:g1:140": {
+        "NOT_ELIGIBLE_GAP_CROSS": 32
+      },
+      "evt:lvl:S:465950:g1:141": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:457356:g1:136": {
+        "NOT_SELECTED_NEAREST": 32
+      },
+      "evt:lvl:S:458114:g1:137": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:456958:g1:135": {
+        "SAME_MINUTE_AS_EXIT": 16,
+        "ENTERED": 16
+      },
+      "evt:lvl:S:453685:g1:142": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:488086:g1:144": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:507872:g1:147": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:508661:g1:146": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:509194:g1:145": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:493376:g1:148": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:487871:g1:149": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:500103:g1:151": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:501110:g1:152": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:440773:g1:143": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:485908:g1:150": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:514634:g1:153": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:524976:g1:154": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:513065:g1:156": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:509414:g1:155": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:519501:g1:159": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:514928:g1:160": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:506282:g1:158": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:506104:g1:161": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:505088:g1:157": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:499597:g1:163": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:498940:g1:162": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:R:458060:g1:165": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:460246:g1:164": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:473584:g1:166": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:469975:g1:167": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:479503:g1:170": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:485771:g1:171": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:476759:g1:174": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:475216:g1:173": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:466829:g1:175": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:467206:g1:176": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:461623:g1:168": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:460728:g1:169": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:458532:g1:177": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:464689:g1:178": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:464814:g1:183": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:451002:g1:179": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:450098:g1:184": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:448030:g1:185": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:457094:g1:186": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:474951:g1:182": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:476481:g1:181": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:477235:g1:180": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:449182:g1:189": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:448869:g1:188": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:453808:g1:190": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:458003:g1:187": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:446294:g1:193": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:434662:g1:194": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:436350:g1:195": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:405288:g1:197": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:398299:g1:199": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:409603:g1:200": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:419542:g1:202": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:419857:g1:201": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:409117:g1:203": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:413398:g1:204": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:405408:g1:205": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:397122:g1:206": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:402372:g1:208": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:408145:g1:209": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:413810:g1:210": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:402182:g1:211": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:401151:g1:212": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:402094:g1:217": {
+        "NOT_ELIGIBLE_GAP_CROSS": 32
+      },
+      "evt:lvl:R:411620:g1:216": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:411623:g1:215": {
+        "NOT_SELECTED_NEAREST": 32
+      },
+      "evt:lvl:S:435596:g1:218": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:431647:g1:219": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:458295:g1:222": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:430772:g1:220": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:431073:g1:221": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:438103:g1:224": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:461803:g1:223": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      }
+    }
+  },
+  {
+    "summary": {
+      "balanceId": "ASSUMED_10000_SENSITIVITY",
+      "costId": "ASSUMED_STRESS",
+      "startingBalanceUsd": 10000,
+      "branches": 32,
+      "branchCapHit": false,
+      "haltedBranches": 0,
+      "openAtEndBranches": 0,
+      "tradesEntered": [
+        44,
+        45
+      ],
+      "wins": [
+        14,
+        18
+      ],
+      "losses": [
+        27,
+        30
+      ],
+      "netPnlUsd": [
+        -196.9800000000032,
+        -126.90000000000327
+      ],
+      "netExpectancyUsdPerTrade": [
+        -4.476818181818177,
+        -2.82
+      ],
+      "profitFactor": [
+        0.3987179487179488,
+        0.5695970695970699
+      ],
+      "maxEquityDrawdownUsd": [
+        186.39000000000306,
+        236.22000000000298
+      ],
+      "maxEquityDrawdownPct": [
+        1.8589922604324887,
+        2.355980212239717
+      ],
+      "exposurePct": [
+        0.3815697544818176,
+        0.38201857207187667
+      ],
+      "decisionTally": {
+        "ENTERED": [
+          44,
+          45
+        ],
+        "NOT_ELIGIBLE_GAP_CROSS": [
+          2,
+          2
+        ],
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": [
+          110,
+          110
+        ],
+        "NOT_ELIGIBLE_UNOBSERVABLE": [
+          21,
+          21
+        ],
+        "NOT_SELECTED_NEAREST": [
+          3,
+          3
+        ],
+        "POSITION_OPEN": [
+          8,
+          8
+        ],
+        "SAME_MINUTE_AS_EXIT": [
+          1,
+          2
+        ]
+      },
+      "exact": false
+    },
+    "decisionsByEvent": {
+      "evt:lvl:S:216643:g1:19": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:239553:g1:23": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:239818:g1:22": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:233386:g1:21": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:232585:g1:20": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:233205:g1:24": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:232617:g1:25": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:232546:g1:28": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:231003:g1:29": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:233713:g1:30": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:243012:g1:33": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247480:g1:32": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:245840:g1:35": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247561:g1:38": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247682:g1:37": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:247761:g1:36": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:249723:g1:40": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:249355:g1:41": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:248994:g1:42": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:252331:g1:46": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:252675:g1:45": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:R:252860:g1:44": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:R:252890:g1:43": {
+        "NOT_SELECTED_NEAREST": 32
+      },
+      "evt:lvl:R:258682:g1:47": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:264102:g1:48": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:263690:g1:49": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:263191:g1:50": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:266140:g1:51": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:273164:g1:53": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:273055:g1:56": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:272789:g1:55": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:272472:g1:54": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:270878:g1:57": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:264317:g1:52": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:261696:g1:58": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:270410:g1:59": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:266423:g1:61": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:272131:g1:60": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:288249:g1:63": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:288181:g1:64": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:292426:g1:66": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:291861:g1:65": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:289198:g1:68": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:292776:g1:70": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:292652:g1:72": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:293006:g1:71": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:295491:g1:67": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:303322:g1:73": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:297037:g1:74": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:328384:g1:75": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:326819:g1:77": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:321162:g1:78": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:336717:g1:76": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:322278:g1:79": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:332544:g1:80": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:334380:g1:82": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:333816:g1:84": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:334908:g1:85": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:337560:g1:86": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:338465:g1:83": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:339224:g1:81": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:337318:g1:88": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:336615:g1:89": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:334037:g1:91": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:333867:g1:90": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:331198:g1:93": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:330194:g1:92": {
+        "SAME_MINUTE_AS_EXIT": 32
+      },
+      "evt:lvl:R:344440:g1:87": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:329645:g1:95": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:334418:g1:94": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:336574:g1:96": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:332025:g1:99": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:336673:g1:98": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:337492:g1:97": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:331012:g1:100": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:334507:g1:101": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:370306:g1:103": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:362029:g1:102": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:377921:g1:104": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:385335:g1:105": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:389534:g1:106": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:405793:g1:108": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:405925:g1:107": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:409064:g1:110": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:437918:g1:109": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:403022:g1:112": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:398919:g1:113": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:401955:g1:114": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:414414:g1:115": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:403239:g1:116": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:405551:g1:117": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:405578:g1:118": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:403855:g1:119": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:421882:g1:122": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:424135:g1:120": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:417507:g1:121": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:434903:g1:125": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:435024:g1:124": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:435351:g1:123": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:452594:g1:126": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:444833:g1:127": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:430658:g1:128": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:430862:g1:129": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:431977:g1:130": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:444260:g1:131": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:450042:g1:133": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:463013:g1:134": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:442348:g1:132": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:523523:g1:138": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:498986:g1:139": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:475593:g1:140": {
+        "NOT_ELIGIBLE_GAP_CROSS": 32
+      },
+      "evt:lvl:S:465950:g1:141": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:457356:g1:136": {
+        "NOT_SELECTED_NEAREST": 32
+      },
+      "evt:lvl:S:458114:g1:137": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:456958:g1:135": {
+        "SAME_MINUTE_AS_EXIT": 16,
+        "ENTERED": 16
+      },
+      "evt:lvl:S:453685:g1:142": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:488086:g1:144": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:507872:g1:147": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:508661:g1:146": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:509194:g1:145": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:493376:g1:148": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:487871:g1:149": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:500103:g1:151": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:501110:g1:152": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:440773:g1:143": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:485908:g1:150": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:514634:g1:153": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:524976:g1:154": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:513065:g1:156": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:509414:g1:155": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:519501:g1:159": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:514928:g1:160": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:506282:g1:158": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:506104:g1:161": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:505088:g1:157": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:499597:g1:163": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:498940:g1:162": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:R:458060:g1:165": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:460246:g1:164": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:473584:g1:166": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:469975:g1:167": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:479503:g1:170": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:485771:g1:171": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:476759:g1:174": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:475216:g1:173": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:466829:g1:175": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:467206:g1:176": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:461623:g1:168": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:460728:g1:169": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:458532:g1:177": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:464689:g1:178": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:464814:g1:183": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:451002:g1:179": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:450098:g1:184": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:448030:g1:185": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:457094:g1:186": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:474951:g1:182": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:476481:g1:181": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:R:477235:g1:180": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      },
+      "evt:lvl:S:449182:g1:189": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:448869:g1:188": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:453808:g1:190": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:458003:g1:187": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:446294:g1:193": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:434662:g1:194": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:436350:g1:195": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:405288:g1:197": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:398299:g1:199": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:409603:g1:200": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:419542:g1:202": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:419857:g1:201": {
+        "POSITION_OPEN": 32
+      },
+      "evt:lvl:S:409117:g1:203": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:413398:g1:204": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:405408:g1:205": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:397122:g1:206": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:402372:g1:208": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:408145:g1:209": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:413810:g1:210": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:402182:g1:211": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:401151:g1:212": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:402094:g1:217": {
+        "NOT_ELIGIBLE_GAP_CROSS": 32
+      },
+      "evt:lvl:R:411620:g1:216": {
+        "ENTERED": 32
+      },
+      "evt:lvl:R:411623:g1:215": {
+        "NOT_SELECTED_NEAREST": 32
+      },
+      "evt:lvl:S:435596:g1:218": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:431647:g1:219": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:458295:g1:222": {
+        "ENTERED": 32
+      },
+      "evt:lvl:S:430772:g1:220": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:431073:g1:221": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:S:438103:g1:224": {
+        "NOT_ELIGIBLE_OUTSIDE_WINDOW": 32
+      },
+      "evt:lvl:R:461803:g1:223": {
+        "NOT_ELIGIBLE_UNOBSERVABLE": 32
+      }
+    }
+  }
+]

@@ -1,0 +1,2510 @@
+{
+  "captured": {
+    "source": "https://www.google.com HTTP Date header",
+    "external_utc": "2026-09-15T00:05:13+00:00",
+    "system_utc": "2026-09-15T00:05:13.349573+00:00"
+  },
+  "chain_code_references": {
+    "raw_epoch": "MetaTrader5 copy_rates_range / copy_rates_from_pos -> rates['time']",
+    "python_decode": "collector/app/mt5_client.py get_candles(): datetime.fromtimestamp(int(r['time']), tz=timezone.utc).isoformat()  (line 408)",
+    "api_payload": "collector/app/api_mapper.py build_candles_payload(): 'openTime': c['open_time']  (line 121)",
+    "dto": "backend/src/market-data/dto/candles-push.dto.ts IncomingCandleDto.openTime @IsISO8601",
+    "db_write": "backend/src/market-data/historical-candle.service.ts: new Date(c.openTime) into INSERT ... open_time (line 54)",
+    "db_column": "historical_candles.open_time TIMESTAMP(3) without time zone (migration 20260906203717_add_historical_candles)",
+    "research_read": "backend/src/research/confirmed-retest/data-source.ts loadSeries(): EXTRACT(EPOCH FROM open_time) -> wallClockToUtc('EET', serverT)"
+  },
+  "traces": [
+    {
+      "symbol": "XAUUSD",
+      "timeframe": "H4",
+      "raw_bars": 40,
+      "db_rows_matched_by_identical_open_time": 34,
+      "ohlc_exact_float_matches": 34,
+      "ohlc_equal_at_broker_digits": 34,
+      "broker_digits": 2,
+      "note": "exact-float mismatches are float64 representation noise (e.g. 1.1555900000000001 vs 1.15559); compare at broker digits",
+      "raw_bars_without_db_row": [
+        "2026-09-14T00:00:00+00:00",
+        "2026-09-14T04:00:00+00:00",
+        "2026-09-14T08:00:00+00:00",
+        "2026-09-14T12:00:00+00:00",
+        "2026-09-14T16:00:00+00:00",
+        "2026-09-14T20:00:00+00:00"
+      ],
+      "records": [
+        {
+          "raw_mt5_time_epoch": 1788508800,
+          "python_get_candles_decode": "2026-09-04T08:00:00+00:00",
+          "api_payload_openTime": "2026-09-04T08:00:00+00:00",
+          "db_open_time": "2026-09-04T08:00:00",
+          "ohlc_raw": [
+            4473.68,
+            4490.67,
+            4460.04,
+            4477.68
+          ],
+          "ohlc_db": [
+            4473.68,
+            4490.67,
+            4460.04,
+            4477.68
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-04T05:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-04T08:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788523200,
+          "python_get_candles_decode": "2026-09-04T12:00:00+00:00",
+          "api_payload_openTime": "2026-09-04T12:00:00+00:00",
+          "db_open_time": "2026-09-04T12:00:00",
+          "ohlc_raw": [
+            4477.63,
+            4479.11,
+            4374.86,
+            4393.61
+          ],
+          "ohlc_db": [
+            4477.63,
+            4479.11,
+            4374.86,
+            4393.61
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-04T09:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-04T12:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788537600,
+          "python_get_candles_decode": "2026-09-04T16:00:00+00:00",
+          "api_payload_openTime": "2026-09-04T16:00:00+00:00",
+          "db_open_time": "2026-09-04T16:00:00",
+          "ohlc_raw": [
+            4393.71,
+            4448.79,
+            4365.34,
+            4436.32
+          ],
+          "ohlc_db": [
+            4393.71,
+            4448.79,
+            4365.34,
+            4436.32
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-04T13:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-04T16:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788552000,
+          "python_get_candles_decode": "2026-09-04T20:00:00+00:00",
+          "api_payload_openTime": "2026-09-04T20:00:00+00:00",
+          "db_open_time": "2026-09-04T20:00:00",
+          "ohlc_raw": [
+            4436.26,
+            4440.37,
+            4411.95,
+            4434.66
+          ],
+          "ohlc_db": [
+            4436.26,
+            4440.37,
+            4411.95,
+            4434.66
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-04T17:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-04T20:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788739200,
+          "python_get_candles_decode": "2026-09-07T00:00:00+00:00",
+          "api_payload_openTime": "2026-09-07T00:00:00+00:00",
+          "db_open_time": "2026-09-07T00:00:00",
+          "ohlc_raw": [
+            4417.0,
+            4434.92,
+            4409.9,
+            4412.46
+          ],
+          "ohlc_db": [
+            4417.0,
+            4434.92,
+            4409.9,
+            4412.46
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-06T21:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-07T00:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788753600,
+          "python_get_candles_decode": "2026-09-07T04:00:00+00:00",
+          "api_payload_openTime": "2026-09-07T04:00:00+00:00",
+          "db_open_time": "2026-09-07T04:00:00",
+          "ohlc_raw": [
+            4412.43,
+            4418.92,
+            4389.5,
+            4397.86
+          ],
+          "ohlc_db": [
+            4412.43,
+            4418.92,
+            4389.5,
+            4397.86
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-07T01:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-07T04:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788768000,
+          "python_get_candles_decode": "2026-09-07T08:00:00+00:00",
+          "api_payload_openTime": "2026-09-07T08:00:00+00:00",
+          "db_open_time": "2026-09-07T08:00:00",
+          "ohlc_raw": [
+            4397.86,
+            4423.81,
+            4385.07,
+            4410.89
+          ],
+          "ohlc_db": [
+            4397.86,
+            4423.81,
+            4385.07,
+            4410.89
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-07T05:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-07T08:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788782400,
+          "python_get_candles_decode": "2026-09-07T12:00:00+00:00",
+          "api_payload_openTime": "2026-09-07T12:00:00+00:00",
+          "db_open_time": "2026-09-07T12:00:00",
+          "ohlc_raw": [
+            4410.89,
+            4413.75,
+            4381.03,
+            4396.68
+          ],
+          "ohlc_db": [
+            4410.89,
+            4413.75,
+            4381.03,
+            4396.68
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-07T09:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-07T12:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788796800,
+          "python_get_candles_decode": "2026-09-07T16:00:00+00:00",
+          "api_payload_openTime": "2026-09-07T16:00:00+00:00",
+          "db_open_time": "2026-09-07T16:00:00",
+          "ohlc_raw": [
+            4396.62,
+            4419.51,
+            4395.26,
+            4414.33
+          ],
+          "ohlc_db": [
+            4396.62,
+            4419.51,
+            4395.26,
+            4414.33
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-07T13:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-07T16:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788811200,
+          "python_get_candles_decode": "2026-09-07T20:00:00+00:00",
+          "api_payload_openTime": "2026-09-07T20:00:00+00:00",
+          "db_open_time": "2026-09-07T20:00:00",
+          "ohlc_raw": [
+            4414.42,
+            4415.01,
+            4402.92,
+            4406.13
+          ],
+          "ohlc_db": [
+            4414.42,
+            4415.01,
+            4402.92,
+            4406.13
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-07T17:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-07T20:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788825600,
+          "python_get_candles_decode": "2026-09-08T00:00:00+00:00",
+          "api_payload_openTime": "2026-09-08T00:00:00+00:00",
+          "db_open_time": "2026-09-08T00:00:00",
+          "ohlc_raw": [
+            4403.84,
+            4430.09,
+            4381.88,
+            4425.99
+          ],
+          "ohlc_db": [
+            4403.84,
+            4430.09,
+            4381.88,
+            4425.99
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-07T21:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-08T00:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788840000,
+          "python_get_candles_decode": "2026-09-08T04:00:00+00:00",
+          "api_payload_openTime": "2026-09-08T04:00:00+00:00",
+          "db_open_time": "2026-09-08T04:00:00",
+          "ohlc_raw": [
+            4425.98,
+            4442.89,
+            4416.98,
+            4435.96
+          ],
+          "ohlc_db": [
+            4425.98,
+            4442.89,
+            4416.98,
+            4435.96
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-08T01:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-08T04:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788854400,
+          "python_get_candles_decode": "2026-09-08T08:00:00+00:00",
+          "api_payload_openTime": "2026-09-08T08:00:00+00:00",
+          "db_open_time": "2026-09-08T08:00:00",
+          "ohlc_raw": [
+            4435.92,
+            4437.58,
+            4387.79,
+            4394.13
+          ],
+          "ohlc_db": [
+            4435.92,
+            4437.58,
+            4387.79,
+            4394.13
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-08T05:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-08T08:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788868800,
+          "python_get_candles_decode": "2026-09-08T12:00:00+00:00",
+          "api_payload_openTime": "2026-09-08T12:00:00+00:00",
+          "db_open_time": "2026-09-08T12:00:00",
+          "ohlc_raw": [
+            4394.06,
+            4411.75,
+            4385.3,
+            4411.55
+          ],
+          "ohlc_db": [
+            4394.06,
+            4411.75,
+            4385.3,
+            4411.55
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-08T09:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-08T12:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788883200,
+          "python_get_candles_decode": "2026-09-08T16:00:00+00:00",
+          "api_payload_openTime": "2026-09-08T16:00:00+00:00",
+          "db_open_time": "2026-09-08T16:00:00",
+          "ohlc_raw": [
+            4411.46,
+            4413.19,
+            4380.43,
+            4393.6
+          ],
+          "ohlc_db": [
+            4411.46,
+            4413.19,
+            4380.43,
+            4393.6
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-08T13:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-08T16:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788897600,
+          "python_get_candles_decode": "2026-09-08T20:00:00+00:00",
+          "api_payload_openTime": "2026-09-08T20:00:00+00:00",
+          "db_open_time": "2026-09-08T20:00:00",
+          "ohlc_raw": [
+            4393.62,
+            4403.78,
+            4356.74,
+            4359.38
+          ],
+          "ohlc_db": [
+            4393.62,
+            4403.78,
+            4356.74,
+            4359.38
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-08T17:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-08T20:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788912000,
+          "python_get_candles_decode": "2026-09-09T00:00:00+00:00",
+          "api_payload_openTime": "2026-09-09T00:00:00+00:00",
+          "db_open_time": "2026-09-09T00:00:00",
+          "ohlc_raw": [
+            4352.19,
+            4365.47,
+            4340.63,
+            4364.62
+          ],
+          "ohlc_db": [
+            4352.19,
+            4365.47,
+            4340.63,
+            4364.62
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-08T21:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-09T00:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788926400,
+          "python_get_candles_decode": "2026-09-09T04:00:00+00:00",
+          "api_payload_openTime": "2026-09-09T04:00:00+00:00",
+          "db_open_time": "2026-09-09T04:00:00",
+          "ohlc_raw": [
+            4364.62,
+            4384.44,
+            4353.97,
+            4381.45
+          ],
+          "ohlc_db": [
+            4364.62,
+            4384.44,
+            4353.97,
+            4381.45
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-09T01:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-09T04:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788940800,
+          "python_get_candles_decode": "2026-09-09T08:00:00+00:00",
+          "api_payload_openTime": "2026-09-09T08:00:00+00:00",
+          "db_open_time": "2026-09-09T08:00:00",
+          "ohlc_raw": [
+            4381.43,
+            4412.75,
+            4380.33,
+            4400.66
+          ],
+          "ohlc_db": [
+            4381.43,
+            4412.75,
+            4380.33,
+            4400.66
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-09T05:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-09T08:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788955200,
+          "python_get_candles_decode": "2026-09-09T12:00:00+00:00",
+          "api_payload_openTime": "2026-09-09T12:00:00+00:00",
+          "db_open_time": "2026-09-09T12:00:00",
+          "ohlc_raw": [
+            4400.66,
+            4415.24,
+            4386.1,
+            4400.05
+          ],
+          "ohlc_db": [
+            4400.66,
+            4415.24,
+            4386.1,
+            4400.05
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-09T09:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-09T12:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788969600,
+          "python_get_candles_decode": "2026-09-09T16:00:00+00:00",
+          "api_payload_openTime": "2026-09-09T16:00:00+00:00",
+          "db_open_time": "2026-09-09T16:00:00",
+          "ohlc_raw": [
+            4400.05,
+            4434.07,
+            4375.0,
+            4409.41
+          ],
+          "ohlc_db": [
+            4400.05,
+            4434.07,
+            4375.0,
+            4409.41
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-09T13:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-09T16:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788984000,
+          "python_get_candles_decode": "2026-09-09T20:00:00+00:00",
+          "api_payload_openTime": "2026-09-09T20:00:00+00:00",
+          "db_open_time": "2026-09-09T20:00:00",
+          "ohlc_raw": [
+            4409.5,
+            4421.61,
+            4395.66,
+            4399.15
+          ],
+          "ohlc_db": [
+            4409.5,
+            4421.61,
+            4395.66,
+            4399.15
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-09T17:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-09T20:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1788998400,
+          "python_get_candles_decode": "2026-09-10T00:00:00+00:00",
+          "api_payload_openTime": "2026-09-10T00:00:00+00:00",
+          "db_open_time": "2026-09-10T00:00:00",
+          "ohlc_raw": [
+            4401.6,
+            4406.11,
+            4389.61,
+            4400.94
+          ],
+          "ohlc_db": [
+            4401.6,
+            4406.11,
+            4389.61,
+            4400.94
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-09T21:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-10T00:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789012800,
+          "python_get_candles_decode": "2026-09-10T04:00:00+00:00",
+          "api_payload_openTime": "2026-09-10T04:00:00+00:00",
+          "db_open_time": "2026-09-10T04:00:00",
+          "ohlc_raw": [
+            4400.94,
+            4421.08,
+            4400.14,
+            4408.38
+          ],
+          "ohlc_db": [
+            4400.94,
+            4421.08,
+            4400.14,
+            4408.38
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-10T01:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-10T04:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789027200,
+          "python_get_candles_decode": "2026-09-10T08:00:00+00:00",
+          "api_payload_openTime": "2026-09-10T08:00:00+00:00",
+          "db_open_time": "2026-09-10T08:00:00",
+          "ohlc_raw": [
+            4408.35,
+            4434.62,
+            4392.43,
+            4394.83
+          ],
+          "ohlc_db": [
+            4408.35,
+            4434.62,
+            4392.43,
+            4394.83
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-10T05:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-10T08:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789041600,
+          "python_get_candles_decode": "2026-09-10T12:00:00+00:00",
+          "api_payload_openTime": "2026-09-10T12:00:00+00:00",
+          "db_open_time": "2026-09-10T12:00:00",
+          "ohlc_raw": [
+            4394.83,
+            4400.2,
+            4323.99,
+            4340.21
+          ],
+          "ohlc_db": [
+            4394.83,
+            4400.2,
+            4323.99,
+            4340.21
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-10T09:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-10T12:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789056000,
+          "python_get_candles_decode": "2026-09-10T16:00:00+00:00",
+          "api_payload_openTime": "2026-09-10T16:00:00+00:00",
+          "db_open_time": "2026-09-10T16:00:00",
+          "ohlc_raw": [
+            4340.07,
+            4376.27,
+            4339.42,
+            4363.99
+          ],
+          "ohlc_db": [
+            4340.07,
+            4376.27,
+            4339.42,
+            4363.99
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-10T13:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-10T16:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789070400,
+          "python_get_candles_decode": "2026-09-10T20:00:00+00:00",
+          "api_payload_openTime": "2026-09-10T20:00:00+00:00",
+          "db_open_time": "2026-09-10T20:00:00",
+          "ohlc_raw": [
+            4363.99,
+            4368.06,
+            4313.68,
+            4324.32
+          ],
+          "ohlc_db": [
+            4363.99,
+            4368.06,
+            4313.68,
+            4324.32
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-10T17:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-10T20:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789084800,
+          "python_get_candles_decode": "2026-09-11T00:00:00+00:00",
+          "api_payload_openTime": "2026-09-11T00:00:00+00:00",
+          "db_open_time": "2026-09-11T00:00:00",
+          "ohlc_raw": [
+            4311.47,
+            4333.78,
+            4285.91,
+            4332.04
+          ],
+          "ohlc_db": [
+            4311.47,
+            4333.78,
+            4285.91,
+            4332.04
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-10T21:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-11T00:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789099200,
+          "python_get_candles_decode": "2026-09-11T04:00:00+00:00",
+          "api_payload_openTime": "2026-09-11T04:00:00+00:00",
+          "db_open_time": "2026-09-11T04:00:00",
+          "ohlc_raw": [
+            4332.04,
+            4340.42,
+            4300.64,
+            4331.77
+          ],
+          "ohlc_db": [
+            4332.04,
+            4340.42,
+            4300.64,
+            4331.77
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-11T01:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-11T04:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789113600,
+          "python_get_candles_decode": "2026-09-11T08:00:00+00:00",
+          "api_payload_openTime": "2026-09-11T08:00:00+00:00",
+          "db_open_time": "2026-09-11T08:00:00",
+          "ohlc_raw": [
+            4331.77,
+            4361.01,
+            4328.18,
+            4346.99
+          ],
+          "ohlc_db": [
+            4331.77,
+            4361.01,
+            4328.18,
+            4346.99
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-11T05:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-11T08:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789128000,
+          "python_get_candles_decode": "2026-09-11T12:00:00+00:00",
+          "api_payload_openTime": "2026-09-11T12:00:00+00:00",
+          "db_open_time": "2026-09-11T12:00:00",
+          "ohlc_raw": [
+            4347.02,
+            4390.13,
+            4289.57,
+            4388.38
+          ],
+          "ohlc_db": [
+            4347.02,
+            4390.13,
+            4289.57,
+            4388.38
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-11T09:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-11T12:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789142400,
+          "python_get_candles_decode": "2026-09-11T16:00:00+00:00",
+          "api_payload_openTime": "2026-09-11T16:00:00+00:00",
+          "db_open_time": "2026-09-11T16:00:00",
+          "ohlc_raw": [
+            4388.18,
+            4402.45,
+            4351.93,
+            4361.7
+          ],
+          "ohlc_db": [
+            4388.18,
+            4402.45,
+            4351.93,
+            4361.7
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-11T13:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-11T16:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789156800,
+          "python_get_candles_decode": "2026-09-11T20:00:00+00:00",
+          "api_payload_openTime": "2026-09-11T20:00:00+00:00",
+          "db_open_time": "2026-09-11T20:00:00",
+          "ohlc_raw": [
+            4361.7,
+            4370.46,
+            4342.64,
+            4348.46
+          ],
+          "ohlc_db": [
+            4361.7,
+            4370.46,
+            4342.64,
+            4348.46
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-11T17:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-11T20:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789344000,
+          "python_get_candles_decode": "2026-09-14T00:00:00+00:00",
+          "api_payload_openTime": "2026-09-14T00:00:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            4328.26,
+            4347.44,
+            4305.91,
+            4338.49
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-13T21:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T00:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789358400,
+          "python_get_candles_decode": "2026-09-14T04:00:00+00:00",
+          "api_payload_openTime": "2026-09-14T04:00:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            4338.49,
+            4355.27,
+            4321.87,
+            4329.41
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T01:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T04:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789372800,
+          "python_get_candles_decode": "2026-09-14T08:00:00+00:00",
+          "api_payload_openTime": "2026-09-14T08:00:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            4329.42,
+            4338.74,
+            4303.23,
+            4306.55
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T05:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T08:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789387200,
+          "python_get_candles_decode": "2026-09-14T12:00:00+00:00",
+          "api_payload_openTime": "2026-09-14T12:00:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            4306.56,
+            4311.67,
+            4265.76,
+            4270.96
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T09:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T12:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789401600,
+          "python_get_candles_decode": "2026-09-14T16:00:00+00:00",
+          "api_payload_openTime": "2026-09-14T16:00:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            4271.0,
+            4317.79,
+            4253.48,
+            4315.76
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T13:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T16:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789416000,
+          "python_get_candles_decode": "2026-09-14T20:00:00+00:00",
+          "api_payload_openTime": "2026-09-14T20:00:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            4315.8,
+            4316.49,
+            4282.75,
+            4283.53
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T17:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T20:00:00+03:00"
+        }
+      ]
+    },
+    {
+      "symbol": "EURUSD",
+      "timeframe": "M5",
+      "raw_bars": 80,
+      "db_rows_matched_by_identical_open_time": 42,
+      "ohlc_exact_float_matches": 33,
+      "ohlc_equal_at_broker_digits": 42,
+      "broker_digits": 5,
+      "note": "exact-float mismatches are float64 representation noise (e.g. 1.1555900000000001 vs 1.15559); compare at broker digits",
+      "raw_bars_without_db_row": [
+        "2026-09-15T00:00:00+00:00",
+        "2026-09-15T00:05:00+00:00",
+        "2026-09-15T00:10:00+00:00",
+        "2026-09-15T00:15:00+00:00",
+        "2026-09-15T00:20:00+00:00",
+        "2026-09-15T00:25:00+00:00",
+        "2026-09-15T00:30:00+00:00",
+        "2026-09-15T00:35:00+00:00",
+        "2026-09-15T00:40:00+00:00",
+        "2026-09-15T00:45:00+00:00",
+        "2026-09-15T00:50:00+00:00",
+        "2026-09-15T00:55:00+00:00",
+        "2026-09-15T01:00:00+00:00",
+        "2026-09-15T01:05:00+00:00",
+        "2026-09-15T01:10:00+00:00",
+        "2026-09-15T01:15:00+00:00",
+        "2026-09-15T01:20:00+00:00",
+        "2026-09-15T01:25:00+00:00",
+        "2026-09-15T01:30:00+00:00",
+        "2026-09-15T01:35:00+00:00",
+        "2026-09-15T01:40:00+00:00",
+        "2026-09-15T01:45:00+00:00",
+        "2026-09-15T01:50:00+00:00",
+        "2026-09-15T01:55:00+00:00",
+        "2026-09-15T02:00:00+00:00",
+        "2026-09-15T02:05:00+00:00",
+        "2026-09-15T02:10:00+00:00",
+        "2026-09-15T02:15:00+00:00",
+        "2026-09-15T02:20:00+00:00",
+        "2026-09-15T02:25:00+00:00",
+        "2026-09-15T02:30:00+00:00",
+        "2026-09-15T02:35:00+00:00",
+        "2026-09-15T02:40:00+00:00",
+        "2026-09-15T02:45:00+00:00",
+        "2026-09-15T02:50:00+00:00",
+        "2026-09-15T02:55:00+00:00",
+        "2026-09-15T03:00:00+00:00",
+        "2026-09-15T03:05:00+00:00"
+      ],
+      "records": [
+        {
+          "raw_mt5_time_epoch": 1789417800,
+          "python_get_candles_decode": "2026-09-14T20:30:00+00:00",
+          "api_payload_openTime": "2026-09-14T20:30:00+00:00",
+          "db_open_time": "2026-09-14T20:30:00",
+          "ohlc_raw": [
+            1.1558,
+            1.15586,
+            1.15565,
+            1.15566
+          ],
+          "ohlc_db": [
+            1.1558,
+            1.15586,
+            1.15565,
+            1.15566
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T17:30:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T20:30:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789418100,
+          "python_get_candles_decode": "2026-09-14T20:35:00+00:00",
+          "api_payload_openTime": "2026-09-14T20:35:00+00:00",
+          "db_open_time": "2026-09-14T20:35:00",
+          "ohlc_raw": [
+            1.15566,
+            1.15576,
+            1.1555900000000001,
+            1.15568
+          ],
+          "ohlc_db": [
+            1.15566,
+            1.15576,
+            1.15559,
+            1.15568
+          ],
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T17:35:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T20:35:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789418400,
+          "python_get_candles_decode": "2026-09-14T20:40:00+00:00",
+          "api_payload_openTime": "2026-09-14T20:40:00+00:00",
+          "db_open_time": "2026-09-14T20:40:00",
+          "ohlc_raw": [
+            1.15568,
+            1.1556899999999999,
+            1.15548,
+            1.15555
+          ],
+          "ohlc_db": [
+            1.15568,
+            1.15569,
+            1.15548,
+            1.15555
+          ],
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T17:40:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T20:40:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789418700,
+          "python_get_candles_decode": "2026-09-14T20:45:00+00:00",
+          "api_payload_openTime": "2026-09-14T20:45:00+00:00",
+          "db_open_time": "2026-09-14T20:45:00",
+          "ohlc_raw": [
+            1.15555,
+            1.1555900000000001,
+            1.15544,
+            1.15556
+          ],
+          "ohlc_db": [
+            1.15555,
+            1.15559,
+            1.15544,
+            1.15556
+          ],
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T17:45:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T20:45:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789419000,
+          "python_get_candles_decode": "2026-09-14T20:50:00+00:00",
+          "api_payload_openTime": "2026-09-14T20:50:00+00:00",
+          "db_open_time": "2026-09-14T20:50:00",
+          "ohlc_raw": [
+            1.15556,
+            1.15578,
+            1.15553,
+            1.15566
+          ],
+          "ohlc_db": [
+            1.15556,
+            1.15578,
+            1.15553,
+            1.15566
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T17:50:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T20:50:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789419300,
+          "python_get_candles_decode": "2026-09-14T20:55:00+00:00",
+          "api_payload_openTime": "2026-09-14T20:55:00+00:00",
+          "db_open_time": "2026-09-14T20:55:00",
+          "ohlc_raw": [
+            1.15566,
+            1.15581,
+            1.1556,
+            1.15561
+          ],
+          "ohlc_db": [
+            1.15566,
+            1.15581,
+            1.1556,
+            1.15561
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T17:55:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T20:55:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789419600,
+          "python_get_candles_decode": "2026-09-14T21:00:00+00:00",
+          "api_payload_openTime": "2026-09-14T21:00:00+00:00",
+          "db_open_time": "2026-09-14T21:00:00",
+          "ohlc_raw": [
+            1.15561,
+            1.15584,
+            1.15554,
+            1.15554
+          ],
+          "ohlc_db": [
+            1.15561,
+            1.15584,
+            1.15554,
+            1.15554
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T18:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T21:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789419900,
+          "python_get_candles_decode": "2026-09-14T21:05:00+00:00",
+          "api_payload_openTime": "2026-09-14T21:05:00+00:00",
+          "db_open_time": "2026-09-14T21:05:00",
+          "ohlc_raw": [
+            1.15554,
+            1.15566,
+            1.15548,
+            1.15565
+          ],
+          "ohlc_db": [
+            1.15554,
+            1.15566,
+            1.15548,
+            1.15565
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T18:05:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T21:05:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789420200,
+          "python_get_candles_decode": "2026-09-14T21:10:00+00:00",
+          "api_payload_openTime": "2026-09-14T21:10:00+00:00",
+          "db_open_time": "2026-09-14T21:10:00",
+          "ohlc_raw": [
+            1.15564,
+            1.15577,
+            1.15564,
+            1.15575
+          ],
+          "ohlc_db": [
+            1.15564,
+            1.15577,
+            1.15564,
+            1.15575
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T18:10:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T21:10:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789420500,
+          "python_get_candles_decode": "2026-09-14T21:15:00+00:00",
+          "api_payload_openTime": "2026-09-14T21:15:00+00:00",
+          "db_open_time": "2026-09-14T21:15:00",
+          "ohlc_raw": [
+            1.15576,
+            1.15579,
+            1.15571,
+            1.15576
+          ],
+          "ohlc_db": [
+            1.15576,
+            1.15579,
+            1.15571,
+            1.15576
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T18:15:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T21:15:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789420800,
+          "python_get_candles_decode": "2026-09-14T21:20:00+00:00",
+          "api_payload_openTime": "2026-09-14T21:20:00+00:00",
+          "db_open_time": "2026-09-14T21:20:00",
+          "ohlc_raw": [
+            1.15576,
+            1.15578,
+            1.1556,
+            1.15566
+          ],
+          "ohlc_db": [
+            1.15576,
+            1.15578,
+            1.1556,
+            1.15566
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T18:20:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T21:20:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789421100,
+          "python_get_candles_decode": "2026-09-14T21:25:00+00:00",
+          "api_payload_openTime": "2026-09-14T21:25:00+00:00",
+          "db_open_time": "2026-09-14T21:25:00",
+          "ohlc_raw": [
+            1.15566,
+            1.15576,
+            1.15561,
+            1.15565
+          ],
+          "ohlc_db": [
+            1.15566,
+            1.15576,
+            1.15561,
+            1.15565
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T18:25:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T21:25:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789421400,
+          "python_get_candles_decode": "2026-09-14T21:30:00+00:00",
+          "api_payload_openTime": "2026-09-14T21:30:00+00:00",
+          "db_open_time": "2026-09-14T21:30:00",
+          "ohlc_raw": [
+            1.15565,
+            1.15586,
+            1.15564,
+            1.15581
+          ],
+          "ohlc_db": [
+            1.15565,
+            1.15586,
+            1.15564,
+            1.15581
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T18:30:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T21:30:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789421700,
+          "python_get_candles_decode": "2026-09-14T21:35:00+00:00",
+          "api_payload_openTime": "2026-09-14T21:35:00+00:00",
+          "db_open_time": "2026-09-14T21:35:00",
+          "ohlc_raw": [
+            1.15581,
+            1.1559300000000001,
+            1.15581,
+            1.15584
+          ],
+          "ohlc_db": [
+            1.15581,
+            1.15593,
+            1.15581,
+            1.15584
+          ],
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T18:35:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T21:35:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789422000,
+          "python_get_candles_decode": "2026-09-14T21:40:00+00:00",
+          "api_payload_openTime": "2026-09-14T21:40:00+00:00",
+          "db_open_time": "2026-09-14T21:40:00",
+          "ohlc_raw": [
+            1.15584,
+            1.15584,
+            1.15568,
+            1.15575
+          ],
+          "ohlc_db": [
+            1.15584,
+            1.15584,
+            1.15568,
+            1.15575
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T18:40:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T21:40:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789422300,
+          "python_get_candles_decode": "2026-09-14T21:45:00+00:00",
+          "api_payload_openTime": "2026-09-14T21:45:00+00:00",
+          "db_open_time": "2026-09-14T21:45:00",
+          "ohlc_raw": [
+            1.15575,
+            1.15576,
+            1.15563,
+            1.15565
+          ],
+          "ohlc_db": [
+            1.15575,
+            1.15576,
+            1.15563,
+            1.15565
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T18:45:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T21:45:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789422600,
+          "python_get_candles_decode": "2026-09-14T21:50:00+00:00",
+          "api_payload_openTime": "2026-09-14T21:50:00+00:00",
+          "db_open_time": "2026-09-14T21:50:00",
+          "ohlc_raw": [
+            1.15565,
+            1.1557,
+            1.15558,
+            1.1556899999999999
+          ],
+          "ohlc_db": [
+            1.15565,
+            1.1557,
+            1.15558,
+            1.15569
+          ],
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T18:50:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T21:50:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789422900,
+          "python_get_candles_decode": "2026-09-14T21:55:00+00:00",
+          "api_payload_openTime": "2026-09-14T21:55:00+00:00",
+          "db_open_time": "2026-09-14T21:55:00",
+          "ohlc_raw": [
+            1.1556899999999999,
+            1.15574,
+            1.1555,
+            1.1557
+          ],
+          "ohlc_db": [
+            1.15569,
+            1.15574,
+            1.1555,
+            1.1557
+          ],
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T18:55:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T21:55:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789423200,
+          "python_get_candles_decode": "2026-09-14T22:00:00+00:00",
+          "api_payload_openTime": "2026-09-14T22:00:00+00:00",
+          "db_open_time": "2026-09-14T22:00:00",
+          "ohlc_raw": [
+            1.1557,
+            1.15575,
+            1.15561,
+            1.15571
+          ],
+          "ohlc_db": [
+            1.1557,
+            1.15575,
+            1.15561,
+            1.15571
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T19:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T22:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789423500,
+          "python_get_candles_decode": "2026-09-14T22:05:00+00:00",
+          "api_payload_openTime": "2026-09-14T22:05:00+00:00",
+          "db_open_time": "2026-09-14T22:05:00",
+          "ohlc_raw": [
+            1.15571,
+            1.15576,
+            1.15556,
+            1.15573
+          ],
+          "ohlc_db": [
+            1.15571,
+            1.15576,
+            1.15556,
+            1.15573
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T19:05:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T22:05:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789423800,
+          "python_get_candles_decode": "2026-09-14T22:10:00+00:00",
+          "api_payload_openTime": "2026-09-14T22:10:00+00:00",
+          "db_open_time": "2026-09-14T22:10:00",
+          "ohlc_raw": [
+            1.15573,
+            1.15576,
+            1.15564,
+            1.15568
+          ],
+          "ohlc_db": [
+            1.15573,
+            1.15576,
+            1.15564,
+            1.15568
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T19:10:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T22:10:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789424100,
+          "python_get_candles_decode": "2026-09-14T22:15:00+00:00",
+          "api_payload_openTime": "2026-09-14T22:15:00+00:00",
+          "db_open_time": "2026-09-14T22:15:00",
+          "ohlc_raw": [
+            1.15567,
+            1.1556899999999999,
+            1.15544,
+            1.15548
+          ],
+          "ohlc_db": [
+            1.15567,
+            1.15569,
+            1.15544,
+            1.15548
+          ],
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T19:15:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T22:15:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789424400,
+          "python_get_candles_decode": "2026-09-14T22:20:00+00:00",
+          "api_payload_openTime": "2026-09-14T22:20:00+00:00",
+          "db_open_time": "2026-09-14T22:20:00",
+          "ohlc_raw": [
+            1.15549,
+            1.1555,
+            1.15533,
+            1.15537
+          ],
+          "ohlc_db": [
+            1.15549,
+            1.1555,
+            1.15533,
+            1.15537
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T19:20:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T22:20:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789424700,
+          "python_get_candles_decode": "2026-09-14T22:25:00+00:00",
+          "api_payload_openTime": "2026-09-14T22:25:00+00:00",
+          "db_open_time": "2026-09-14T22:25:00",
+          "ohlc_raw": [
+            1.15537,
+            1.15545,
+            1.15529,
+            1.15529
+          ],
+          "ohlc_db": [
+            1.15537,
+            1.15545,
+            1.15529,
+            1.15529
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T19:25:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T22:25:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789425000,
+          "python_get_candles_decode": "2026-09-14T22:30:00+00:00",
+          "api_payload_openTime": "2026-09-14T22:30:00+00:00",
+          "db_open_time": "2026-09-14T22:30:00",
+          "ohlc_raw": [
+            1.15529,
+            1.1553,
+            1.15512,
+            1.15514
+          ],
+          "ohlc_db": [
+            1.15529,
+            1.1553,
+            1.15512,
+            1.15514
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T19:30:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T22:30:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789425300,
+          "python_get_candles_decode": "2026-09-14T22:35:00+00:00",
+          "api_payload_openTime": "2026-09-14T22:35:00+00:00",
+          "db_open_time": "2026-09-14T22:35:00",
+          "ohlc_raw": [
+            1.15514,
+            1.15529,
+            1.15509,
+            1.15519
+          ],
+          "ohlc_db": [
+            1.15514,
+            1.15529,
+            1.15509,
+            1.15519
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T19:35:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T22:35:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789425600,
+          "python_get_candles_decode": "2026-09-14T22:40:00+00:00",
+          "api_payload_openTime": "2026-09-14T22:40:00+00:00",
+          "db_open_time": "2026-09-14T22:40:00",
+          "ohlc_raw": [
+            1.15519,
+            1.15522,
+            1.15514,
+            1.15515
+          ],
+          "ohlc_db": [
+            1.15519,
+            1.15522,
+            1.15514,
+            1.15515
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T19:40:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T22:40:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789425900,
+          "python_get_candles_decode": "2026-09-14T22:45:00+00:00",
+          "api_payload_openTime": "2026-09-14T22:45:00+00:00",
+          "db_open_time": "2026-09-14T22:45:00",
+          "ohlc_raw": [
+            1.15515,
+            1.15516,
+            1.15499,
+            1.155
+          ],
+          "ohlc_db": [
+            1.15515,
+            1.15516,
+            1.15499,
+            1.155
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T19:45:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T22:45:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789426200,
+          "python_get_candles_decode": "2026-09-14T22:50:00+00:00",
+          "api_payload_openTime": "2026-09-14T22:50:00+00:00",
+          "db_open_time": "2026-09-14T22:50:00",
+          "ohlc_raw": [
+            1.155,
+            1.15501,
+            1.15484,
+            1.15491
+          ],
+          "ohlc_db": [
+            1.155,
+            1.15501,
+            1.15484,
+            1.15491
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T19:50:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T22:50:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789426500,
+          "python_get_candles_decode": "2026-09-14T22:55:00+00:00",
+          "api_payload_openTime": "2026-09-14T22:55:00+00:00",
+          "db_open_time": "2026-09-14T22:55:00",
+          "ohlc_raw": [
+            1.15491,
+            1.15494,
+            1.15468,
+            1.15473
+          ],
+          "ohlc_db": [
+            1.15491,
+            1.15494,
+            1.15468,
+            1.15473
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T19:55:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T22:55:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789426800,
+          "python_get_candles_decode": "2026-09-14T23:00:00+00:00",
+          "api_payload_openTime": "2026-09-14T23:00:00+00:00",
+          "db_open_time": "2026-09-14T23:00:00",
+          "ohlc_raw": [
+            1.15472,
+            1.15473,
+            1.15445,
+            1.15451
+          ],
+          "ohlc_db": [
+            1.15472,
+            1.15473,
+            1.15445,
+            1.15451
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T20:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T23:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789427100,
+          "python_get_candles_decode": "2026-09-14T23:05:00+00:00",
+          "api_payload_openTime": "2026-09-14T23:05:00+00:00",
+          "db_open_time": "2026-09-14T23:05:00",
+          "ohlc_raw": [
+            1.15453,
+            1.15461,
+            1.15449,
+            1.15456
+          ],
+          "ohlc_db": [
+            1.15453,
+            1.15461,
+            1.15449,
+            1.15456
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T20:05:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T23:05:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789427400,
+          "python_get_candles_decode": "2026-09-14T23:10:00+00:00",
+          "api_payload_openTime": "2026-09-14T23:10:00+00:00",
+          "db_open_time": "2026-09-14T23:10:00",
+          "ohlc_raw": [
+            1.15456,
+            1.15466,
+            1.1545,
+            1.15465
+          ],
+          "ohlc_db": [
+            1.15456,
+            1.15466,
+            1.1545,
+            1.15465
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T20:10:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T23:10:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789427700,
+          "python_get_candles_decode": "2026-09-14T23:15:00+00:00",
+          "api_payload_openTime": "2026-09-14T23:15:00+00:00",
+          "db_open_time": "2026-09-14T23:15:00",
+          "ohlc_raw": [
+            1.15465,
+            1.15472,
+            1.15461,
+            1.15472
+          ],
+          "ohlc_db": [
+            1.15465,
+            1.15472,
+            1.15461,
+            1.15472
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T20:15:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T23:15:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789428000,
+          "python_get_candles_decode": "2026-09-14T23:20:00+00:00",
+          "api_payload_openTime": "2026-09-14T23:20:00+00:00",
+          "db_open_time": "2026-09-14T23:20:00",
+          "ohlc_raw": [
+            1.15472,
+            1.15473,
+            1.15469,
+            1.15471
+          ],
+          "ohlc_db": [
+            1.15472,
+            1.15473,
+            1.15469,
+            1.15471
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T20:20:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T23:20:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789428300,
+          "python_get_candles_decode": "2026-09-14T23:25:00+00:00",
+          "api_payload_openTime": "2026-09-14T23:25:00+00:00",
+          "db_open_time": "2026-09-14T23:25:00",
+          "ohlc_raw": [
+            1.15471,
+            1.1547399999999999,
+            1.15455,
+            1.15467
+          ],
+          "ohlc_db": [
+            1.15471,
+            1.15474,
+            1.15455,
+            1.15467
+          ],
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T20:25:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T23:25:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789428600,
+          "python_get_candles_decode": "2026-09-14T23:30:00+00:00",
+          "api_payload_openTime": "2026-09-14T23:30:00+00:00",
+          "db_open_time": "2026-09-14T23:30:00",
+          "ohlc_raw": [
+            1.15467,
+            1.15477,
+            1.15466,
+            1.15471
+          ],
+          "ohlc_db": [
+            1.15467,
+            1.15477,
+            1.15466,
+            1.15471
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T20:30:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T23:30:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789428900,
+          "python_get_candles_decode": "2026-09-14T23:35:00+00:00",
+          "api_payload_openTime": "2026-09-14T23:35:00+00:00",
+          "db_open_time": "2026-09-14T23:35:00",
+          "ohlc_raw": [
+            1.15471,
+            1.15478,
+            1.15465,
+            1.15477
+          ],
+          "ohlc_db": [
+            1.15471,
+            1.15478,
+            1.15465,
+            1.15477
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T20:35:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T23:35:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789429200,
+          "python_get_candles_decode": "2026-09-14T23:40:00+00:00",
+          "api_payload_openTime": "2026-09-14T23:40:00+00:00",
+          "db_open_time": "2026-09-14T23:40:00",
+          "ohlc_raw": [
+            1.15477,
+            1.15489,
+            1.1547399999999999,
+            1.15489
+          ],
+          "ohlc_db": [
+            1.15477,
+            1.15489,
+            1.15474,
+            1.15489
+          ],
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T20:40:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T23:40:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789429500,
+          "python_get_candles_decode": "2026-09-14T23:45:00+00:00",
+          "api_payload_openTime": "2026-09-14T23:45:00+00:00",
+          "db_open_time": "2026-09-14T23:45:00",
+          "ohlc_raw": [
+            1.15489,
+            1.15492,
+            1.15485,
+            1.15487
+          ],
+          "ohlc_db": [
+            1.15489,
+            1.15492,
+            1.15485,
+            1.15487
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T20:45:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T23:45:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789429800,
+          "python_get_candles_decode": "2026-09-14T23:50:00+00:00",
+          "api_payload_openTime": "2026-09-14T23:50:00+00:00",
+          "db_open_time": "2026-09-14T23:50:00",
+          "ohlc_raw": [
+            1.15486,
+            1.15502,
+            1.15486,
+            1.15496
+          ],
+          "ohlc_db": [
+            1.15486,
+            1.15502,
+            1.15486,
+            1.15496
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T20:50:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T23:50:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789430100,
+          "python_get_candles_decode": "2026-09-14T23:55:00+00:00",
+          "api_payload_openTime": "2026-09-14T23:55:00+00:00",
+          "db_open_time": "2026-09-14T23:55:00",
+          "ohlc_raw": [
+            1.15496,
+            1.15506,
+            1.1549,
+            1.15493
+          ],
+          "ohlc_db": [
+            1.15496,
+            1.15506,
+            1.1549,
+            1.15493
+          ],
+          "ohlc_exact_match": true,
+          "ohlc_equal_at_broker_digits": true,
+          "research_true_utc_via_EET": "2026-09-14T20:55:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-14T23:55:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789430400,
+          "python_get_candles_decode": "2026-09-15T00:00:00+00:00",
+          "api_payload_openTime": "2026-09-15T00:00:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15493,
+            1.15518,
+            1.15453,
+            1.15485
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T21:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T00:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789430700,
+          "python_get_candles_decode": "2026-09-15T00:05:00+00:00",
+          "api_payload_openTime": "2026-09-15T00:05:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15485,
+            1.15519,
+            1.15475,
+            1.15514
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T21:05:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T00:05:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789431000,
+          "python_get_candles_decode": "2026-09-15T00:10:00+00:00",
+          "api_payload_openTime": "2026-09-15T00:10:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15514,
+            1.15515,
+            1.15509,
+            1.15514
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T21:10:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T00:10:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789431300,
+          "python_get_candles_decode": "2026-09-15T00:15:00+00:00",
+          "api_payload_openTime": "2026-09-15T00:15:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15514,
+            1.15514,
+            1.15486,
+            1.15493
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T21:15:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T00:15:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789431600,
+          "python_get_candles_decode": "2026-09-15T00:20:00+00:00",
+          "api_payload_openTime": "2026-09-15T00:20:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15493,
+            1.15511,
+            1.15489,
+            1.15509
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T21:20:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T00:20:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789431900,
+          "python_get_candles_decode": "2026-09-15T00:25:00+00:00",
+          "api_payload_openTime": "2026-09-15T00:25:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15509,
+            1.15515,
+            1.15489,
+            1.15515
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T21:25:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T00:25:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789432200,
+          "python_get_candles_decode": "2026-09-15T00:30:00+00:00",
+          "api_payload_openTime": "2026-09-15T00:30:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15515,
+            1.15515,
+            1.1549,
+            1.15492
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T21:30:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T00:30:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789432500,
+          "python_get_candles_decode": "2026-09-15T00:35:00+00:00",
+          "api_payload_openTime": "2026-09-15T00:35:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15492,
+            1.15507,
+            1.15488,
+            1.15494
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T21:35:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T00:35:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789432800,
+          "python_get_candles_decode": "2026-09-15T00:40:00+00:00",
+          "api_payload_openTime": "2026-09-15T00:40:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15494,
+            1.15506,
+            1.15494,
+            1.15497
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T21:40:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T00:40:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789433100,
+          "python_get_candles_decode": "2026-09-15T00:45:00+00:00",
+          "api_payload_openTime": "2026-09-15T00:45:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15497,
+            1.15509,
+            1.15497,
+            1.15503
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T21:45:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T00:45:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789433400,
+          "python_get_candles_decode": "2026-09-15T00:50:00+00:00",
+          "api_payload_openTime": "2026-09-15T00:50:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15503,
+            1.15517,
+            1.15497,
+            1.15505
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T21:50:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T00:50:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789433700,
+          "python_get_candles_decode": "2026-09-15T00:55:00+00:00",
+          "api_payload_openTime": "2026-09-15T00:55:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15505,
+            1.15521,
+            1.15499,
+            1.155
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T21:55:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T00:55:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789434000,
+          "python_get_candles_decode": "2026-09-15T01:00:00+00:00",
+          "api_payload_openTime": "2026-09-15T01:00:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.155,
+            1.1550799999999999,
+            1.15486,
+            1.15502
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T22:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T01:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789434300,
+          "python_get_candles_decode": "2026-09-15T01:05:00+00:00",
+          "api_payload_openTime": "2026-09-15T01:05:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15502,
+            1.15506,
+            1.15497,
+            1.15502
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T22:05:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T01:05:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789434600,
+          "python_get_candles_decode": "2026-09-15T01:10:00+00:00",
+          "api_payload_openTime": "2026-09-15T01:10:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15502,
+            1.15502,
+            1.15495,
+            1.15497
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T22:10:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T01:10:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789434900,
+          "python_get_candles_decode": "2026-09-15T01:15:00+00:00",
+          "api_payload_openTime": "2026-09-15T01:15:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15497,
+            1.15503,
+            1.15494,
+            1.15501
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T22:15:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T01:15:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789435200,
+          "python_get_candles_decode": "2026-09-15T01:20:00+00:00",
+          "api_payload_openTime": "2026-09-15T01:20:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15501,
+            1.15502,
+            1.15494,
+            1.15497
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T22:20:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T01:20:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789435500,
+          "python_get_candles_decode": "2026-09-15T01:25:00+00:00",
+          "api_payload_openTime": "2026-09-15T01:25:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15497,
+            1.15499,
+            1.15496,
+            1.15497
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T22:25:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T01:25:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789435800,
+          "python_get_candles_decode": "2026-09-15T01:30:00+00:00",
+          "api_payload_openTime": "2026-09-15T01:30:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15497,
+            1.15516,
+            1.15496,
+            1.15507
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T22:30:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T01:30:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789436100,
+          "python_get_candles_decode": "2026-09-15T01:35:00+00:00",
+          "api_payload_openTime": "2026-09-15T01:35:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15507,
+            1.15511,
+            1.15503,
+            1.15509
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T22:35:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T01:35:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789436400,
+          "python_get_candles_decode": "2026-09-15T01:40:00+00:00",
+          "api_payload_openTime": "2026-09-15T01:40:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15509,
+            1.1551,
+            1.15507,
+            1.1550799999999999
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T22:40:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T01:40:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789436700,
+          "python_get_candles_decode": "2026-09-15T01:45:00+00:00",
+          "api_payload_openTime": "2026-09-15T01:45:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.1550799999999999,
+            1.15511,
+            1.15505,
+            1.1550799999999999
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T22:45:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T01:45:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789437000,
+          "python_get_candles_decode": "2026-09-15T01:50:00+00:00",
+          "api_payload_openTime": "2026-09-15T01:50:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.1550799999999999,
+            1.15516,
+            1.15507,
+            1.15514
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T22:50:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T01:50:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789437300,
+          "python_get_candles_decode": "2026-09-15T01:55:00+00:00",
+          "api_payload_openTime": "2026-09-15T01:55:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15513,
+            1.1552,
+            1.15513,
+            1.15517
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T22:55:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T01:55:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789437600,
+          "python_get_candles_decode": "2026-09-15T02:00:00+00:00",
+          "api_payload_openTime": "2026-09-15T02:00:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15517,
+            1.15521,
+            1.15512,
+            1.15518
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T23:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T02:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789437900,
+          "python_get_candles_decode": "2026-09-15T02:05:00+00:00",
+          "api_payload_openTime": "2026-09-15T02:05:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15518,
+            1.1552,
+            1.15513,
+            1.15517
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T23:05:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T02:05:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789438200,
+          "python_get_candles_decode": "2026-09-15T02:10:00+00:00",
+          "api_payload_openTime": "2026-09-15T02:10:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15517,
+            1.15519,
+            1.15512,
+            1.15514
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T23:10:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T02:10:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789438500,
+          "python_get_candles_decode": "2026-09-15T02:15:00+00:00",
+          "api_payload_openTime": "2026-09-15T02:15:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15514,
+            1.15514,
+            1.155,
+            1.15501
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T23:15:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T02:15:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789438800,
+          "python_get_candles_decode": "2026-09-15T02:20:00+00:00",
+          "api_payload_openTime": "2026-09-15T02:20:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15501,
+            1.15505,
+            1.15497,
+            1.15504
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T23:20:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T02:20:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789439100,
+          "python_get_candles_decode": "2026-09-15T02:25:00+00:00",
+          "api_payload_openTime": "2026-09-15T02:25:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15505,
+            1.15507,
+            1.15497,
+            1.15499
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T23:25:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T02:25:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789439400,
+          "python_get_candles_decode": "2026-09-15T02:30:00+00:00",
+          "api_payload_openTime": "2026-09-15T02:30:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15499,
+            1.155,
+            1.15477,
+            1.15485
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T23:30:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T02:30:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789439700,
+          "python_get_candles_decode": "2026-09-15T02:35:00+00:00",
+          "api_payload_openTime": "2026-09-15T02:35:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15485,
+            1.15489,
+            1.15483,
+            1.15485
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T23:35:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T02:35:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789440000,
+          "python_get_candles_decode": "2026-09-15T02:40:00+00:00",
+          "api_payload_openTime": "2026-09-15T02:40:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15484,
+            1.15491,
+            1.1548,
+            1.15488
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T23:40:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T02:40:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789440300,
+          "python_get_candles_decode": "2026-09-15T02:45:00+00:00",
+          "api_payload_openTime": "2026-09-15T02:45:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15488,
+            1.1549,
+            1.15478,
+            1.15489
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T23:45:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T02:45:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789440600,
+          "python_get_candles_decode": "2026-09-15T02:50:00+00:00",
+          "api_payload_openTime": "2026-09-15T02:50:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15489,
+            1.1549,
+            1.1547,
+            1.15471
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T23:50:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T02:50:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789440900,
+          "python_get_candles_decode": "2026-09-15T02:55:00+00:00",
+          "api_payload_openTime": "2026-09-15T02:55:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15471,
+            1.15488,
+            1.15467,
+            1.15479
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-14T23:55:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T02:55:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789441200,
+          "python_get_candles_decode": "2026-09-15T03:00:00+00:00",
+          "api_payload_openTime": "2026-09-15T03:00:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15479,
+            1.15484,
+            1.15464,
+            1.15468
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-15T00:00:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T03:00:00+03:00"
+        },
+        {
+          "raw_mt5_time_epoch": 1789441500,
+          "python_get_candles_decode": "2026-09-15T03:05:00+00:00",
+          "api_payload_openTime": "2026-09-15T03:05:00+00:00",
+          "db_open_time": null,
+          "ohlc_raw": [
+            1.15468,
+            1.15469,
+            1.15466,
+            1.15466
+          ],
+          "ohlc_db": null,
+          "ohlc_exact_match": false,
+          "ohlc_equal_at_broker_digits": false,
+          "research_true_utc_via_EET": "2026-09-15T00:05:00+00:00",
+          "asia_beirut_wall_clock": "2026-09-15T03:05:00+03:00"
+        }
+      ]
+    }
+  ]
+}

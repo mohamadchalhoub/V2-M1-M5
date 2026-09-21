@@ -1,0 +1,110 @@
+{
+  "description": "bad-session",
+  "account": { "tradingDayTimezone": "UTC", "tradingDayResetHour": 0 },
+  "now": "2026-07-10T14:00:00Z",
+  "snapshots": [
+    { "capturedAt": "2026-07-08T00:00:00Z", "balance": 5000, "equity": 5000 },
+    { "capturedAt": "2026-07-09T00:00:00Z", "balance": 5002, "equity": 5002 },
+    { "capturedAt": "2026-07-10T00:00:00Z", "balance": 5008, "equity": 5008 },
+    { "capturedAt": "2026-07-10T14:00:00Z", "balance": 4988, "equity": 4608 }
+  ],
+  "trades": [
+    { "externalTradeId": "TA1", "positionId": "PA1", "symbol": "XAUUSD", "dealEntry": "IN", "volume": 0.15, "price": 2400.0, "profit": 0, "executedAt": "2026-07-08T08:00:00Z" },
+    { "externalTradeId": "TA2", "positionId": "PA1", "symbol": "XAUUSD", "dealEntry": "OUT", "volume": 0.15, "price": 2403.0, "profit": 8, "executedAt": "2026-07-08T09:00:00Z" },
+    { "externalTradeId": "TA3", "positionId": "PA2", "symbol": "XAUUSD", "dealEntry": "IN", "volume": 0.20, "price": 2400.0, "profit": 0, "executedAt": "2026-07-08T10:00:00Z" },
+    { "externalTradeId": "TA4", "positionId": "PA2", "symbol": "XAUUSD", "dealEntry": "OUT", "volume": 0.20, "price": 2397.0, "profit": -6, "executedAt": "2026-07-08T11:00:00Z" },
+    { "externalTradeId": "TB1", "positionId": "PB1", "symbol": "XAUUSD", "dealEntry": "IN", "volume": 0.15, "price": 2400.0, "profit": 0, "executedAt": "2026-07-09T08:00:00Z" },
+    { "externalTradeId": "TB2", "positionId": "PB1", "symbol": "XAUUSD", "dealEntry": "OUT", "volume": 0.15, "price": 2404.0, "profit": 10, "executedAt": "2026-07-09T09:00:00Z" },
+    { "externalTradeId": "TB3", "positionId": "PB2", "symbol": "XAUUSD", "dealEntry": "IN", "volume": 0.15, "price": 2400.0, "profit": 0, "executedAt": "2026-07-09T10:00:00Z" },
+    { "externalTradeId": "TB4", "positionId": "PB2", "symbol": "XAUUSD", "dealEntry": "OUT", "volume": 0.15, "price": 2398.0, "profit": -4, "executedAt": "2026-07-09T11:00:00Z" },
+    { "externalTradeId": "TC1", "positionId": "PC1", "symbol": "XAUUSD", "dealEntry": "IN", "volume": 0.10, "price": 2400.0, "profit": 0, "executedAt": "2026-07-10T06:00:00Z" },
+    { "externalTradeId": "TC2", "positionId": "PC1", "symbol": "XAUUSD", "dealEntry": "OUT", "volume": 0.10, "price": 2395.0, "profit": -5, "executedAt": "2026-07-10T06:15:00Z" },
+    { "externalTradeId": "TC3", "positionId": "PC2", "symbol": "XAUUSD", "dealEntry": "IN", "volume": 0.10, "price": 2400.0, "profit": 0, "executedAt": "2026-07-10T07:00:00Z" },
+    { "externalTradeId": "TC4", "positionId": "PC2", "symbol": "XAUUSD", "dealEntry": "OUT", "volume": 0.10, "price": 2395.0, "profit": -5, "executedAt": "2026-07-10T07:15:00Z" },
+    { "externalTradeId": "TC5", "positionId": "PC3", "symbol": "XAUUSD", "dealEntry": "IN", "volume": 0.10, "price": 2400.0, "profit": 0, "executedAt": "2026-07-10T08:00:00Z" },
+    { "externalTradeId": "TC6", "positionId": "PC3", "symbol": "XAUUSD", "dealEntry": "OUT", "volume": 0.10, "price": 2395.0, "profit": -5, "executedAt": "2026-07-10T08:15:00Z" },
+    { "externalTradeId": "TC7", "positionId": "PC4", "symbol": "XAUUSD", "dealEntry": "IN", "volume": 0.10, "price": 2400.0, "profit": 0, "executedAt": "2026-07-10T09:00:00Z" },
+    { "externalTradeId": "TC8", "positionId": "PC4", "symbol": "XAUUSD", "dealEntry": "OUT", "volume": 0.10, "price": 2395.0, "profit": -5, "executedAt": "2026-07-10T09:15:00Z" },
+    { "externalTradeId": "TC9", "positionId": "PC5", "symbol": "XAUUSD", "dealEntry": "IN", "volume": 1.00, "price": 2400.0, "profit": 0, "executedAt": "2026-07-10T10:00:00Z" }
+  ],
+  "positions": [
+    { "externalPositionId": "PA1", "symbol": "XAUUSD", "volume": 0.15, "openPrice": 2400.0, "status": "CLOSED", "openedAt": "2026-07-08T08:00:00Z" },
+    { "externalPositionId": "PA2", "symbol": "XAUUSD", "volume": 0.20, "openPrice": 2400.0, "status": "CLOSED", "openedAt": "2026-07-08T10:00:00Z" },
+    { "externalPositionId": "PB1", "symbol": "XAUUSD", "volume": 0.15, "openPrice": 2400.0, "status": "CLOSED", "openedAt": "2026-07-09T08:00:00Z" },
+    { "externalPositionId": "PB2", "symbol": "XAUUSD", "volume": 0.15, "openPrice": 2400.0, "status": "CLOSED", "openedAt": "2026-07-09T10:00:00Z" },
+    { "externalPositionId": "PC1", "symbol": "XAUUSD", "volume": 0.10, "openPrice": 2400.0, "status": "CLOSED", "openedAt": "2026-07-10T06:00:00Z" },
+    { "externalPositionId": "PC2", "symbol": "XAUUSD", "volume": 0.10, "openPrice": 2400.0, "status": "CLOSED", "openedAt": "2026-07-10T07:00:00Z" },
+    { "externalPositionId": "PC3", "symbol": "XAUUSD", "volume": 0.10, "openPrice": 2400.0, "status": "CLOSED", "openedAt": "2026-07-10T08:00:00Z" },
+    { "externalPositionId": "PC4", "symbol": "XAUUSD", "volume": 0.10, "openPrice": 2400.0, "status": "CLOSED", "openedAt": "2026-07-10T09:00:00Z" },
+    { "externalPositionId": "PC5", "symbol": "XAUUSD", "volume": 1.00, "openPrice": 2400.0, "status": "OPEN", "openedAt": "2026-07-10T10:00:00Z", "profit": -380 }
+  ],
+  "baselineWindowDays": 90,
+  "expectedCurrent": {
+    "account": {
+      "startingBalance": 5008,
+      "currentBalance": 4988,
+      "currentEquity": 4608,
+      "dailyPl": -400,
+      "dailyProfit": 0,
+      "dailyLoss": 400,
+      "drawdown": 0.0799,
+      "maxDrawdown": 0.0799,
+      "margin": 0,
+      "freeMargin": 4988,
+      "marginLevel": null
+    },
+    "activity": {
+      "totalTrades": 8,
+      "winningTrades": 2,
+      "losingTrades": 6,
+      "winRate": 0.25,
+      "averageWinningTrade": 9,
+      "averageLosingTrade": -5,
+      "largestWinningTrade": 10,
+      "largestLosingTrade": -6,
+      "totalRealizedPlGross": -12,
+      "totalRealizedPl": -12,
+      "totalCommission": 0,
+      "totalSwap": 0
+    },
+    "position": {
+      "currentOpenPositions": 1,
+      "currentTotalVolume": 1.00,
+      "maximumPositionVolume": 1.00,
+      "positionVolumeBySymbol": [
+        { "symbol": "XAUUSD", "totalVolume": 1.00, "count": 1 }
+      ],
+      "numberOfSimultaneousPositions": 1,
+      "averageHistoricalPositionVolume": 0.23,
+      "openPositionsWithoutStopLoss": 1,
+      "maximumSymbolConcentrationPct": 1,
+      "maximumDirectionConcentrationPct": 1
+    },
+    "frequency": {
+      "tradesPerDay": 4,
+      "tradesPerHour": 0,
+      "averageTimeBetweenTrades": 413.57,
+      "averageTradesPerSession": 2.67
+    },
+    "sequences": {
+      "currentConsecutiveWins": 0,
+      "currentConsecutiveLosses": 5,
+      "maxConsecutiveWins": 1,
+      "maxConsecutiveLosses": 5
+    }
+  },
+  "expectedBaselines": {
+    "windowDays": 90,
+    "windowStart": "2026-07-08T00:00:00.000Z",
+    "windowEnd": "2026-07-10T00:00:00.000Z",
+    "averageDailyPl": 4,
+    "averageDailyLoss": null,
+    "averageTradesPerDay": 2,
+    "averagePositionVolume": 0.16,
+    "maximumNormalPositionVolume": 0.20,
+    "averageTradeDuration": 60,
+    "averageLosingTrade": -5,
+    "averageWinningTrade": 9,
+    "averageTradesPerHour": 0.08
+  }
+}

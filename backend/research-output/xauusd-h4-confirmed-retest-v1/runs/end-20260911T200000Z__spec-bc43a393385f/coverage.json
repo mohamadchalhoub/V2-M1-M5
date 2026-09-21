@@ -1,0 +1,1789 @@
+{
+  "validations": [
+    {
+      "timeframe": "M1",
+      "rows": 879503,
+      "firstServer": "2024-02-29T21:59:00.000 (server)",
+      "lastServer": "2026-09-11T22:59:00.000 (server)",
+      "firstUtc": "2024-02-29T19:59:00.000Z",
+      "lastUtc": "2026-09-11T19:59:00.000Z",
+      "nonCentPrices": 0,
+      "ohlcViolations": 0,
+      "nonIncreasingTimestamps": 0,
+      "gridMisaligned": 0,
+      "weekendServerBars": 0,
+      "timezoneConversionErrors": 0,
+      "examples": []
+    },
+    {
+      "timeframe": "M5",
+      "rows": 176144,
+      "firstServer": "2024-02-27T22:00:00.000 (server)",
+      "lastServer": "2026-09-11T22:55:00.000 (server)",
+      "firstUtc": "2024-02-27T20:00:00.000Z",
+      "lastUtc": "2026-09-11T19:55:00.000Z",
+      "nonCentPrices": 0,
+      "ohlcViolations": 0,
+      "nonIncreasingTimestamps": 0,
+      "gridMisaligned": 0,
+      "weekendServerBars": 0,
+      "timezoneConversionErrors": 0,
+      "examples": []
+    },
+    {
+      "timeframe": "M15",
+      "rows": 59720,
+      "firstServer": "2024-02-26T01:00:00.000 (server)",
+      "lastServer": "2026-09-11T22:45:00.000 (server)",
+      "firstUtc": "2024-02-25T23:00:00.000Z",
+      "lastUtc": "2026-09-11T19:45:00.000Z",
+      "nonCentPrices": 0,
+      "ohlcViolations": 0,
+      "nonIncreasingTimestamps": 0,
+      "gridMisaligned": 0,
+      "weekendServerBars": 0,
+      "timezoneConversionErrors": 0,
+      "examples": []
+    },
+    {
+      "timeframe": "M30",
+      "rows": 30059,
+      "firstServer": "2024-02-20T01:00:00.000 (server)",
+      "lastServer": "2026-09-11T22:30:00.000 (server)",
+      "firstUtc": "2024-02-19T23:00:00.000Z",
+      "lastUtc": "2026-09-11T19:30:00.000Z",
+      "nonCentPrices": 0,
+      "ohlcViolations": 0,
+      "nonIncreasingTimestamps": 0,
+      "gridMisaligned": 0,
+      "weekendServerBars": 0,
+      "timezoneConversionErrors": 0,
+      "examples": []
+    },
+    {
+      "timeframe": "H1",
+      "rows": 15364,
+      "firstServer": "2024-01-30T22:00:00.000 (server)",
+      "lastServer": "2026-09-11T22:00:00.000 (server)",
+      "firstUtc": "2024-01-30T20:00:00.000Z",
+      "lastUtc": "2026-09-11T19:00:00.000Z",
+      "nonCentPrices": 0,
+      "ohlcViolations": 0,
+      "nonIncreasingTimestamps": 0,
+      "gridMisaligned": 0,
+      "weekendServerBars": 0,
+      "timezoneConversionErrors": 0,
+      "examples": []
+    },
+    {
+      "timeframe": "H4",
+      "rows": 5618,
+      "firstServer": "2023-01-26T00:00:00.000 (server)",
+      "lastServer": "2026-09-11T16:00:00.000 (server)",
+      "firstUtc": "2023-01-25T22:00:00.000Z",
+      "lastUtc": "2026-09-11T13:00:00.000Z",
+      "nonCentPrices": 0,
+      "ohlcViolations": 0,
+      "nonIncreasingTimestamps": 0,
+      "gridMisaligned": 0,
+      "weekendServerBars": 0,
+      "timezoneConversionErrors": 0,
+      "examples": []
+    },
+    {
+      "timeframe": "D1",
+      "rows": 1006,
+      "firstServer": "2022-10-18T00:00:00.000 (server)",
+      "lastServer": "2026-09-10T00:00:00.000 (server)",
+      "firstUtc": "2022-10-17T21:00:00.000Z",
+      "lastUtc": "2026-09-09T21:00:00.000Z",
+      "nonCentPrices": 0,
+      "ohlcViolations": 0,
+      "nonIncreasingTimestamps": 0,
+      "gridMisaligned": 0,
+      "weekendServerBars": 0,
+      "timezoneConversionErrors": 0,
+      "examples": []
+    }
+  ],
+  "m1Gaps": {
+    "byKind": {
+      "CONFIRMED_CLOSURE": {
+        "count": 651,
+        "missingMinutes": 437676
+      },
+      "UNCONFIRMED_BRIDGED": {
+        "count": 99,
+        "missingMinutes": 225
+      },
+      "UNCONFIRMED_UNBRIDGED": {
+        "count": 47,
+        "missingMinutes": 5517
+      }
+    },
+    "unconfirmedList": [
+      {
+        "id": "gap:2024-03-14T16:23:00.000Z",
+        "startUtc": "2024-03-14T16:23:00.000Z",
+        "endUtc": "2024-03-14T16:24:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2157.85..2159.26"
+      },
+      {
+        "id": "gap:2024-03-20T22:05:00.000Z",
+        "startUtc": "2024-03-20T22:05:00.000Z",
+        "endUtc": "2024-03-20T22:06:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2187.23..2189.44"
+      },
+      {
+        "id": "gap:2024-10-15T04:52:00.000Z",
+        "startUtc": "2024-10-15T04:52:00.000Z",
+        "endUtc": "2024-10-15T04:53:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2644.41..2644.97"
+      },
+      {
+        "id": "gap:2024-10-15T05:17:00.000Z",
+        "startUtc": "2024-10-15T05:17:00.000Z",
+        "endUtc": "2024-10-15T05:18:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2640.93..2641.86"
+      },
+      {
+        "id": "gap:2024-10-15T05:33:00.000Z",
+        "startUtc": "2024-10-15T05:33:00.000Z",
+        "endUtc": "2024-10-15T05:35:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2638.33..2639.89"
+      },
+      {
+        "id": "gap:2024-10-15T05:50:00.000Z",
+        "startUtc": "2024-10-15T05:50:00.000Z",
+        "endUtc": "2024-10-15T05:51:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2641.00..2642.17"
+      },
+      {
+        "id": "gap:2024-10-15T05:53:00.000Z",
+        "startUtc": "2024-10-15T05:53:00.000Z",
+        "endUtc": "2024-10-15T05:54:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2641.00..2642.17"
+      },
+      {
+        "id": "gap:2024-10-15T06:02:00.000Z",
+        "startUtc": "2024-10-15T06:02:00.000Z",
+        "endUtc": "2024-10-15T06:03:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2641.51..2643.47"
+      },
+      {
+        "id": "gap:2024-10-15T06:14:00.000Z",
+        "startUtc": "2024-10-15T06:14:00.000Z",
+        "endUtc": "2024-10-15T06:16:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2642.88..2643.97"
+      },
+      {
+        "id": "gap:2024-10-15T06:18:00.000Z",
+        "startUtc": "2024-10-15T06:18:00.000Z",
+        "endUtc": "2024-10-15T06:19:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2642.88..2643.78"
+      },
+      {
+        "id": "gap:2024-10-15T10:30:00.000Z",
+        "startUtc": "2024-10-15T10:30:00.000Z",
+        "endUtc": "2024-10-15T10:32:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2655.46..2656.57"
+      },
+      {
+        "id": "gap:2024-10-15T12:24:00.000Z",
+        "startUtc": "2024-10-15T12:24:00.000Z",
+        "endUtc": "2024-10-15T12:25:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2652.19..2654.99"
+      },
+      {
+        "id": "gap:2024-10-21T09:06:00.000Z",
+        "startUtc": "2024-10-21T09:06:00.000Z",
+        "endUtc": "2024-10-21T09:07:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2730.94..2733.83"
+      },
+      {
+        "id": "gap:2024-10-22T13:15:00.000Z",
+        "startUtc": "2024-10-22T13:15:00.000Z",
+        "endUtc": "2024-10-22T13:18:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2738.83..2739.77"
+      },
+      {
+        "id": "gap:2024-10-27T23:28:00.000Z",
+        "startUtc": "2024-10-27T23:28:00.000Z",
+        "endUtc": "2024-10-27T23:29:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2736.27..2738.25"
+      },
+      {
+        "id": "gap:2024-10-31T09:12:00.000Z",
+        "startUtc": "2024-10-31T09:12:00.000Z",
+        "endUtc": "2024-10-31T09:13:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2778.31..2780.04"
+      },
+      {
+        "id": "gap:2024-11-05T13:07:00.000Z",
+        "startUtc": "2024-11-05T13:07:00.000Z",
+        "endUtc": "2024-11-05T13:12:00.000Z",
+        "minutes": 5,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2737.01..2738.90"
+      },
+      {
+        "id": "gap:2024-11-13T01:38:00.000Z",
+        "startUtc": "2024-11-13T01:38:00.000Z",
+        "endUtc": "2024-11-13T01:39:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2607.67..2610.33"
+      },
+      {
+        "id": "gap:2024-11-25T14:29:00.000Z",
+        "startUtc": "2024-11-25T14:29:00.000Z",
+        "endUtc": "2024-11-25T14:30:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2640.17..2649.27"
+      },
+      {
+        "id": "gap:2025-01-07T02:03:00.000Z",
+        "startUtc": "2025-01-07T02:03:00.000Z",
+        "endUtc": "2025-01-07T05:03:00.000Z",
+        "minutes": 180,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-01-07T08:59:00.000Z",
+        "startUtc": "2025-01-07T08:59:00.000Z",
+        "endUtc": "2025-01-07T09:54:00.000Z",
+        "minutes": 55,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-01-24T21:55:00.000Z",
+        "startUtc": "2025-01-24T21:55:00.000Z",
+        "endUtc": "2025-01-24T21:56:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough); every missing minute covered by M5",
+        "bridge": "2771.48..2771.62"
+      },
+      {
+        "id": "gap:2025-02-19T12:48:00.000Z",
+        "startUtc": "2025-02-19T12:48:00.000Z",
+        "endUtc": "2025-02-19T12:49:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "2934.56..2936.30"
+      },
+      {
+        "id": "gap:2025-04-04T07:27:00.000Z",
+        "startUtc": "2025-04-04T07:27:00.000Z",
+        "endUtc": "2025-04-04T07:28:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-04-04T08:27:00.000Z",
+        "startUtc": "2025-04-04T08:27:00.000Z",
+        "endUtc": "2025-04-04T08:29:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-04-09T18:55:00.000Z",
+        "startUtc": "2025-04-09T18:55:00.000Z",
+        "endUtc": "2025-04-09T18:57:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3065.81..3069.49"
+      },
+      {
+        "id": "gap:2025-04-23T05:03:00.000Z",
+        "startUtc": "2025-04-23T05:03:00.000Z",
+        "endUtc": "2025-04-23T05:04:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3343.88..3347.08"
+      },
+      {
+        "id": "gap:2025-05-01T16:44:00.000Z",
+        "startUtc": "2025-05-01T16:44:00.000Z",
+        "endUtc": "2025-05-01T16:45:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3212.54..3216.03"
+      },
+      {
+        "id": "gap:2025-05-02T09:14:00.000Z",
+        "startUtc": "2025-05-02T09:14:00.000Z",
+        "endUtc": "2025-05-02T09:21:00.000Z",
+        "minutes": 7,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-05-20T11:04:00.000Z",
+        "startUtc": "2025-05-20T11:04:00.000Z",
+        "endUtc": "2025-05-20T11:09:00.000Z",
+        "minutes": 5,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3235.14..3237.39"
+      },
+      {
+        "id": "gap:2025-05-22T14:06:00.000Z",
+        "startUtc": "2025-05-22T14:06:00.000Z",
+        "endUtc": "2025-05-22T14:07:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3283.40..3295.39"
+      },
+      {
+        "id": "gap:2025-05-26T13:18:00.000Z",
+        "startUtc": "2025-05-26T13:18:00.000Z",
+        "endUtc": "2025-05-26T14:39:00.000Z",
+        "minutes": 81,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-05-27T07:06:00.000Z",
+        "startUtc": "2025-05-27T07:06:00.000Z",
+        "endUtc": "2025-05-27T07:07:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3303.15..3306.91"
+      },
+      {
+        "id": "gap:2025-05-27T07:20:00.000Z",
+        "startUtc": "2025-05-27T07:20:00.000Z",
+        "endUtc": "2025-05-27T07:37:00.000Z",
+        "minutes": 17,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-05-27T19:24:00.000Z",
+        "startUtc": "2025-05-27T19:24:00.000Z",
+        "endUtc": "2025-05-27T19:27:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3304.30..3305.12"
+      },
+      {
+        "id": "gap:2025-05-27T19:45:00.000Z",
+        "startUtc": "2025-05-27T19:45:00.000Z",
+        "endUtc": "2025-05-27T20:00:00.000Z",
+        "minutes": 15,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-06-10T14:04:00.000Z",
+        "startUtc": "2025-06-10T14:04:00.000Z",
+        "endUtc": "2025-06-10T14:05:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3337.92..3343.68"
+      },
+      {
+        "id": "gap:2025-06-12T10:12:00.000Z",
+        "startUtc": "2025-06-12T10:12:00.000Z",
+        "endUtc": "2025-06-12T10:14:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3363.12..3367.52"
+      },
+      {
+        "id": "gap:2025-07-03T00:03:00.000Z",
+        "startUtc": "2025-07-03T00:03:00.000Z",
+        "endUtc": "2025-07-03T09:12:00.000Z",
+        "minutes": 549,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-07-04T01:05:00.000Z",
+        "startUtc": "2025-07-04T01:05:00.000Z",
+        "endUtc": "2025-07-04T07:28:00.000Z",
+        "minutes": 383,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-07-04T11:29:00.000Z",
+        "startUtc": "2025-07-04T11:29:00.000Z",
+        "endUtc": "2025-07-04T11:52:00.000Z",
+        "minutes": 23,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-07-07T19:55:00.000Z",
+        "startUtc": "2025-07-07T19:55:00.000Z",
+        "endUtc": "2025-07-07T19:56:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs); every missing minute covered by M5",
+        "bridge": "3336.56..3337.62"
+      },
+      {
+        "id": "gap:2025-07-07T22:03:00.000Z",
+        "startUtc": "2025-07-07T22:03:00.000Z",
+        "endUtc": "2025-07-07T22:04:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,closeRecurs); every missing minute covered by M5",
+        "bridge": "3338.93..3341.81"
+      },
+      {
+        "id": "gap:2025-07-22T23:43:00.000Z",
+        "startUtc": "2025-07-22T23:43:00.000Z",
+        "endUtc": "2025-07-22T23:45:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3428.13..3429.40"
+      },
+      {
+        "id": "gap:2025-07-24T17:18:00.000Z",
+        "startUtc": "2025-07-24T17:18:00.000Z",
+        "endUtc": "2025-07-24T17:19:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3368.07..3369.76"
+      },
+      {
+        "id": "gap:2025-08-26T15:22:00.000Z",
+        "startUtc": "2025-08-26T15:22:00.000Z",
+        "endUtc": "2025-08-26T15:23:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3379.99..3382.81"
+      },
+      {
+        "id": "gap:2025-09-22T13:26:00.000Z",
+        "startUtc": "2025-09-22T13:26:00.000Z",
+        "endUtc": "2025-09-22T13:59:00.000Z",
+        "minutes": 33,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-09-22T15:40:00.000Z",
+        "startUtc": "2025-09-22T15:40:00.000Z",
+        "endUtc": "2025-09-22T15:42:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3732.10..3732.15"
+      },
+      {
+        "id": "gap:2025-09-22T15:43:00.000Z",
+        "startUtc": "2025-09-22T15:43:00.000Z",
+        "endUtc": "2025-09-22T15:47:00.000Z",
+        "minutes": 4,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "3732.10..3735.34"
+      },
+      {
+        "id": "gap:2025-10-10T12:56:00.000Z",
+        "startUtc": "2025-10-10T12:56:00.000Z",
+        "endUtc": "2025-10-10T13:12:00.000Z",
+        "minutes": 16,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-10-13T18:46:00.000Z",
+        "startUtc": "2025-10-13T18:46:00.000Z",
+        "endUtc": "2025-10-13T18:52:00.000Z",
+        "minutes": 6,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs); every missing minute covered by M5",
+        "bridge": "4101.55..4103.51"
+      },
+      {
+        "id": "gap:2025-10-17T18:53:00.000Z",
+        "startUtc": "2025-10-17T18:53:00.000Z",
+        "endUtc": "2025-10-17T18:54:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4234.58..4242.04"
+      },
+      {
+        "id": "gap:2025-10-23T17:09:00.000Z",
+        "startUtc": "2025-10-23T17:09:00.000Z",
+        "endUtc": "2025-10-23T19:07:00.000Z",
+        "minutes": 118,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-10-27T06:38:00.000Z",
+        "startUtc": "2025-10-27T06:38:00.000Z",
+        "endUtc": "2025-10-27T06:44:00.000Z",
+        "minutes": 6,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4079.89..4083.28"
+      },
+      {
+        "id": "gap:2025-11-20T17:32:00.000Z",
+        "startUtc": "2025-11-20T17:32:00.000Z",
+        "endUtc": "2025-11-20T17:33:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4051.00..4060.12"
+      },
+      {
+        "id": "gap:2025-11-27T19:30:00.000Z",
+        "startUtc": "2025-11-27T19:30:00.000Z",
+        "endUtc": "2025-11-27T19:31:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs); every missing minute covered by M5",
+        "bridge": "4156.82..4156.82"
+      },
+      {
+        "id": "gap:2025-11-27T19:36:00.000Z",
+        "startUtc": "2025-11-27T19:36:00.000Z",
+        "endUtc": "2025-11-27T19:40:00.000Z",
+        "minutes": 4,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.82..4156.82"
+      },
+      {
+        "id": "gap:2025-11-27T19:44:00.000Z",
+        "startUtc": "2025-11-27T19:44:00.000Z",
+        "endUtc": "2025-11-27T19:48:00.000Z",
+        "minutes": 4,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs); every missing minute covered by M5",
+        "bridge": "4156.82..4156.82"
+      },
+      {
+        "id": "gap:2025-11-27T19:51:00.000Z",
+        "startUtc": "2025-11-27T19:51:00.000Z",
+        "endUtc": "2025-11-27T19:52:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.82..4156.82"
+      },
+      {
+        "id": "gap:2025-11-27T19:54:00.000Z",
+        "startUtc": "2025-11-27T19:54:00.000Z",
+        "endUtc": "2025-11-27T19:57:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.82..4156.82"
+      },
+      {
+        "id": "gap:2025-11-27T20:04:00.000Z",
+        "startUtc": "2025-11-27T20:04:00.000Z",
+        "endUtc": "2025-11-27T20:05:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.82..4156.82"
+      },
+      {
+        "id": "gap:2025-11-27T20:31:00.000Z",
+        "startUtc": "2025-11-27T20:31:00.000Z",
+        "endUtc": "2025-11-27T20:35:00.000Z",
+        "minutes": 4,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.26..4156.26"
+      },
+      {
+        "id": "gap:2025-11-27T20:54:00.000Z",
+        "startUtc": "2025-11-27T20:54:00.000Z",
+        "endUtc": "2025-11-27T20:55:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.26..4156.26"
+      },
+      {
+        "id": "gap:2025-11-27T20:56:00.000Z",
+        "startUtc": "2025-11-27T20:56:00.000Z",
+        "endUtc": "2025-11-27T20:57:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs); every missing minute covered by M5",
+        "bridge": "4156.26..4156.26"
+      },
+      {
+        "id": "gap:2025-11-27T21:01:00.000Z",
+        "startUtc": "2025-11-27T21:01:00.000Z",
+        "endUtc": "2025-11-27T21:04:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs); every missing minute covered by M5",
+        "bridge": "4156.26..4156.26"
+      },
+      {
+        "id": "gap:2025-11-27T21:06:00.000Z",
+        "startUtc": "2025-11-27T21:06:00.000Z",
+        "endUtc": "2025-11-27T21:10:00.000Z",
+        "minutes": 4,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.26..4156.26"
+      },
+      {
+        "id": "gap:2025-11-27T21:12:00.000Z",
+        "startUtc": "2025-11-27T21:12:00.000Z",
+        "endUtc": "2025-11-27T21:14:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.28..4156.40"
+      },
+      {
+        "id": "gap:2025-11-27T21:22:00.000Z",
+        "startUtc": "2025-11-27T21:22:00.000Z",
+        "endUtc": "2025-11-27T21:23:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.32..4156.32"
+      },
+      {
+        "id": "gap:2025-11-27T21:26:00.000Z",
+        "startUtc": "2025-11-27T21:26:00.000Z",
+        "endUtc": "2025-11-27T21:32:00.000Z",
+        "minutes": 6,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.32..4156.45"
+      },
+      {
+        "id": "gap:2025-11-27T21:38:00.000Z",
+        "startUtc": "2025-11-27T21:38:00.000Z",
+        "endUtc": "2025-11-27T21:39:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.35..4156.35"
+      },
+      {
+        "id": "gap:2025-11-27T21:46:00.000Z",
+        "startUtc": "2025-11-27T21:46:00.000Z",
+        "endUtc": "2025-11-27T21:49:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4155.06..4156.31"
+      },
+      {
+        "id": "gap:2025-11-28T08:04:00.000Z",
+        "startUtc": "2025-11-28T08:04:00.000Z",
+        "endUtc": "2025-11-28T08:06:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4171.15..4176.49"
+      },
+      {
+        "id": "gap:2025-11-28T08:07:00.000Z",
+        "startUtc": "2025-11-28T08:07:00.000Z",
+        "endUtc": "2025-11-28T08:10:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4171.15..4171.15"
+      },
+      {
+        "id": "gap:2025-11-28T08:11:00.000Z",
+        "startUtc": "2025-11-28T08:11:00.000Z",
+        "endUtc": "2025-11-28T08:12:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4168.98..4173.83"
+      },
+      {
+        "id": "gap:2025-11-28T08:13:00.000Z",
+        "startUtc": "2025-11-28T08:13:00.000Z",
+        "endUtc": "2025-11-28T08:14:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4168.98..4173.83"
+      },
+      {
+        "id": "gap:2025-11-28T08:15:00.000Z",
+        "startUtc": "2025-11-28T08:15:00.000Z",
+        "endUtc": "2025-11-28T08:20:00.000Z",
+        "minutes": 5,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-11-28T08:23:00.000Z",
+        "startUtc": "2025-11-28T08:23:00.000Z",
+        "endUtc": "2025-11-28T08:24:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4157.99..4167.48"
+      },
+      {
+        "id": "gap:2025-11-28T08:36:00.000Z",
+        "startUtc": "2025-11-28T08:36:00.000Z",
+        "endUtc": "2025-11-28T08:37:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4158.24..4162.90"
+      },
+      {
+        "id": "gap:2025-11-28T08:41:00.000Z",
+        "startUtc": "2025-11-28T08:41:00.000Z",
+        "endUtc": "2025-11-28T08:42:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4154.90..4162.75"
+      },
+      {
+        "id": "gap:2025-11-28T08:49:00.000Z",
+        "startUtc": "2025-11-28T08:49:00.000Z",
+        "endUtc": "2025-11-28T08:50:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4154.00..4167.06"
+      },
+      {
+        "id": "gap:2025-11-28T08:51:00.000Z",
+        "startUtc": "2025-11-28T08:51:00.000Z",
+        "endUtc": "2025-11-28T08:52:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.33..4163.31"
+      },
+      {
+        "id": "gap:2025-11-28T08:54:00.000Z",
+        "startUtc": "2025-11-28T08:54:00.000Z",
+        "endUtc": "2025-11-28T08:57:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.33..4173.18"
+      },
+      {
+        "id": "gap:2025-11-28T09:24:00.000Z",
+        "startUtc": "2025-11-28T09:24:00.000Z",
+        "endUtc": "2025-11-28T09:29:00.000Z",
+        "minutes": 5,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4157.48..4164.50"
+      },
+      {
+        "id": "gap:2025-11-28T09:32:00.000Z",
+        "startUtc": "2025-11-28T09:32:00.000Z",
+        "endUtc": "2025-11-28T09:33:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4156.98..4164.07"
+      },
+      {
+        "id": "gap:2025-12-14T23:05:00.000Z",
+        "startUtc": "2025-12-14T23:05:00.000Z",
+        "endUtc": "2025-12-14T23:16:00.000Z",
+        "minutes": 11,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-14T23:17:00.000Z",
+        "startUtc": "2025-12-14T23:17:00.000Z",
+        "endUtc": "2025-12-14T23:32:00.000Z",
+        "minutes": 15,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-14T23:33:00.000Z",
+        "startUtc": "2025-12-14T23:33:00.000Z",
+        "endUtc": "2025-12-14T23:38:00.000Z",
+        "minutes": 5,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4306.67..4307.70"
+      },
+      {
+        "id": "gap:2025-12-14T23:39:00.000Z",
+        "startUtc": "2025-12-14T23:39:00.000Z",
+        "endUtc": "2025-12-14T23:48:00.000Z",
+        "minutes": 9,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-14T23:49:00.000Z",
+        "startUtc": "2025-12-14T23:49:00.000Z",
+        "endUtc": "2025-12-14T23:50:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4304.71..4304.71"
+      },
+      {
+        "id": "gap:2025-12-14T23:51:00.000Z",
+        "startUtc": "2025-12-14T23:51:00.000Z",
+        "endUtc": "2025-12-15T00:05:00.000Z",
+        "minutes": 14,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-15T23:03:00.000Z",
+        "startUtc": "2025-12-15T23:03:00.000Z",
+        "endUtc": "2025-12-15T23:04:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,closeRecurs); every missing minute covered by M5",
+        "bridge": "4308.55..4308.78"
+      },
+      {
+        "id": "gap:2025-12-15T23:05:00.000Z",
+        "startUtc": "2025-12-15T23:05:00.000Z",
+        "endUtc": "2025-12-15T23:09:00.000Z",
+        "minutes": 4,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough); every missing minute covered by M5",
+        "bridge": "4306.17..4306.84"
+      },
+      {
+        "id": "gap:2025-12-15T23:10:00.000Z",
+        "startUtc": "2025-12-15T23:10:00.000Z",
+        "endUtc": "2025-12-15T23:30:00.000Z",
+        "minutes": 20,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-15T23:31:00.000Z",
+        "startUtc": "2025-12-15T23:31:00.000Z",
+        "endUtc": "2025-12-15T23:38:00.000Z",
+        "minutes": 7,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4306.22..4307.76"
+      },
+      {
+        "id": "gap:2025-12-15T23:40:00.000Z",
+        "startUtc": "2025-12-15T23:40:00.000Z",
+        "endUtc": "2025-12-15T23:42:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4306.54..4307.02"
+      },
+      {
+        "id": "gap:2025-12-15T23:43:00.000Z",
+        "startUtc": "2025-12-15T23:43:00.000Z",
+        "endUtc": "2025-12-15T23:44:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4306.54..4307.02"
+      },
+      {
+        "id": "gap:2025-12-15T23:45:00.000Z",
+        "startUtc": "2025-12-15T23:45:00.000Z",
+        "endUtc": "2025-12-15T23:46:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4307.19..4307.19"
+      },
+      {
+        "id": "gap:2025-12-15T23:47:00.000Z",
+        "startUtc": "2025-12-15T23:47:00.000Z",
+        "endUtc": "2025-12-15T23:50:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4307.19..4307.19"
+      },
+      {
+        "id": "gap:2025-12-15T23:51:00.000Z",
+        "startUtc": "2025-12-15T23:51:00.000Z",
+        "endUtc": "2025-12-15T23:59:00.000Z",
+        "minutes": 8,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4304.28..4306.08"
+      },
+      {
+        "id": "gap:2025-12-16T00:00:00.000Z",
+        "startUtc": "2025-12-16T00:00:00.000Z",
+        "endUtc": "2025-12-16T00:04:00.000Z",
+        "minutes": 4,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4303.16..4303.17"
+      },
+      {
+        "id": "gap:2025-12-16T23:05:00.000Z",
+        "startUtc": "2025-12-16T23:05:00.000Z",
+        "endUtc": "2025-12-16T23:07:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough); every missing minute covered by M5",
+        "bridge": "4303.10..4303.14"
+      },
+      {
+        "id": "gap:2025-12-16T23:09:00.000Z",
+        "startUtc": "2025-12-16T23:09:00.000Z",
+        "endUtc": "2025-12-16T23:13:00.000Z",
+        "minutes": 4,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4303.10..4304.20"
+      },
+      {
+        "id": "gap:2025-12-16T23:14:00.000Z",
+        "startUtc": "2025-12-16T23:14:00.000Z",
+        "endUtc": "2025-12-16T23:29:00.000Z",
+        "minutes": 15,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-16T23:30:00.000Z",
+        "startUtc": "2025-12-16T23:30:00.000Z",
+        "endUtc": "2025-12-16T23:36:00.000Z",
+        "minutes": 6,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-16T23:37:00.000Z",
+        "startUtc": "2025-12-16T23:37:00.000Z",
+        "endUtc": "2025-12-16T23:49:00.000Z",
+        "minutes": 12,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-16T23:50:00.000Z",
+        "startUtc": "2025-12-16T23:50:00.000Z",
+        "endUtc": "2025-12-16T23:53:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4308.32..4308.32"
+      },
+      {
+        "id": "gap:2025-12-16T23:54:00.000Z",
+        "startUtc": "2025-12-16T23:54:00.000Z",
+        "endUtc": "2025-12-17T00:05:00.000Z",
+        "minutes": 11,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-17T23:07:00.000Z",
+        "startUtc": "2025-12-17T23:07:00.000Z",
+        "endUtc": "2025-12-17T23:09:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough); every missing minute covered by M5",
+        "bridge": "4338.02..4338.98"
+      },
+      {
+        "id": "gap:2025-12-17T23:10:00.000Z",
+        "startUtc": "2025-12-17T23:10:00.000Z",
+        "endUtc": "2025-12-17T23:15:00.000Z",
+        "minutes": 5,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-17T23:16:00.000Z",
+        "startUtc": "2025-12-17T23:16:00.000Z",
+        "endUtc": "2025-12-17T23:22:00.000Z",
+        "minutes": 6,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4336.09..4337.83"
+      },
+      {
+        "id": "gap:2025-12-17T23:23:00.000Z",
+        "startUtc": "2025-12-17T23:23:00.000Z",
+        "endUtc": "2025-12-17T23:57:00.000Z",
+        "minutes": 34,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-17T23:58:00.000Z",
+        "startUtc": "2025-12-17T23:58:00.000Z",
+        "endUtc": "2025-12-18T00:05:00.000Z",
+        "minutes": 7,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-18T23:05:00.000Z",
+        "startUtc": "2025-12-18T23:05:00.000Z",
+        "endUtc": "2025-12-18T23:08:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough); every missing minute covered by M5",
+        "bridge": "4335.88..4335.89"
+      },
+      {
+        "id": "gap:2025-12-18T23:09:00.000Z",
+        "startUtc": "2025-12-18T23:09:00.000Z",
+        "endUtc": "2025-12-18T23:22:00.000Z",
+        "minutes": 13,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-18T23:23:00.000Z",
+        "startUtc": "2025-12-18T23:23:00.000Z",
+        "endUtc": "2025-12-18T23:25:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4335.24..4336.06"
+      },
+      {
+        "id": "gap:2025-12-18T23:26:00.000Z",
+        "startUtc": "2025-12-18T23:26:00.000Z",
+        "endUtc": "2025-12-18T23:35:00.000Z",
+        "minutes": 9,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-18T23:36:00.000Z",
+        "startUtc": "2025-12-18T23:36:00.000Z",
+        "endUtc": "2025-12-18T23:39:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4334.14..4334.71"
+      },
+      {
+        "id": "gap:2025-12-18T23:40:00.000Z",
+        "startUtc": "2025-12-18T23:40:00.000Z",
+        "endUtc": "2025-12-18T23:41:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4334.95..4334.95"
+      },
+      {
+        "id": "gap:2025-12-18T23:42:00.000Z",
+        "startUtc": "2025-12-18T23:42:00.000Z",
+        "endUtc": "2025-12-18T23:50:00.000Z",
+        "minutes": 8,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-18T23:51:00.000Z",
+        "startUtc": "2025-12-18T23:51:00.000Z",
+        "endUtc": "2025-12-19T00:05:00.000Z",
+        "minutes": 14,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-21T23:05:00.000Z",
+        "startUtc": "2025-12-21T23:05:00.000Z",
+        "endUtc": "2025-12-21T23:07:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough); every missing minute covered by M5",
+        "bridge": "4340.82..4340.82"
+      },
+      {
+        "id": "gap:2025-12-21T23:08:00.000Z",
+        "startUtc": "2025-12-21T23:08:00.000Z",
+        "endUtc": "2025-12-21T23:29:00.000Z",
+        "minutes": 21,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-21T23:30:00.000Z",
+        "startUtc": "2025-12-21T23:30:00.000Z",
+        "endUtc": "2025-12-21T23:41:00.000Z",
+        "minutes": 11,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-21T23:43:00.000Z",
+        "startUtc": "2025-12-21T23:43:00.000Z",
+        "endUtc": "2025-12-22T00:05:00.000Z",
+        "minutes": 22,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-22T23:05:00.000Z",
+        "startUtc": "2025-12-22T23:05:00.000Z",
+        "endUtc": "2025-12-22T23:18:00.000Z",
+        "minutes": 13,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-22T23:19:00.000Z",
+        "startUtc": "2025-12-22T23:19:00.000Z",
+        "endUtc": "2025-12-22T23:45:00.000Z",
+        "minutes": 26,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-22T23:46:00.000Z",
+        "startUtc": "2025-12-22T23:46:00.000Z",
+        "endUtc": "2025-12-23T00:05:00.000Z",
+        "minutes": 19,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-23T23:02:00.000Z",
+        "startUtc": "2025-12-23T23:02:00.000Z",
+        "endUtc": "2025-12-23T23:04:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,closeRecurs); every missing minute covered by M5",
+        "bridge": "4486.94..4488.60"
+      },
+      {
+        "id": "gap:2025-12-23T23:06:00.000Z",
+        "startUtc": "2025-12-23T23:06:00.000Z",
+        "endUtc": "2025-12-24T00:05:00.000Z",
+        "minutes": 59,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-25T23:05:00.000Z",
+        "startUtc": "2025-12-25T23:05:00.000Z",
+        "endUtc": "2025-12-25T23:30:00.000Z",
+        "minutes": 25,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-25T23:31:00.000Z",
+        "startUtc": "2025-12-25T23:31:00.000Z",
+        "endUtc": "2025-12-26T00:01:00.000Z",
+        "minutes": 30,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-26T00:02:00.000Z",
+        "startUtc": "2025-12-26T00:02:00.000Z",
+        "endUtc": "2025-12-26T00:05:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4493.20..4493.20"
+      },
+      {
+        "id": "gap:2025-12-26T22:00:00.000Z",
+        "startUtc": "2025-12-26T22:00:00.000Z",
+        "endUtc": "2025-12-28T23:49:00.000Z",
+        "minutes": 2989,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-28T23:50:00.000Z",
+        "startUtc": "2025-12-28T23:50:00.000Z",
+        "endUtc": "2025-12-28T23:54:00.000Z",
+        "minutes": 4,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4529.45..4529.45"
+      },
+      {
+        "id": "gap:2025-12-28T23:55:00.000Z",
+        "startUtc": "2025-12-28T23:55:00.000Z",
+        "endUtc": "2025-12-29T00:05:00.000Z",
+        "minutes": 10,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-29T23:05:00.000Z",
+        "startUtc": "2025-12-29T23:05:00.000Z",
+        "endUtc": "2025-12-29T23:51:00.000Z",
+        "minutes": 46,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2025-12-29T23:52:00.000Z",
+        "startUtc": "2025-12-29T23:52:00.000Z",
+        "endUtc": "2025-12-29T23:57:00.000Z",
+        "minutes": 5,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4340.92..4345.26"
+      },
+      {
+        "id": "gap:2025-12-29T23:58:00.000Z",
+        "startUtc": "2025-12-29T23:58:00.000Z",
+        "endUtc": "2025-12-30T00:05:00.000Z",
+        "minutes": 7,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2026-01-15T12:57:00.000Z",
+        "startUtc": "2026-01-15T12:57:00.000Z",
+        "endUtc": "2026-01-15T13:14:00.000Z",
+        "minutes": 17,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2026-01-29T23:20:00.000Z",
+        "startUtc": "2026-01-29T23:20:00.000Z",
+        "endUtc": "2026-01-29T23:23:00.000Z",
+        "minutes": 3,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "5394.94..5406.54"
+      },
+      {
+        "id": "gap:2026-02-24T09:06:00.000Z",
+        "startUtc": "2026-02-24T09:06:00.000Z",
+        "endUtc": "2026-02-24T09:07:00.000Z",
+        "minutes": 1,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "5175.81..5180.57"
+      },
+      {
+        "id": "gap:2026-02-26T19:48:00.000Z",
+        "startUtc": "2026-02-26T19:48:00.000Z",
+        "endUtc": "2026-02-27T01:17:00.000Z",
+        "minutes": 329,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: reopenRecurs,closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2026-05-25T18:35:00.000Z",
+        "startUtc": "2026-05-25T18:35:00.000Z",
+        "endUtc": "2026-05-25T22:00:00.000Z",
+        "minutes": 205,
+        "kind": "UNCONFIRMED_UNBRIDGED",
+        "evidence": "not a confirmed closure (failed: closeRecurs); not fully covered by M5",
+        "bridge": null
+      },
+      {
+        "id": "gap:2026-05-28T17:45:00.000Z",
+        "startUtc": "2026-05-28T17:45:00.000Z",
+        "endUtc": "2026-05-28T17:49:00.000Z",
+        "minutes": 4,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs); every missing minute covered by M5",
+        "bridge": "4504.71..4509.20"
+      },
+      {
+        "id": "gap:2026-06-04T08:32:00.000Z",
+        "startUtc": "2026-06-04T08:32:00.000Z",
+        "endUtc": "2026-06-04T08:34:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4463.22..4469.48"
+      },
+      {
+        "id": "gap:2026-07-24T13:00:00.000Z",
+        "startUtc": "2026-07-24T13:00:00.000Z",
+        "endUtc": "2026-07-24T13:02:00.000Z",
+        "minutes": 2,
+        "kind": "UNCONFIRMED_BRIDGED",
+        "evidence": "not a confirmed closure (failed: longEnough,reopenRecurs,closeRecurs); every missing minute covered by M5",
+        "bridge": "4051.49..4054.50"
+      }
+    ]
+  },
+  "warmupGaps": {
+    "byKind": {
+      "CONFIRMED_CLOSURE": {
+        "count": 57,
+        "missingMinutes": 168480
+      }
+    },
+    "unconfirmedList": []
+  },
+  "substitutedM5Bars": 1816,
+  "h4VsM1": {
+    "h4BarsChecked": 3920,
+    "exactMatch": 3877,
+    "mismatch": 2,
+    "mismatchWithM1HoleInside": 1,
+    "noM1Inside": 41,
+    "fieldMismatchCounts": {
+      "open": 1,
+      "high": 0,
+      "low": 1,
+      "close": 1
+    },
+    "examples": [
+      "2026-05-19T17:00:00.000Z H4 o/h/l/c=450771/451107/448124/448347 vs M1 agg 450771/451107/449022/449367",
+      "2026-05-28T17:00:00.000Z H4 o/h/l/c=451098/451654/449713/449796 vs M1 agg 450909/451654/449713/449796 (unconfirmed M1 hole inside)"
+    ]
+  },
+  "dailyBreakNewYorkStartTimes": {
+    "2024-02": {
+      "16:59": 1
+    },
+    "2024-03": {
+      "16:59": 15
+    },
+    "2024-04": {
+      "16:59": 17,
+      "17:00": 1
+    },
+    "2024-05": {
+      "16:59": 16,
+      "17:00": 1
+    },
+    "2024-06": {
+      "16:59": 15
+    },
+    "2024-07": {
+      "16:59": 17,
+      "17:00": 1
+    },
+    "2024-08": {
+      "16:59": 13,
+      "17:00": 4
+    },
+    "2024-09": {
+      "17:00": 1,
+      "16:59": 15
+    },
+    "2024-10": {
+      "16:59": 18,
+      "17:00": 1
+    },
+    "2024-11": {
+      "16:59": 15
+    },
+    "2024-12": {
+      "16:59": 15
+    },
+    "2025-01": {
+      "16:59": 15,
+      "17:00": 1
+    },
+    "2025-02": {
+      "16:59": 15
+    },
+    "2025-03": {
+      "16:59": 17
+    },
+    "2025-04": {
+      "16:59": 17
+    },
+    "2025-05": {
+      "16:59": 16
+    },
+    "2025-06": {
+      "16:59": 16
+    },
+    "2025-07": {
+      "16:59": 9,
+      "16:55": 10
+    },
+    "2025-08": {
+      "16:55": 16
+    },
+    "2025-09": {
+      "16:55": 4,
+      "16:59": 11,
+      "17:00": 2
+    },
+    "2025-10": {
+      "16:59": 17,
+      "17:00": 1
+    },
+    "2025-11": {
+      "16:59": 14,
+      "17:00": 1,
+      "16:55": 1
+    },
+    "2025-12": {
+      "16:59": 6,
+      "17:00": 10
+    },
+    "2026-01": {
+      "17:00": 15
+    },
+    "2026-02": {
+      "17:00": 14
+    },
+    "2026-03": {
+      "17:00": 14,
+      "17:01": 2,
+      "16:00": 2
+    },
+    "2026-04": {
+      "16:00": 17
+    },
+    "2026-05": {
+      "16:00": 15
+    },
+    "2026-06": {
+      "16:00": 18
+    },
+    "2026-07": {
+      "16:00": 18
+    },
+    "2026-08": {
+      "16:00": 17
+    },
+    "2026-09": {
+      "16:00": 6
+    }
+  },
+  "recurrenceEvidencePool": 658,
+  "provenance": {
+    "database": "postgresql://***@127.0.0.1:5443/autonomous_trading",
+    "symbolMetadata": {
+      "symbol": "XAUUSD",
+      "volumeMin": "0.01",
+      "volumeMax": "100",
+      "volumeStep": "0.01",
+      "digits": 2,
+      "point": "0.01",
+      "contractSize": "100",
+      "profitCurrency": "USD",
+      "brokerSymbol": null,
+      "server": "MetaQuotes-Demo",
+      "path": "Metals\\XAUUSD",
+      "currencyBase": "XAU",
+      "currencyProfit": "USD",
+      "currencyMargin": "USD",
+      "tradeTickSize": "0.01",
+      "tradeTickValue": "0.1",
+      "tradeStopsLevel": 0,
+      "tradeFreezeLevel": 0,
+      "tradeMode": 4,
+      "swapMode": 1,
+      "swapLong": "-12.6",
+      "swapShort": "-4.6",
+      "swapRollover3Days": 3,
+      "expirationMode": 15,
+      "expirationTime": null,
+      "source": "MT5",
+      "updatedAt": "2026-09-13T10:08:26.289Z"
+    },
+    "candleRowServerColumn": [
+      {
+        "timeframe": "D1",
+        "rows": 1007,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "H1",
+        "rows": 15364,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "H4",
+        "rows": 5619,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "M1",
+        "rows": 879503,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "M15",
+        "rows": 59720,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "M30",
+        "rows": 30059,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "M5",
+        "rows": 176144,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "MN1",
+        "rows": 149,
+        "rowsWithServer": 0,
+        "servers": null
+      },
+      {
+        "timeframe": "W1",
+        "rows": 288,
+        "rowsWithServer": 0,
+        "servers": null
+      }
+    ],
+    "ledger": [
+      {
+        "dataType": "CANDLE",
+        "timeframe": "D1",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2022-10-17T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "H1",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2024-01-30T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "H4",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2023-01-25T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "M1",
+        "status": "COMPLETED",
+        "intervals": 32,
+        "rangeStart": "2024-02-29T21:59:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "M15",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2024-02-24T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "M30",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2024-02-19T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "M5",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2024-02-27T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "M5",
+        "status": "PENDING",
+        "intervals": 1,
+        "rangeStart": "2023-10-24T22:00:00.000Z",
+        "rangeEnd": "2024-02-29T22:00:00.000Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "MN1",
+        "status": "COMPLETED",
+        "intervals": 32,
+        "rangeStart": "2014-03-03T22:00:00.000Z",
+        "rangeEnd": "2026-08-19T00:00:00.000Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "MN1",
+        "status": "EMPTY_CONFIRMED",
+        "intervals": 2,
+        "rangeStart": "2026-08-19T00:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "W1",
+        "status": "COMPLETED",
+        "intervals": 35,
+        "rangeStart": "2021-03-01T22:00:00.000Z",
+        "rangeEnd": "2026-09-13T00:00:00.000Z"
+      },
+      {
+        "dataType": "CANDLE",
+        "timeframe": "W1",
+        "status": "EMPTY_CONFIRMED",
+        "intervals": 1,
+        "rangeStart": "2026-09-13T00:00:00.000Z",
+        "rangeEnd": "2026-09-13T10:08:23.894Z"
+      },
+      {
+        "dataType": "TICK",
+        "timeframe": "_TICK_",
+        "status": "FAILED",
+        "intervals": 4,
+        "rangeStart": "2024-02-29T22:00:00.000Z",
+        "rangeEnd": "2024-03-04T22:00:00.000Z"
+      },
+      {
+        "dataType": "TICK",
+        "timeframe": "_TICK_",
+        "status": "PENDING",
+        "intervals": 1,
+        "rangeStart": "2024-03-04T22:00:00.000Z",
+        "rangeEnd": "2024-03-05T22:00:00.000Z"
+      }
+    ],
+    "storedTicks": 0,
+    "liveTicks": 0,
+    "accountSnapshots": 0,
+    "backfillLogInstrumentVerification": "collector/logs/gold_backfill_run5.log (2026-09-13T10:08:23Z): login 5055783885, server MetaQuotes-Demo, account_trade_mode 0 (DEMO), symbol XAUUSD path Metals\\XAUUSD \"Gold vs US Dollar\", currency_base XAU, currency_profit USD, no real expiration. Per-row candle provenance columns (server/broker_symbol) are NULL for every stored row, so provenance rests on this log and symbol_metadata."
+  }
+}

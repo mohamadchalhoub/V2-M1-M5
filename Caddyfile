@@ -1,0 +1,29 @@
+# Phase 11 — DEPLOYMENT.md. Two subdomains, both TLS-terminated
+# automatically by Caddy (Let's Encrypt) as long as API_DOMAIN/APP_DOMAIN
+# resolve to this host's public IP before `docker compose up` — Caddy
+# requests the certificate on first request to each domain, no manual
+# cert/DNS-challenge setup needed.
+#
+# api.<yourdomain>  — the collector (Windows host) pushes here, and the
+#                      dashboard's server-side fetches also go here directly
+#                      (they're pod-to-pod on `internal` in practice, but
+#                      this entry exists for anything hitting the API from
+#                      outside the compose network, e.g. debugging with curl).
+# app.<yourdomain>  — the Next.js dashboard, the only thing a person visits.
+
+{$API_DOMAIN} {
+	reverse_proxy api:3000
+}
+
+# Basic auth gates the whole dashboard — without it, anyone who knows
+# APP_DOMAIN can view live account/trade data, since the Next.js app itself
+# has no login page (DASHBOARD_API_TOKEN is a server-side secret the app
+# uses internally, never something a visitor is asked for). DASHBOARD_BASIC_AUTH_USER/
+# _HASH are read from .env.production; generate the hash with:
+#   docker exec trading-monitor-caddy-1 caddy hash-password --plaintext '<password>'
+{$APP_DOMAIN} {
+	basic_auth {
+		{$DASHBOARD_BASIC_AUTH_USER} {$DASHBOARD_BASIC_AUTH_HASH}
+	}
+	reverse_proxy web:3001
+}

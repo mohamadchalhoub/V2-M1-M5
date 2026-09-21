@@ -1,0 +1,46 @@
+{
+  "captured_utc": "2026-09-15T00:11:08.987553+00:00",
+  "account": {
+    "server": "MetaQuotes-Demo",
+    "currency": "EUR",
+    "trade_mode": 0
+  },
+  "symbol_info": {
+    "digits": 2,
+    "point": 0.01,
+    "trade_tick_size": 0.01,
+    "trade_tick_value": 0.1,
+    "trade_tick_value_profit": 0.1,
+    "trade_tick_value_loss": 0.1,
+    "trade_contract_size": 100.0,
+    "volume_min": 0.01,
+    "volume_step": 0.01,
+    "currency_base": "XAU",
+    "currency_profit": "USD",
+    "currency_margin": "USD"
+  },
+  "frozen_inputs": {
+    "volume_lots": 0.01,
+    "stop_distance_price": 10.0,
+    "maxStopRiskPctOfEquity": 0.5,
+    "maxCombinedRiskPctOfEquity": 1.0
+  },
+  "stop_risk": {
+    "by_contract_size_in_profit_currency": {
+      "value": 10.0,
+      "currency": "USD",
+      "formula": "volume_lots * trade_contract_size * stop_distance"
+    },
+    "by_tick_value_in_account_currency_at_current_rates": {
+      "value": 1.0,
+      "currency": "EUR",
+      "formula": "volume_lots * (stop_distance / trade_tick_size) * trade_tick_value_loss",
+      "caveat": "tick value is quoted in account currency at the CURRENT conversion rate; not a historical cost"
+    }
+  },
+  "minimum_nominal_equity_for_caps": {
+    "stop_risk_0_5pct_usd": 2000.0,
+    "combined_risk_1pct_usd": 1000.0,
+    "stop_risk_0_5pct_account_ccy_current_rate": 200.0
+  }
+}

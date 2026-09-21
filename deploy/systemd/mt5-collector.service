@@ -1,0 +1,43 @@
+# Single-VPS topology (DEPLOYMENT_SINGLE_VPS.md). Runs collector/main.py
+# completely unmodified, under a Windows Python interpreter that itself
+# runs inside the same Wine prefix as the MT5 terminal. From
+# app/mt5_client.py's point of view this IS Windows — `import MetaTrader5`
+# at module scope succeeds exactly as it does in local Windows dev, no
+# MT5_BRIDGE_HOST / RPyC layer involved (that code path exists in the repo
+# for the abandoned lprett/mt5linux bridge attempt; leave MT5_BRIDGE_HOST
+# unset here so it stays dormant).
+#
+# The only thing that leaves the Wine prefix is this process's outbound
+# HTTP call to the API (COLLECTOR_API_BASE_URL=http://127.0.0.1:3000 in
+# collector/.env) — ordinary loopback traffic, unaffected by Wine.
+#
+# Install: sudo cp deploy/systemd/mt5-collector.service /etc/systemd/system/
+#          sudo systemctl daemon-reload
+#          sudo systemctl enable --now mt5-collector.service
+#
+# Adjust WorkingDirectory and the python.exe path below if your repo
+# checkout or Python version differ from the deployment guide's defaults.
+
+[Unit]
+Description=MT5 collector (Wine-hosted Windows Python, pushes to the API over loopback)
+After=mt5-terminal.service docker.service
+Requires=mt5-terminal.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=deploy
+WorkingDirectory=/opt/trading-monitor/collector
+Environment=HOME=/home/deploy
+Environment=WINEPREFIX=/home/deploy/.mt5
+Environment=DISPLAY=:99
+ExecStart=/usr/bin/wine "/home/deploy/.mt5/drive_c/Program Files/Python312/python.exe" main.py
+Restart=always
+RestartSec=15
+# collector/app/logging_setup.py only ever writes to stdout (one JSON object
+# per line) — no file handler of its own. Left to the default here rather
+# than redirected to a file: journald captures it, rotates it, and caps its
+# size automatically. Tail with: journalctl -u mt5-collector -f
+
+[Install]
+WantedBy=multi-user.target

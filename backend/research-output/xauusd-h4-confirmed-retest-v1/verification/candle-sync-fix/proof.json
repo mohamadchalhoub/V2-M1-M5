@@ -1,0 +1,45 @@
+{
+  "captured_at_system_utc": "2026-09-15T06:45:49.723844+00:00",
+  "external_utc_reference": {
+    "source": "https://www.google.com HTTP Date header",
+    "external_utc": "2026-09-15T06:45:50+00:00"
+  },
+  "note": "XAUUSD is the only symbol currently syncing M1 (CANDLE_TIMEFRAMES_XAUUSD); EURUSD's configured timeframes start at M5, so no EURUSD M1 comparison exists.",
+  "symbols": {
+    "EURUSD": {
+      "old_buggy_query_bound_reproduction": {
+        "row_count": 360,
+        "raw_epoch": 1789454700,
+        "old_code_stored_this_as_open_time": "2026-09-15T06:45:00+00:00",
+        "true_utc_this_bar_actually_opened_at": "2026-09-15T03:45:00+00:00",
+        "how_stale_the_old_code_really_was_seconds": 10849.723844,
+        "how_fresh_the_old_code_looked_seconds": 49.723844
+      },
+      "fixed_code_path": {
+        "stored_open_time_raw_mislabeled_by_design": "2026-09-15T09:44:00+00:00",
+        "true_utc_this_bar_actually_opened_at": "2026-09-15T06:44:00+00:00",
+        "how_fresh_seconds": 109.723844
+      },
+      "db_newest_stored_m1_under_still_running_old_code": null
+    },
+    "XAUUSD": {
+      "old_buggy_query_bound_reproduction": {
+        "row_count": 346,
+        "raw_epoch": 1789454700,
+        "old_code_stored_this_as_open_time": "2026-09-15T06:45:00+00:00",
+        "true_utc_this_bar_actually_opened_at": "2026-09-15T03:45:00+00:00",
+        "how_stale_the_old_code_really_was_seconds": 10849.723844,
+        "how_fresh_the_old_code_looked_seconds": 49.723844
+      },
+      "fixed_code_path": {
+        "stored_open_time_raw_mislabeled_by_design": "2026-09-15T09:44:00+00:00",
+        "true_utc_this_bar_actually_opened_at": "2026-09-15T06:44:00+00:00",
+        "how_fresh_seconds": 109.723844
+      },
+      "db_newest_stored_m1_under_still_running_old_code": {
+        "latest_stored_open_time_raw_mislabeled": "2026-09-15T06:41:00Z",
+        "true_utc_this_bar_actually_opened_at": "2026-09-15T03:41:00+00:00"
+      }
+    }
+  }
+}

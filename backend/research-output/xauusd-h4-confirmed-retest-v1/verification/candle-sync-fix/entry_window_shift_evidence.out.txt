@@ -1,0 +1,12 @@
+=== What backtest.ts actually does ===
+candle.openTime (stored, raw, mislabeled): 2026-07-15T02:30:00.000Z
+  Beirut wall clock as computed by backtest.ts: {"year":2026,"month":7,"day":15,"hour":5,"minute":30,"second":0,"dateKey":"2026-07-15"}
+  isWithinEntryWindow(candle.openTime) -> USED BY THE BACKTEST: true
+
+=== What is actually true ===
+true UTC instant this bar really opened at: 2026-07-14T23:30:00.000Z
+  correct Beirut wall clock: {"year":2026,"month":7,"day":15,"hour":2,"minute":30,"second":0,"dateKey":"2026-07-15"}
+  isWithinEntryWindow(true UTC) -> CORRECT: false
+
+=== Verdict ===
+MISMATCH: backtest.ts would decide 'within window' for a bar that is actually 'outside window'. Confirms the shift is live in the code, unaffected by the 2026-09-15 collection fix.
