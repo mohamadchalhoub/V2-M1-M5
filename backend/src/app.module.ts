@@ -17,6 +17,7 @@ import { HistoricalChartsModule } from './historical-charts/historical-charts.mo
 import { XtbImportModule } from './xtb-import/xtb-import.module';
 import { GoldExecutionModule } from './gold-execution/gold-execution.module';
 import { XauusdRsiModule } from './xauusd-rsi/xauusd-rsi.module';
+import { XauusdM1M5Module } from './xauusd-m1m5/xauusd-m1m5.module';
 import { AppController } from './app.controller';
 
 /**
@@ -32,7 +33,13 @@ import { AppController } from './app.controller';
  *   - `TrendBreakoutModule`         H4/H1 trend-breakout (EURUSD + XAUUSD).
  *   - `ConfirmedRetestDashboardModule`  the archived H4 gold research UI.
  *
- * The only module able to produce a new entry is `XauusdRsiModule`.
+ * The only module able to produce a new entry is `XauusdM1M5Module`.
+ *
+ * `XauusdRsiModule` is still imported, and still serves its dashboard,
+ * reconciliation and protective management, but its ENTRY wiring is disabled
+ * in code in this copy (see `xauusd-m1m5/legacy-entries-disabled.ts`). The
+ * same is true of the gold and trend-breakout modules above. Their history
+ * and routes remain readable; none of them can submit an order here.
  */
 @Module({
   imports: [
@@ -59,8 +66,13 @@ import { AppController } from './app.controller';
     // positions opened by the retired H4 strategy must keep their original
     // protective management until they resolve.
     GoldExecutionModule,
-    // The single enabled entry strategy.
+    // Retained for its dashboard, reconciliation and protective management.
+    // Its entry wiring is disabled in code in this copy.
     XauusdRsiModule,
+    // The single enabled entry strategy: two independent execution paths,
+    // M1 and M5. Importing it does not start trading — the observation loop
+    // is a separate, manually started process.
+    XauusdM1M5Module,
   ],
   controllers: [AppController],
 })

@@ -125,6 +125,25 @@ export function classifyForeign(magic: number | null | undefined): ForeignPositi
   };
 }
 
+/**
+ * MT5's magic number arrives inside a position's raw payload — there is no
+ * dedicated column on `Position`.
+ *
+ * This strategy keeps its own copy rather than importing the retired
+ * strategy's identical helper: §1 requires this application not to depend on
+ * retired code staying in place, and ownership attribution is the last thing
+ * that should break because someone deleted a module this one quietly relied
+ * on.
+ *
+ * A null magic is NEVER treated as a match for any owner — an unattributable
+ * position is foreign, which is the safe direction.
+ */
+export function extractMagic(rawPayload: unknown): number | null {
+  if (typeof rawPayload !== 'object' || rawPayload === null) return null;
+  const magic = (rawPayload as Record<string, unknown>).magic;
+  return typeof magic === 'number' && Number.isFinite(magic) ? magic : null;
+}
+
 /** Describes a position's ownership for dashboards, Telegram and audit records. */
 export function describeOwnership(magic: number | null | undefined): string {
   const owner = ownerForMagic(magic);
