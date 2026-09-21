@@ -102,8 +102,35 @@ wine "$PYTHON_EXE" -m pip install -r /app/requirements.txt --quiet
 # /portable keeps the terminal's data beside the installation inside THIS
 # prefix rather than in a shared Windows profile location.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Algo trading, asserted through the terminal's startup config.
+#
+# A fresh MT5 install has algorithmic trading OFF, so terminal_info().
+# trade_allowed comes back false and no order can be placed. That switch lives
+# in Config/settings.ini, which is binary and encrypted, so it cannot be edited
+# directly -- and the GUI toggle is not reachable on a headless container
+# without standing up VNC.
+#
+# MT5's documented /config: parameter applies these settings at startup. It is
+# written and passed on EVERY start rather than once, deliberately: the setting
+# is then re-asserted after any terminal update, profile reset or settings
+# corruption, instead of being a one-off manual step that silently lapses.
+#
+# No credentials go in this file. The collector logs in through
+# MetaTrader5.initialize(login=, password=, server=), so the startup config
+# carries only the permission flags.
+STARTUP_INI="$WINEPREFIX/drive_c/m1m5-startup.ini"
+cat > "$STARTUP_INI" <<'INI'
+[Experts]
+AllowLiveTrading=1
+Enabled=1
+Account=0
+Profile=0
+INI
+log "asserting algo-trading permission via startup config ..."
+
 log "launching MT5 terminal ..."
-wine "$TERMINAL_EXE" /portable &
+wine "$TERMINAL_EXE" /portable "/config:C:\m1m5-startup.ini" &
 sleep "${MT5_TERMINAL_WARMUP_SECONDS:-20}"
 
 if ! pgrep -f terminal64.exe > /dev/null; then

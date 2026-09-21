@@ -186,6 +186,61 @@ the broker would merge them into a single net position, which is not the
 specified strategy. If the runtime value is netting, execution stays blocked
 and the check says so.
 
+## Algo trading on a headless terminal
+
+A fresh MT5 install has algorithmic trading **off**, so `terminal_info().
+trade_allowed` returns false and no order can be placed. Normally that is a GUI
+toggle (Tools -> Options -> Expert Advisors), which is not reachable on a
+headless container without standing up VNC.
+
+The switch itself lives in `Config/settings.ini`, which is binary and
+encrypted, so it cannot be edited directly. `Config/common.ini` is plain text
+but contains no `[Experts]` section at all.
+
+The entrypoint therefore writes a startup config and passes MT5's documented
+`/config:` parameter:
+
+```
+[Experts]
+AllowLiveTrading=1
+Enabled=1
+Account=0
+Profile=0
+```
+
+Written and passed on **every** start rather than once, deliberately: the
+permission is re-asserted after any terminal update, profile reset or settings
+corruption, instead of being a one-off manual step that silently lapses and is
+noticed only when an order is rejected.
+
+No credentials go in that file. The collector authenticates through
+`MetaTrader5.initialize(login=, password=, server=)`, so the startup config
+carries permission flags only.
+
+## Verified runtime values
+
+Recorded from an actual `mt5-verify` run on 2026-09-22, since several of them
+confirm constants this codebase had assumed:
+
+| Check | Value |
+|---|---|
+| Terminal | MetaTrader 5 build 6207, connected |
+| Account | matches the configured login, `trade_mode=0` (DEMO) |
+| Broker | `MetaQuotes-Demo` |
+| Account `trade_allowed` / `trade_expert` | both true (broker-side) |
+| **Margin mode** | **`2` = RETAIL_HEDGING** |
+| XAUUSD | exists, `trade_mode=4` (full access) |
+| Point size | `0.01` -- matches `V2_EXPECTED_GOLD_POINT_SIZE` |
+| $5.00 bracket | 500 points |
+| Broker stop / freeze levels | `0` / `0` -- no restriction on a $5 bracket |
+| Volume bounds | min `0.01`, max `100`, step `0.01` -- 0.5 lot valid |
+
+The margin mode is the one that matters most. The account was opened as
+"Forex Hedged USD", but that is a label on a signup screen; `margin_mode=2`
+from the live terminal is what actually establishes that M1 and M5 can hold
+independent simultaneous positions, including opposite directions. Every part
+of the two-position design depends on it.
+
 ## Persistence
 
 **Persisted** (survives restart, rebuild and image change):
