@@ -82,6 +82,26 @@ echo "  collide with anything. Only api and web need a host port, and both"
 echo "  bind to 127.0.0.1 rather than 0.0.0.0."
 echo
 
+echo "--- 5b. Where the existing bots are deployed --------------"
+# Answers "which directory should v2 use" from the host itself rather than
+# from documentation that may be out of date.
+echo "contents of /opt:"
+ls -1d /opt/*/ 2>/dev/null | sed 's/^/  /' || echo "  (nothing in /opt)"
+echo
+echo "working directory of every running compose container:"
+# The compose project's working_dir label is the authoritative answer for
+# where each bot was actually deployed from.
+docker ps --format '{{.Names}}' 2>/dev/null | while read -r c; do
+    [ -n "$c" ] || continue
+    wd=$(docker inspect "$c" --format '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' 2>/dev/null)
+    pr=$(docker inspect "$c" --format '{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null)
+    [ -n "$wd" ] && echo "  $pr -> $wd"
+done | sort -u
+echo
+echo "  This project must use a directory that appears NOWHERE above."
+echo "  Suggested: /opt/trading-monitor-m1m5-v2"
+echo
+
 echo "--- 6. Wine prefixes present on this host ----------------"
 # Confirms this project's prefix is distinct from every other bot's.
 for d in /home/*/.mt5* /root/.mt5* /opt/*/.mt5*; do
