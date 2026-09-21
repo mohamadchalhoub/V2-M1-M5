@@ -105,15 +105,17 @@ services:
     # redeploy never silently re-arms new entries by discarding an engaged
     # kill switch.
     volumes:
-      - gold_runtime_data:/app/gold-execution-runtime
-      - trend_breakout_runtime_data:/app/trend-breakout-execution-runtime
-      # The active strategy's runtime state, shared with xauusd-rsi-scheduler.
-      # The api container is what writes the kill switch, the stop-new-entries
-      # file and the recorded volume when an operator uses the dashboard, so
-      # without this mount those writes land in this container's own /app and
-      # the scheduler never sees them — the kill switch would appear to do
-      # nothing.
-      - xauusd_rsi_runtime_data:/app/xauusd-rsi-runtime
+      # The enabled strategy's runtime state, shared with m1m5-scheduler at the
+      # SAME mount path. The api container is what writes the kill switch, the
+      # stop-new-entries file and the recorded volume when an operator uses the
+      # dashboard, so without this mount those writes would land in this
+      # container's own /app and the scheduler would never see them -- the kill
+      # switch would appear to do nothing, which is the worst possible way for
+      # a safety control to fail.
+      #
+      # The retired strategies' runtime volumes are not mounted: their entry
+      # wiring is disabled in code here, so they have no runtime state to keep.
+      - m1m5_v2_runtime_data:/app/xauusd-m1m5-runtime
     depends_on:
       postgres:
         condition: service_healthy
@@ -177,104 +179,115 @@ services:
       - "127.0.0.1:${WEB_HOST_PORT:-3011}:3001"
     networks: [internal, proxy_shared]
 
-  # Isolated MT5 terminal + Wine-hosted Python collector — see
-  # deploy/docker/mt5-collector/Dockerfile's own header for why this needs
-  # its own container at all (a real port conflict with v1's MT5 terminal,
-  # confirmed by direct testing, not a guess). No host ports: reaches `api`
-  # purely over the internal Docker network. `user` must match the uid/gid
-  # that owns the bind-mounted WINEPREFIX on the host (created once via a
-  # one-time interactive VNC install — see DEPLOYMENT_SINGLE_VPS.md's
-  # "alongside an existing v1" addendum) or Wine refuses to touch it.
-  mt5-collector:
+  # ===========================================================================
+  # The inherited `mt5-collector` service is deliberately NOT defined here.
+  #
+  # It belongs to the deployment this project was copied from, and it
+  # bind-mounts THAT deployment's Wine prefix (/home/deploy/.mt5-v2) holding
+  # THAT deployment's MT5 terminal and account. Leaving it in this stack would
+  # have started a second collector against another bot's terminal the first
+  # time this project was deployed -- the precise failure every isolation rule
+  # in this repository exists to prevent.
+  #
+  # This project's equivalent is `m1m5-mt5-collector` below, with its own
+  # image, its own prefix, its own terminal and its own account.
+  # ===========================================================================
+
+
+  # ===========================================================================
+  # xauusd-m1-m5-rsi-threshold-v2 MT5 runtime: Wine + a dedicated prefix + this
+  # project's OWN MetaTrader 5 terminal + the v2 collector, in one container.
+  #
+  # The collector lives in the SAME container as the terminal deliberately, not
+  # for convenience: the MetaTrader5 Python package talks to terminal64.exe
+  # over a fixed local IPC port that is per-host, not per-prefix. Splitting
+  # them would put that IPC across a network boundary the package does not
+  # support, and co-locating them is what makes the container's own network
+  # namespace the isolation boundary. See the Dockerfile header.
+  #
+  # NO HOST PORTS. Nothing here needs to be reachable from the VPS host, so
+  # nothing is published, and no port collision with any other bot is possible.
+  # It reaches the backend over this Compose project's internal network by
+  # service name.
+  #
+  # `user:` must match the uid/gid owning the bind-mounted Wine prefix on the
+  # host, or Wine refuses to touch it.
+  # ===========================================================================
+  m1m5-mt5-collector:
     build:
       context: .
-      dockerfile: deploy/docker/mt5-collector/Dockerfile
+      dockerfile: deploy/docker/m1m5-mt5-collector/Dockerfile
+    container_name: m1m5-v2-mt5-collector
     restart: unless-stopped
-    user: "${MT5_COLLECTOR_UID:-1000}:${MT5_COLLECTOR_GID:-1000}"
+    user: "${M1M5_MT5_UID:-1000}:${M1M5_MT5_GID:-1000}"
     env_file: ./collector/.env.production
+    environment:
+      # Fail closed rather than auto-discovering a terminal. Set here, not only
+      # in the env file, so it cannot be lost by editing that file.
+      MT5_REQUIRE_EXPLICIT_TERMINAL: "true"
     volumes:
-      - ${MT5_V2_WINEPREFIX_PATH:-/home/deploy/.mt5-v2}:/wineprefix
+      # This project's OWN prefix directory. Distinct from every other bot's:
+      # the sibling deployment uses /home/deploy/.mt5-v2, and pointing both at
+      # one directory would have two terminals sharing one installation.
+      - ${M1M5_WINEPREFIX_PATH:-/home/deploy/.mt5-m1m5-v2}:/wineprefix
     depends_on:
       api:
         condition: service_healthy
     networks: [internal]
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
-  # Gold-execution scheduler — the piece that actually evaluates signals on
-  # a fixed interval and queues orders; without this running, the rest of
-  # the stack (api/collector) is just plumbing with nothing deciding to
-  # trade. Reuses the SAME image as `api` (identical Dockerfile/build), just
-  # overrides the entrypoint command to run the compiled scheduler script
-  # instead of the HTTP server. Shares `gold_runtime_data` with `api` (same
-  # mount path) — both processes read/write the same kill-switch/settings
-  # files, so they must never point at divergent volumes.
-  gold-scheduler:
+  # ===========================================================================
+  # The retired strategies' schedulers are deliberately NOT defined here.
+  #
+  # gold-scheduler, trend-breakout-scheduler and xauusd-rsi-scheduler exist in
+  # the deployment this project was copied from. They are absent here because
+  # this application has exactly one enabled strategy, and their entry wiring
+  # is disabled in code in this copy anyway (see
+  # backend/src/xauusd-m1m5/legacy-entries-disabled.ts), so running them would
+  # burn CPU and muddy the logs while being structurally unable to trade.
+  #
+  # Their code, routes, tables and history remain intact and readable; only
+  # their scheduler processes are not started.
+  # ===========================================================================
+
+  # The M1/M5 observation loop -- the piece that actually evaluates signals.
+  # Without it the rest of the stack is plumbing with nothing deciding to
+  # trade, and the api would come up looking healthy while nothing happens.
+  #
+  # Reuses the SAME image as `api`, overriding only the command, so the
+  # scheduler and the API can never be running different builds of the same
+  # code.
+  #
+  # Runs at the specified one-second cadence, so it is a long-lived process
+  # rather than a cron. Its volume holds the kill switch, the stop-new-entries
+  # file, the persisted per-timeframe indicator state and the recorded volume
+  # setting. That persistence matters operationally: a restart that keeps the
+  # volume resumes warm, while losing it forces a fresh 250-bar warm-up per
+  # timeframe before any signal can fire.
+  m1m5-scheduler:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: m1m5-v2-scheduler
     restart: unless-stopped
     env_file: ./backend/.env.production
-    command: ["node", "dist/scripts/gold-execution-scheduler.js"]
+    command: ["node", "dist/scripts/xauusd-m1m5-scheduler.js"]
     volumes:
-      - gold_runtime_data:/app/gold-execution-runtime
+      - m1m5_v2_runtime_data:/app/xauusd-m1m5-runtime
     depends_on:
       api:
         condition: service_healthy
     networks: [internal]
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
-  # Trend-breakout (EURUSD + XAUUSD) execution scheduler — the piece that
-  # actually evaluates the H4-trend/H1-breakout signal on a fixed interval
-  # for BOTH instruments and queues orders; without this running, the
-  # strategy's own coordinator/collector plumbing has nothing calling it.
-  # Reuses the SAME image as `api` (identical Dockerfile/build), same
-  # pattern as `gold-scheduler` above. Uses its OWN volume
-  # (`trend_breakout_runtime_data`), deliberately NOT shared with
-  # `gold_runtime_data` — trend-breakout's kill switch/stop-new-entries
-  # files must stay fully isolated from gold's, per the confirmed
-  # per-strategy isolation decision.
-  trend-breakout-scheduler:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    env_file: ./backend/.env.production
-    command: ["node", "dist/scripts/trend-breakout-execution-scheduler.js"]
-    volumes:
-      - trend_breakout_runtime_data:/app/trend-breakout-execution-runtime
-    depends_on:
-      api:
-        condition: service_healthy
-    networks: [internal]
-
-  # XAUUSD M1 RSI retest/extremes — THE ACTIVE ENTRY STRATEGY.
-  #
-  # Without this service nothing evaluates the strategy: the API serves
-  # pending orders and the collector polls for them, but the watch loop is
-  # what observes XAUUSD, runs the RSI state machine, and queues an entry in
-  # the first place. A deployment that pulls the new code without adding this
-  # service comes up looking healthy and never trades.
-  #
-  # Runs at the spec's one-second cadence, so it is a long-lived process
-  # rather than a cron. Its own volume holds the kill switch, the
-  # stop-new-entries file, the persisted indicator state and the recorded
-  # volume setting — deliberately NOT shared with the retired strategies'
-  # runtime volumes, matching the per-strategy isolation already used above.
-  #
-  # The persisted indicator state is why this volume matters operationally:
-  # a restart that keeps it resumes warm, while losing it forces a fresh
-  # 256-bar warm-up before any signal can fire.
-  xauusd-rsi-scheduler:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    env_file: ./backend/.env.production
-    command: ["node", "dist/scripts/xauusd-rsi-scheduler.js"]
-    volumes:
-      - xauusd_rsi_runtime_data:/app/xauusd-rsi-runtime
-    depends_on:
-      api:
-        condition: service_healthy
-    networks: [internal]
 
   # NOTE (single-VPS-alongside-v1 topology): no `caddy` service is defined
   # in this file, on purpose. v1 already owns host ports 80/443 with its
@@ -301,9 +314,8 @@ networks:
 volumes:
   m1m5_v2_pgdata:
   m1m5_v2_redisdata:
-  gold_runtime_data:
-  trend_breakout_runtime_data:
-  # Kill switch, stop-new-entries, persisted indicator state and the
-  # recorded volume setting for the active strategy. Keep this volume across
-  # deployments: losing it costs a full 256-bar warm-up.
-  xauusd_rsi_runtime_data:
+
+  # Kill switch, stop-new-entries, persisted per-timeframe indicator and
+  # crossing state, and the recorded volume setting. Keep this volume across
+  # deployments: losing it costs a full 250-bar warm-up on each timeframe.
+  m1m5_v2_runtime_data:

@@ -2,6 +2,9 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .env
+# Production credentials live only on the VPS and in this working copy.
+# Without this line `git add -A` would commit real MT5 credentials.
+.env.production
 
 # Timestamped .env backups (contain real credentials, same as .env itself)
 .env.bak-*

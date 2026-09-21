@@ -68,6 +68,25 @@ class Config:
     mt5_terminal_path: str | None
     mt5_timeout_ms: int
 
+    # FAIL-CLOSED TERMINAL BINDING.
+    #
+    # When true, MT5_TERMINAL_PATH must be set AND must exist on disk, or the
+    # collector refuses to start. This exists because MetaTrader5's
+    # initialize() auto-discovers a terminal when given no path, and on a host
+    # that runs more than one trading bot the terminal it discovers may belong
+    # to a DIFFERENT bot -- which would silently attach this collector to
+    # another system's account and let it act on positions it does not own.
+    #
+    # Failing to start is strictly better than starting against the wrong
+    # terminal: the first is obvious and recoverable, the second is neither.
+    mt5_require_explicit_terminal: bool
+
+    # When set, the account the terminal reports after connecting MUST equal
+    # this value, or the collector disconnects and refuses to run. Belt and
+    # braces alongside the terminal path: a correct path to a terminal that
+    # happens to be logged into the wrong account is still the wrong account.
+    mt5_expected_login: int | None
+
     # Reliability pass — found live this session: MT5's position/deal `time`
     # fields are the broker/trade-server's own wall-clock components,
     # reported as a raw epoch integer AS IF they were already UTC — not true
@@ -269,11 +288,49 @@ class Config:
         trend_breakout_execution_enabled = e.get("TREND_BREAKOUT_EXECUTION_ENABLED", "false").strip().lower() == "true"
         rsi_execution_enabled = e.get("XAUUSD_RSI_EXECUTION_ENABLED", "false").strip().lower() == "true"
 
+        require_explicit_terminal = (
+            e.get("MT5_REQUIRE_EXPLICIT_TERMINAL", "false").strip().lower() == "true"
+        )
+        terminal_path = e.get("MT5_TERMINAL_PATH", "").strip() or None
+
+        if require_explicit_terminal:
+            if terminal_path is None:
+                raise ConfigError(
+                    "MT5_REQUIRE_EXPLICIT_TERMINAL=true but MT5_TERMINAL_PATH is empty. Refusing to start: "
+                    "without an explicit path the MetaTrader5 package auto-discovers a terminal, and on a host "
+                    "running more than one trading bot that may be another bot's terminal and another bot's "
+                    "account."
+                )
+            if not os.path.isfile(terminal_path):
+                raise ConfigError(
+                    f"MT5_TERMINAL_PATH does not exist: {terminal_path!r}. Refusing to start rather than "
+                    "falling back to auto-discovery, which could attach this collector to a different bot's "
+                    "MT5 terminal."
+                )
+
+        expected_login_raw = e.get("MT5_EXPECTED_LOGIN", "").strip()
+        expected_login: int | None = None
+        if expected_login_raw:
+            try:
+                expected_login = int(expected_login_raw)
+            except ValueError as exc:
+                raise ConfigError(
+                    f"MT5_EXPECTED_LOGIN must be an integer, got {expected_login_raw!r}"
+                ) from exc
+            if mt5_login is not None and mt5_login != expected_login:
+                raise ConfigError(
+                    f"MT5_LOGIN ({mt5_login}) does not match MT5_EXPECTED_LOGIN ({expected_login}). "
+                    "Refusing to start: these must name the same account, and a mismatch means the "
+                    "configuration is describing two different accounts."
+                )
+
         return Config(
+            mt5_require_explicit_terminal=require_explicit_terminal,
+            mt5_expected_login=expected_login,
             mt5_login=mt5_login,
             mt5_password=password,
             mt5_server=server,
-            mt5_terminal_path=e.get("MT5_TERMINAL_PATH", "").strip() or None,
+            mt5_terminal_path=terminal_path,
             mt5_timeout_ms=timeout_ms,
             mt5_broker_timezone=mt5_broker_timezone,
             poll_interval_seconds=poll_interval,

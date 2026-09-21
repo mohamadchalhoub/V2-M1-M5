@@ -123,6 +123,44 @@ class Mt5Client:
             self._connected = False
             return ConnectResult(ok=False, error_code=code, error_message=message)
 
+        # ACCOUNT IDENTITY GATE (v2 section 5/section 7).
+        #
+        # Checked immediately after initialize() and BEFORE this client is
+        # marked connected, so nothing downstream can read a tick, place an
+        # order, or claim ownership against the wrong account.
+        #
+        # A correct terminal path is not sufficient on its own: the terminal it
+        # points at may be logged into a different account than intended. On a
+        # host running several trading bots that is the difference between
+        # trading this bot's DEMO account and trading someone else's.
+        if self._config.mt5_expected_login is not None:
+            info = self._mt5.account_info()
+            if info is None:
+                self._mt5.shutdown()
+                self._connected = False
+                return ConnectResult(
+                    ok=False,
+                    error_code=None,
+                    error_message=(
+                        "connected but the terminal reported no account info, so the account identity could "
+                        "not be verified; refusing to proceed"
+                    ),
+                )
+            if int(info.login) != int(self._config.mt5_expected_login):
+                actual = int(info.login)
+                self._mt5.shutdown()
+                self._connected = False
+                return ConnectResult(
+                    ok=False,
+                    error_code=None,
+                    error_message=(
+                        f"terminal is logged into account {actual}, but this collector is configured for "
+                        f"{self._config.mt5_expected_login}. Refusing to proceed. Do NOT switch another "
+                        "deployment's terminal to this account: each bot needs its own terminal, its own Wine "
+                        "prefix and its own account."
+                    ),
+                )
+
         self._connected = True
 
         # Explicit, not left to a side effect of the candle-sync cycle (which
