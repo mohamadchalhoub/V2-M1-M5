@@ -153,6 +153,31 @@ export class M1M5OccupancyService {
   }
 
   /**
+   * Releases a slot whose fate has been RESOLVED against complete broker
+   * evidence.
+   *
+   * Deliberately separate from `releaseUnsent`, which refuses to free an
+   * UNKNOWN slot. That refusal is correct where it lives: at submission time
+   * an UNKNOWN may be a live position, and freeing it would permit a second.
+   *
+   * Reconciliation is the one caller that legitimately knows better. Having
+   * queried a COMPLETE broker snapshot and found no position carrying this
+   * strategy's magic number, it has exactly the evidence that guard was
+   * waiting for. Weakening `releaseUnsent` to allow this would remove the
+   * protection everywhere; a separate method keeps it and names the
+   * precondition.
+   *
+   * The caller is responsible for that precondition. Calling this on an
+   * incomplete snapshot would reintroduce the bug the guard prevents.
+   */
+  async releaseAfterReconciliation(accountId: string, timeframe: Timeframe, decisionId: string): Promise<boolean> {
+    const deleted = await this.prisma.xauusdM1M5SlotLock.deleteMany({
+      where: { accountId, timeframe, decisionId },
+    });
+    return deleted.count > 0;
+  }
+
+  /**
    * The full closure sequence: record, lock, release — in that order, in one
    * transaction (§6.4).
    *
