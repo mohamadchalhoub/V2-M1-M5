@@ -41,7 +41,7 @@ application.
 | Prod compose project | — | `autonomous-trading` | `trading-monitor-m1m5-v2-prod` |
 | Magic numbers | 262610180 | 262610181, 262610190, 262610191 | **262610200 (M1), 262610201 (M5)** |
 | MT5 terminal / Wine prefix | its own | its own | **still to provision** |
-| DEMO account | its own | its own | its own (MetaQuotes-Demo, Forex Hedged USD) |
+| DEMO account | its own | its own | its own (MetaQuotes-Demo, Forex Hedged USD); login in `collector/.env.production` |
 | Telegram bot | its own | its own | **@M1M5Trade_bot** (id 8736831653) |
 | Telegram chat | its own | its own | 7434107396, delivery verified |
 | Collector token | its own | its own | minted against this project's backend |
@@ -205,7 +205,7 @@ Execution stays OFF until every item below is done and verified.
 
 ### Done
 
-- **DEMO this application's account** on MetaQuotes-Demo, opened specifically for this
+- **A dedicated DEMO account** on MetaQuotes-Demo, opened specifically for this
   application. Account type **Forex Hedged USD**, which is what makes
   simultaneous independent M1 and M5 positions possible at all. Credentials
   live in `collector/.env` (gitignored); the master password is used for
