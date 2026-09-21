@@ -22,7 +22,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildDashboardView, describeNextEligibility, type LockStateInput } from './dashboard-view';
 import { createCrossingState } from './crossing';
 import { createEngineState } from './engine';
-import { entriesBlockedByControls, getM1M5ExecutionMode, killSwitchState, stopNewEntriesState } from './controls';
+import { getM1M5ExecutionMode, killSwitchState, stopNewEntriesState, submissionBlockedReason } from './controls';
 import { evaluateEntryEligibility } from './schedule';
 import { evaluateReadiness, type Mt5PermissionSnapshot } from './mt5-readiness';
 import { describeOwnership, extractMagic } from './ownership';
@@ -157,7 +157,7 @@ export class M1M5DashboardController {
         executionMode: getM1M5ExecutionMode(),
         killSwitch: killSwitchState(),
         stopNewEntries: stopNewEntriesState(),
-        entriesBlockedReason: entriesBlockedByControls(),
+        entriesBlockedReason: submissionBlockedReason(),
       },
       nextEligibility: describeNextEligibility(view.schedule.nextEligibleT),
       foreignExposure: {

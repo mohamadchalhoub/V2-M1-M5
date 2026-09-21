@@ -18,6 +18,7 @@ import {
   isSubmissionEnabled,
   killSwitchState,
   stopNewEntriesState,
+  submissionBlockedReason,
 } from '../../src/xauusd-m1m5/controls';
 import {
   heartbeatIsFresh,
@@ -80,7 +81,14 @@ describe('§14 execution mode fails closed', () => {
     process.env.XAUUSD_M1M5_EXECUTION_MODE = 'SHADOW';
     expect(getM1M5ExecutionMode()).toBe('SHADOW');
     expect(isSubmissionEnabled()).toBe(false);
-    expect(entriesBlockedByControls()).toMatch(/recorded but never queued/i);
+    // The MODE is reported by submissionBlockedReason, not by
+    // entriesBlockedByControls. That split is deliberate: the pre-send gate
+    // uses the latter, and if the mode blocked there, a SHADOW run would
+    // refuse at the first gate and never rehearse signal age, quote
+    // freshness, entry drift or bracket verification -- the very checks
+    // SHADOW exists to exercise.
+    expect(submissionBlockedReason()).toMatch(/recorded but never queued/i);
+    expect(entriesBlockedByControls()).toBeNull();
   });
 
   it.each(['REAL', 'LIVE', 'true', 'yes', 'dem0', ''])('falls closed to OFF for %s', (value) => {
@@ -123,6 +131,13 @@ describe('§7 controls block new entries and name themselves', () => {
     process.env.XAUUSD_M1M5_EXECUTION_MODE = 'DEMO';
     expect(killSwitchState().active).toBe(false);
     expect(stopNewEntriesState().active).toBe(false);
+    expect(entriesBlockedByControls()).toBeNull();
+    expect(submissionBlockedReason()).toBeNull();
+  });
+
+  it('reports OFF as a submission block but not as a control block', () => {
+    process.env.XAUUSD_M1M5_EXECUTION_MODE = 'OFF';
+    expect(submissionBlockedReason()).toBe('Execution mode is OFF.');
     expect(entriesBlockedByControls()).toBeNull();
   });
 });

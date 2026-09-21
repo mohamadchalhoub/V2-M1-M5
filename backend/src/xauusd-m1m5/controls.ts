@@ -88,18 +88,42 @@ export function stopNewEntriesState(): ControlState {
 }
 
 /**
- * The combined "may a new entry be submitted?" answer, as a reason string.
- * Null means no control is blocking; schedule, occupancy, locks, risk and
- * quote freshness are all checked separately.
+ * Operator controls only: the kill switch and the stop-new-entries pause.
+ * Deliberately EXCLUDES the execution mode.
+ *
+ * This is the function the pre-send gate uses, and the exclusion is the whole
+ * reason it exists separately. SHADOW is specified to run the full pipeline
+ * and record every decision exactly as if trading, stopping only at the
+ * broker hand-off. If the mode were checked here, a SHADOW run would refuse
+ * at the FIRST gate and never exercise signal age, quote freshness, entry
+ * drift or bracket verification — so SHADOW would stop testing the very
+ * things it exists to rehearse, and would quietly become a worse signal than
+ * no rehearsal at all.
+ *
+ * The mode is enforced instead at the submission step, by
+ * `isSubmissionEnabled()`, which is the last thing before the broker call.
  */
 export function entriesBlockedByControls(): string | null {
   const kill = killSwitchState();
   if (kill.active) return `Kill switch is active (${kill.source}).`;
   const stop = stopNewEntriesState();
   if (stop.active) return `STOP NEW ENTRIES is active (${stop.source}).`;
+  return null;
+}
+
+/**
+ * The combined "may a new entry reach the broker?" answer, mode included.
+ *
+ * For the dashboard and for logging, where an operator asking "why is nothing
+ * trading?" needs the mode in the answer. NOT for the pre-send gate — see
+ * above.
+ */
+export function submissionBlockedReason(): string | null {
+  const controls = entriesBlockedByControls();
+  if (controls !== null) return controls;
   const mode = getM1M5ExecutionMode();
   if (mode === 'OFF') return 'Execution mode is OFF.';
-  if (mode === 'SHADOW') return 'Execution mode is SHADOW — decisions are recorded but never queued.';
+  if (mode === 'SHADOW') return 'Execution mode is SHADOW - decisions are recorded but never queued.';
   return null;
 }
 
