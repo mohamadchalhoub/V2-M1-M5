@@ -178,10 +178,24 @@ M1 revision-5 bot runs from its own checkout and is unaffected.
 exercise the retired strategy's entry pipeline end to end, setting
 `XAUUSD_RSI_EXECUTION_MODE=DEMO` and asserting that orders are queued. That
 pipeline is deliberately dead in this copy, so those assertions no longer
-hold. This is the intended behaviour of §2, not a regression — and
-`test/xauusd-m1m5/legacy-entries-disabled.spec.ts` asserts the replacement
-property directly: that no legacy gate can reach an active mode whatever the
-environment says.
+hold. This is the intended behaviour of §2, not a regression.
+
+Measured, not assumed: with the gate temporarily reverted both files pass
+41/41; with it in place 26 of those 41 fail, every one of them on "no order
+was queued". No other suite in the repository is affected — the three mode
+getters are imported only by `gold-execution/`, `trend-breakout/` and
+`xauusd-rsi/`.
+
+Both files are therefore **excluded** in `vitest.config.ts`, with that
+reasoning recorded at the exclusion. They are not deleted: the retired
+strategy's code, tests and history stay readable, which is also what §1
+requires. The replacement is
+`test/xauusd-m1m5/legacy-entries-disabled.spec.ts`, which asserts the
+property that actually matters — that no legacy gate can reach an active mode
+whatever the environment says.
+
+Re-enabling one of those strategies means editing its mode getter, and the
+exclusion should be removed in the same change.
 
 ## Remaining setup
 

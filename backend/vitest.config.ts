@@ -11,6 +11,36 @@ export default defineConfig({
   test: {
     root: './',
     include: ['test/**/*.spec.ts'],
+    // Excluded because the behaviour they assert is deliberately gone from
+    // THIS project, not because they are flaky or unmaintained.
+    //
+    // Both suites drive the retired `xauusd-m1-rsi-retest-extremes-v1` entry
+    // pipeline end to end: they set XAUUSD_RSI_EXECUTION_MODE=DEMO and assert
+    // that signals are evaluated, slots claimed and orders queued. §2 of the
+    // v2 specification requires every earlier entry route to be disabled in
+    // this copy, so `getRsiExecutionMode()` now returns OFF in code and that
+    // pipeline cannot queue anything. Verified by experiment: with the gate
+    // temporarily reverted both files pass 41/41; with it in place 26 of
+    // those 41 fail, all of them on "no order was queued".
+    //
+    // They are excluded rather than deleted (the strategy's code, tests and
+    // history are retained and still readable) and rather than rewritten to
+    // assert OFF (which would duplicate what the replacement suite already
+    // proves, and would destroy their value as the record of how that
+    // pipeline behaved when it was live).
+    //
+    // The replacement is `test/xauusd-m1m5/legacy-entries-disabled.spec.ts`,
+    // which asserts the property that actually matters here: that no legacy
+    // gate can reach an active mode whatever the environment says.
+    //
+    // Re-enabling one of those strategies means editing its mode getter, and
+    // this exclusion should be removed in the same change.
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      'test/xauusd-rsi/execution-e2e.spec.ts',
+      'test/xauusd-rsi/two-slot.spec.ts',
+    ],
     globalSetup: ['./test/global-setup.ts'],
     setupFiles: ['./test/setup-env.ts', './test/setup-telegram-mock.ts'],
     testTimeout: 20_000,
