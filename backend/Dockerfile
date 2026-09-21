@@ -38,6 +38,21 @@ COPY --from=build /app/node_modules/@prisma/client ./node_modules/@prisma/client
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 
+# Create the strategy's runtime-state directory IN THE IMAGE, owned by `node`,
+# before dropping root.
+#
+# This is not cosmetic. A named volume mounted at a path that does not exist in
+# the image is created by Docker owned by ROOT, and the process below runs as
+# `node` — so every state write fails with EACCES and the observation loop
+# spins forever:
+#
+#   Cycle error (116 consecutive): EACCES: permission denied,
+#   open '/app/xauusd-m1m5-runtime/watch-state.json.tmp'
+#
+# When the path DOES exist in the image, Docker seeds a fresh empty volume from
+# it and carries its ownership across, so the volume comes up writable.
+RUN mkdir -p /app/xauusd-m1m5-runtime && chown node:node /app/xauusd-m1m5-runtime
+
 # Drop root for the network-facing process — node:20-alpine already ships a
 # non-root `node` user (uid 1000); only `runtime` (the `api` service) needs
 # this, not the `build`-stage `migrate` one-shot container, which never

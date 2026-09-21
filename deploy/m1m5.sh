@@ -62,7 +62,19 @@ case "${1:-}" in
       echo "Stopped $PROJECT only. Other bots on this host were not touched."
       echo "Note: while stopped, nothing observes RSI and the Friday liquidation does not run."
       ;;
-  restart)  "${COMPOSE[@]}" restart ;;
+  restart)
+      # `up -d`, NOT `docker compose restart`.
+      #
+      # `restart` stops and starts the EXISTING containers with the config they
+      # were created with, so it does not re-read env_file. An operator who
+      # edits .env.production and runs `restart` sees their change silently
+      # ignored -- which cost real time once: the API kept failing on missing
+      # Telegram config that had already been added to the file.
+      #
+      # `up -d` recreates any container whose config changed and leaves the
+      # rest alone, which is what "restart after editing config" has to mean.
+      "${COMPOSE[@]}" up -d
+      ;;
   status)
       "${COMPOSE[@]}" ps
       echo
