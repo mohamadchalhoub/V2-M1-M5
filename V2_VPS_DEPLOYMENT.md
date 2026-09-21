@@ -119,6 +119,20 @@ Those three are already correct in the file as shipped. Only
 
 Leave `XAUUSD_M1M5_EXECUTION_MODE=OFF`. It stays off until step 9.
 
+**The application will not start without these three**, which the retained
+Telegram delivery layer validates at boot. Set them to this application's own
+bot and chat -- the same values as the `XAUUSD_M1M5_TELEGRAM_*` entries:
+
+```
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_TRADING_CHAT_IDS=
+TELEGRAM_OPS_CHAT_IDS=
+```
+
+Omitting them fails with `Missing required Telegram configuration` during DI
+construction, before the port is bound, so the container restart-loops with a
+healthcheck that never passes.
+
 ### Reaching the dashboard
 
 `api` and `web` bind to loopback only and this project has no public domain,
