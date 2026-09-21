@@ -38,6 +38,91 @@ ACCOUNT_TRADE_MODE_DEMO = 0
 ACCOUNT_MARGIN_MODE_RETAIL_HEDGING = 2
 QUOTE_MAX_AGE_SECONDS = 60
 
+# --- The broker's clock, and why freshness is not a simple subtraction. ---
+#
+# symbol_info_tick().time is in BROKER SERVER time, not UTC. MetaQuotes-Demo
+# runs UTC+3, so a tick that arrived half a second ago reported an "age" of
+# -10799.5s against the container's UTC clock, and this script failed a
+# perfectly live feed. The age came out NEGATIVE, which is by itself proof the
+# comparison was wrong: a quote cannot arrive in the future.
+#
+# The offset cannot just be hardcoded -- it is broker-specific, and most
+# brokers follow DST, so it shifts twice a year. Nor can it be inferred by
+# rounding the difference to the nearest hour, because that silently aliases a
+# two-day-old weekend quote back to "fresh", which is the exact failure this
+# check exists to catch.
+#
+# So liveness is established the one way that needs no agreement between the
+# two clocks: watch whether the tick ADVANCES. If time_msc changes while we
+# watch, the feed is live, whatever either clock says. That moment is also the
+# only time the offset can be measured honestly -- the tick is then known to be
+# ~0s old -- so it is measured there and persisted, letting a later
+# quiet-market run report a real staleness figure instead of a guess.
+LIVENESS_POLL_SECONDS = float(os.environ.get("MT5_QUOTE_LIVENESS_POLL_SECONDS", "8"))
+LIVENESS_POLL_INTERVAL = 0.25
+# Broker offsets are whole or half hours; quantising to 30 minutes strips the
+# sub-second measurement noise without inventing precision.
+OFFSET_QUANTUM_SECONDS = 1800
+# Inside drive_c, so it lives on the bind-mounted prefix and survives container
+# rebuilds. A Windows path: this runs under the Wine-hosted Windows Python,
+# which cannot open the Linux-side $WINEPREFIX path.
+OFFSET_STATE_FILE = os.environ.get("MT5_SERVER_OFFSET_FILE", r"C:\m1m5-server-utc-offset.json")
+
+
+def _load_server_offset() -> "tuple[int | None, str]":
+    """The broker-clock offset in seconds, or None if it was never established."""
+    override = os.environ.get("MT5_SERVER_UTC_OFFSET_SECONDS", "").strip()
+    if override:
+        try:
+            return int(override), "configured via MT5_SERVER_UTC_OFFSET_SECONDS"
+        except ValueError:
+            pass
+    try:
+        with open(OFFSET_STATE_FILE, "r", encoding="utf-8") as handle:
+            stored = json.load(handle)
+        return int(stored["offset_seconds"]), f"measured {stored.get('measured_at', 'previously')}"
+    except Exception:
+        return None, "never measured"
+
+
+def _save_server_offset(offset_seconds: int) -> None:
+    """Best effort. Failing to persist must never fail the verification."""
+    payload = {
+        "offset_seconds": offset_seconds,
+        "offset_hours": offset_seconds / 3600.0,
+        "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "note": "Measured while the feed was observably live, so the tick was ~0s old.",
+    }
+    try:
+        with open(OFFSET_STATE_FILE, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2)
+    except OSError:
+        pass
+
+
+def _await_tick_advance(symbol: str):
+    """Poll until the tick changes, which proves the feed is live.
+
+    Compares the broker's own timestamps against each other and never against
+    our clock, so it is unaffected by any offset between the two.
+
+    Returns (advanced, latest_tick).
+    """
+    first = mt5.symbol_info_tick(symbol)
+    if first is None:
+        return False, None
+    latest = first
+    deadline = time.monotonic() + LIVENESS_POLL_SECONDS
+    while time.monotonic() < deadline:
+        time.sleep(LIVENESS_POLL_INTERVAL)
+        current = mt5.symbol_info_tick(symbol)
+        if current is None:
+            continue
+        latest = current
+        if current.time_msc != first.time_msc:
+            return True, current
+    return False, latest
+
 
 class Report:
     def __init__(self) -> None:
@@ -200,14 +285,55 @@ def main() -> int:
             tick = mt5.symbol_info_tick(SYMBOL)
             if tick is None:
                 report.add(f"{SYMBOL} quote", False, "symbol_info_tick() returned None")
-            else:
-                age = time.time() - tick.time
+            elif not tick.bid or not tick.ask:
+                # Both sides zero is a different fault from a stale quote: no
+                # tick has EVER arrived, so the terminal has not subscribed to
+                # this symbol or has no data for it at all.
                 report.add(
-                    f"{SYMBOL} quote freshness",
-                    0 <= age <= QUOTE_MAX_AGE_SECONDS,
-                    f"bid={tick.bid} ask={tick.ask} age={age:.1f}s "
-                    "(a stale quote outside market hours is expected; re-run during a session)",
+                    f"{SYMBOL} quote",
+                    False,
+                    f"bid={tick.bid} ask={tick.ask} -- no tick has ever been received for this symbol",
                 )
+            else:
+                advanced, latest = _await_tick_advance(SYMBOL)
+                if latest is None:
+                    latest = tick
+                if advanced:
+                    # The tick just arrived, so the gap between the broker's
+                    # timestamp and ours IS the clock offset, measured rather
+                    # than assumed.
+                    measured = int(
+                        round((latest.time - time.time()) / OFFSET_QUANTUM_SECONDS)
+                    ) * OFFSET_QUANTUM_SECONDS
+                    _save_server_offset(measured)
+                    report.add(
+                        f"{SYMBOL} quote freshness",
+                        True,
+                        f"bid={latest.bid} ask={latest.ask} -- feed is LIVE "
+                        f"(tick advanced within {LIVENESS_POLL_SECONDS:.0f}s; "
+                        f"broker clock UTC{measured / 3600:+.1f}h)",
+                    )
+                else:
+                    offset, source = _load_server_offset()
+                    if offset is None:
+                        report.add(
+                            f"{SYMBOL} quote freshness",
+                            False,
+                            f"bid={tick.bid} ask={tick.ask} -- no tick in "
+                            f"{LIVENESS_POLL_SECONDS:.0f}s, and the broker clock offset has never "
+                            "been measured, so staleness cannot be stated honestly. Re-run during "
+                            "an open session: that run measures the offset and every later run can "
+                            "use it.",
+                        )
+                    else:
+                        age = time.time() + offset - latest.time
+                        report.add(
+                            f"{SYMBOL} quote freshness",
+                            0 <= age <= QUOTE_MAX_AGE_SECONDS,
+                            f"bid={latest.bid} ask={latest.ask} age={age:.1f}s "
+                            f"(broker clock UTC{offset / 3600:+.1f}h, {source}); "
+                            "no tick while watching -- expected outside market hours",
+                        )
 
     finally:
         mt5.shutdown()

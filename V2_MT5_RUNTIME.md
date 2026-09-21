@@ -176,7 +176,7 @@ container, against the live terminal, and checks:
 - account `trade_allowed`, `trade_expert`
 - **`ACCOUNT_MARGIN_MODE_RETAIL_HEDGING`**
 - XAUUSD exists, is tradable, volume bounds, stop/freeze levels
-- a fresh bid/ask
+- a **live** bid/ask, established by watching the tick advance
 
 The hedging check is the reason the script exists. The account was opened as
 "Forex Hedged USD", but that is a label on a signup screen. The strategy needs
@@ -217,6 +217,45 @@ No credentials go in that file. The collector authenticates through
 `MetaTrader5.initialize(login=, password=, server=)`, so the startup config
 carries permission flags only.
 
+## The broker clock, and what "a fresh quote" means
+
+`symbol_info_tick().time` is in **broker server time**, not UTC.
+MetaQuotes-Demo runs UTC+3. Subtracting it from the container's UTC clock made
+a tick that had arrived half a second earlier report `age=-10799.5s`, and the
+check failed a feed that was working perfectly. The negative sign was the tell:
+a quote cannot arrive in the future.
+
+Two tempting fixes are both wrong:
+
+- **Hardcode +3h.** The offset is broker-specific, and most brokers follow DST,
+  so it moves twice a year — silently, and in the direction that makes a stale
+  quote look fresh.
+- **Round the difference to the nearest hour.** This aliases. A two-day-old
+  weekend quote rounds to "≈0s old", which is precisely the condition the check
+  exists to catch.
+
+So liveness is established the one way that needs no agreement between the two
+clocks at all: **watch whether the tick advances**. The script polls
+`time_msc` for a few seconds and compares the broker's timestamps *against each
+other*. If it moves, the feed is live, whatever either clock says.
+
+That moment is also the only honest opportunity to measure the offset — the
+tick is then known to be ~0s old — so it is measured there, quantised to 30
+minutes, and persisted to `C:\m1m5-server-utc-offset.json` inside the prefix.
+A later run during a quiet market can then state a real staleness figure
+instead of guessing. Until that first live measurement exists, a non-advancing
+feed is reported as *unknown*, not as fresh:
+
+| Situation | Result |
+|---|---|
+| Tick advances while watching | **PASS** — live; offset measured and stored |
+| No tick, offset known, last tick recent | **PASS** — quiet market |
+| No tick, offset known, last tick old | **FAIL** — with the real age |
+| No tick, offset never measured | **FAIL** — staleness cannot be stated honestly |
+| `bid == 0 && ask == 0` | **FAIL** — no tick has *ever* arrived; a different fault from staleness |
+
+`MT5_SERVER_UTC_OFFSET_SECONDS` overrides the stored value if it is ever needed.
+
 ## Verified runtime values
 
 Recorded from an actual `mt5-verify` run on 2026-09-22, since several of them
@@ -234,6 +273,9 @@ confirm constants this codebase had assumed:
 | $5.00 bracket | 500 points |
 | Broker stop / freeze levels | `0` / `0` -- no restriction on a $5 bracket |
 | Volume bounds | min `0.01`, max `100`, step `0.01` -- 0.5 lot valid |
+| Terminal `trade_allowed` | `True` -- asserted by the `/config:` startup file; no GUI needed |
+| Broker clock | **UTC+3** -- measured from a live tick, not assumed |
+| XAUUSD quote | live, bid `4359.55` / ask `4360.22` |
 
 The margin mode is the one that matters most. The account was opened as
 "Forex Hedged USD", but that is a label on a signup screen; `margin_mode=2`

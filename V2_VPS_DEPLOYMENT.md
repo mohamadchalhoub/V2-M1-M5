@@ -205,8 +205,11 @@ bash deploy/m1m5.sh mt5-login
 When the terminal opens, log in with the account in
 `collector/.env.production` — `MT5_LOGIN` / `MT5_PASSWORD` / `MT5_SERVER`.
 
-Then, in the terminal: **Tools → Options → Expert Advisors → Allow algorithmic
-trading**. Without it, `terminal.trade_allowed` is false and step 8 will say so.
+You do **not** need to toggle Tools → Options → Expert Advisors → Allow
+algorithmic trading by hand. That switch lives in `Config/settings.ini`, which
+is binary and encrypted, and the GUI is awkward to reach headlessly — so the
+entrypoint asserts it on every start through MT5's `/config:` startup
+parameter instead. Step 8 reports the result as `terminal.trade_allowed`.
 
 > Do **not** log this account into any other bot's terminal, and do not switch
 > another bot's terminal to it. Each application needs its own terminal, its
