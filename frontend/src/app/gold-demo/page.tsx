@@ -9,6 +9,25 @@ import { ClosePositionForm } from "./ClosePositionForm";
 
 // This page renders live status only — no action fires just from loading it
 // (every mutating control below is its own POST-only form/server action).
+//
+// force-dynamic, for the same latent build-time-prerender issue already fixed
+// in app/health, app/market-charts, app/page and app/xauusd-rsi — this one was
+// simply missed. Without it Next.js statically prerenders this route at BUILD
+// time, which calls the backend during `npm run build` and fails the whole
+// image build when DASHBOARD_API_TOKEN is not yet minted:
+//
+//   Error occurred prerendering page "/gold-demo"
+//   Error: Missing required configuration: DASHBOARD_API_TOKEN
+//
+// The token is minted against a running backend, which cannot exist while the
+// image is still being built, so the dependency is circular and the build can
+// never succeed on a fresh deployment.
+//
+// Even with a token present, prerendering is wrong here: it would bake one
+// snapshot of live trading status into the image and serve it as though it
+// were current.
+export const dynamic = "force-dynamic";
+
 export default async function GoldDemoPage() {
   const [status, news, aiSummaries] = await Promise.all([
     api.goldExecutionStatus(),
