@@ -107,7 +107,9 @@ case "${1:-}" in
       "${COMPOSE[@]}" logs --tail 200 -f "$MT5_SERVICE"
       ;;
   backend-status)
-      "${COMPOSE[@]}" exec -T api bash -lc 'curl -sf http://localhost:3000/health | head -40' \
+      # The api image is node:20-alpine: no bash and no curl. BusyBox sh and
+      # wget are what exist there.
+      "${COMPOSE[@]}" exec -T api sh -c 'wget -qO- http://localhost:3000/health | head -40' \
           || echo "api not healthy or not running"
       ;;
   logs)
@@ -124,7 +126,10 @@ case "${1:-}" in
           || echo "  MT5 readiness FAILED -- execution must stay OFF"
       echo
       echo "=== 3. execution mode ==="
-      "${COMPOSE[@]}" exec -T api bash -lc 'echo "backend XAUUSD_M1M5_EXECUTION_MODE=$XAUUSD_M1M5_EXECUTION_MODE"' 2>/dev/null || true
+      # Read from the SCHEDULER, which is the process whose mode decides
+      # whether an order is queued. `sh`, because the image is Alpine.
+      "${COMPOSE[@]}" exec -T m1m5-scheduler sh -c 'echo "scheduler XAUUSD_M1M5_EXECUTION_MODE=$XAUUSD_M1M5_EXECUTION_MODE"' 2>/dev/null           || echo "scheduler not running -- nothing is observing RSI"
+      echo "kill switch:"; bash "$0" kill-switch status 2>/dev/null || true
       "${COMPOSE[@]}" exec -T "$MT5_SERVICE" bash -lc 'echo "collector XAUUSD_M1M5_EXECUTION_ENABLED=$XAUUSD_M1M5_EXECUTION_ENABLED"' 2>/dev/null || true
       echo
       echo "Both must be DEMO/true before an order can reach the broker."
