@@ -37,8 +37,9 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { getM1M5ExecutionMode, entriesBlockedByControls, killSwitchState } from '../src/xauusd-m1m5/controls';
-import { createEngineState, warmUpFromClosedBars } from '../src/xauusd-m1m5/engine';
-import { createCrossingState } from '../src/xauusd-m1m5/crossing';
+import { createEngineState } from '../src/xauusd-m1m5/engine';
+import { rewarmColdTimeframes, warmTimeframeFromHistory, WARMUP_BARS_NEEDED } from '../src/xauusd-m1m5/warmup';
+import { isWarmedUp } from '../src/xauusd-m1m5/rsi';
 import { createLockSet, type LockSet } from '../src/xauusd-m1m5/locks';
 import { M1M5OccupancyService } from '../src/xauusd-m1m5/occupancy.service';
 import { M1M5ExecutionService } from '../src/xauusd-m1m5/execution.service';
@@ -108,23 +109,33 @@ async function loadOrWarmState(prisma: PrismaClient, accountId: string | null): 
   const existing = readWatchState();
   if (existing) {
     log('Resumed persisted observation state.');
-    return existing;
+    // A resumed state is not necessarily a warm one: the first start may have
+    // run before the collector finished downloading history, and resuming
+    // would then keep that under-warmed state forever. See warmup.ts.
+    const { state, rewarmed } = await rewarmColdTimeframes(prisma, existing);
+    for (const r of rewarmed) {
+      log(
+        `${r.timeframe}: resumed state was NOT warm (${r.fromBars}/${WARMUP_BARS_NEEDED} closed bars); ` +
+          `re-warmed from ${r.toBars} historical bars. Crossing state reset, so nothing is armed by this.`,
+      );
+    }
+    for (const tf of TIMEFRAMES) {
+      if (!isWarmedUp(state.engines[tf].rsi)) {
+        log(
+          `${tf}: still warming (${state.engines[tf].rsi.closedBarCount}/${WARMUP_BARS_NEEDED} closed bars) -- ` +
+            'this timeframe cannot signal until it is warm.',
+        );
+      }
+    }
+    return state;
   }
   log('No usable persisted state (absent, corrupt, or written under different rules). Warming from history.');
 
   const engines = { M1: createEngineState('M1'), M5: createEngineState('M5') };
-  const needed = SPEC.rsi.period + 1 + SPEC.rsi.warmupBars;
-
   for (const tf of TIMEFRAMES) {
-    const bars = await prisma.historicalCandle.findMany({
-      where: { symbol: SPEC.symbol, timeframe: tf },
-      orderBy: { openTime: 'desc' },
-      take: needed,
-      select: { close: true },
-    });
-    const closes = bars.reverse().map((b) => Number(b.close));
-    engines[tf] = warmUpFromClosedBars(engines[tf], closes);
-    log(`${tf}: warmed from ${closes.length} closed bars (${needed} needed before any signal may form).`);
+    const { engine, bars } = await warmTimeframeFromHistory(prisma, tf);
+    engines[tf] = engine;
+    log(`${tf}: warmed from ${bars} closed bars (${WARMUP_BARS_NEEDED} needed before any signal may form).`);
   }
 
   return {
@@ -135,7 +146,7 @@ async function loadOrWarmState(prisma: PrismaClient, accountId: string | null): 
     lastCycleIntervalMs: null,
     lastSubmissionLatencyMs: null,
     engines,
-    crossings: { M1: createCrossingState('M1', SPEC_HASH), M5: createCrossingState('M5', SPEC_HASH) },
+    crossings: { M1: engines.M1.crossing, M5: engines.M5.crossing },
     observationLimitations: [],
     recoveryCompleteAtMs: Date.now(),
   };
