@@ -853,7 +853,11 @@ model HistoricalTick {
   brokerSymbol String?  @map("broker_symbol")
   server       String?
   feedId       String?  @map("feed_id")
-  // UTC, millisecond precision — derived from MT5's `time_msc`.
+  // NOT true UTC, despite the column type. MT5 builds `time_msc` from the
+  // broker server's wall clock (EET/EEST, UTC+3 in summer) and it is stored
+  // as-is, so the value reads hours ahead of real time. Measured, not
+  // assumed. Every reader must convert -- see xauusd-m1m5/tick-time.ts and
+  // xauusd-rsi/tick-time.ts. Millisecond precision.
   timestamp    DateTime
   bid          Decimal  @db.Decimal(18, 6)
   ask          Decimal  @db.Decimal(18, 6)

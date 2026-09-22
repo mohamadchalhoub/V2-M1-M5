@@ -64,7 +64,7 @@ import {
 } from '../src/xauusd-m1m5/close-request.service';
 import { evaluateEntryEligibility } from '../src/xauusd-m1m5/schedule';
 import { V2_QUOTE_MAX_STALENESS_SECONDS } from '../src/xauusd-m1m5/safety-constants';
-import type { QuoteCandidate } from '../src/xauusd-m1m5/quote';
+import { readQuoteCandidates } from '../src/xauusd-m1m5/quote-sources';
 import { describeCycle, runCycle } from '../src/xauusd-m1m5/watch-cycle';
 import { defaultStateDir, readWatchState, writeWatchState, type WatchState } from '../src/xauusd-m1m5/state-store';
 import { SPEC, SPEC_HASH, TIMEFRAMES, XAUUSD_M1M5_STRATEGY_VERSION, type Timeframe } from '../src/xauusd-m1m5/spec';
@@ -138,37 +138,6 @@ async function loadOrWarmState(prisma: PrismaClient, accountId: string | null): 
     observationLimitations: [],
     recoveryCompleteAtMs: Date.now(),
   };
-}
-
-/** The two quote streams, normalised into candidates for coherent selection. */
-async function readQuoteCandidates(prisma: PrismaClient): Promise<QuoteCandidate[]> {
-  const candidates: QuoteCandidate[] = [];
-
-  const live = await prisma.liveTick.findFirst({ where: { symbol: SPEC.symbol } });
-  if (live) {
-    candidates.push({
-      bid: Number(live.bid),
-      ask: Number(live.ask),
-      // Already true UTC on the way in; normalised exactly once, upstream.
-      tickAtMs: live.tickAt.getTime(),
-      source: 'live_ticks',
-    });
-  }
-
-  const historical = await prisma.historicalTick.findFirst({
-    where: { symbol: SPEC.symbol },
-    orderBy: { timestamp: 'desc' },
-  });
-  if (historical && historical.bid !== null && historical.ask !== null) {
-    candidates.push({
-      bid: Number(historical.bid),
-      ask: Number(historical.ask),
-      tickAtMs: historical.timestamp.getTime(),
-      source: 'historical_ticks',
-    });
-  }
-
-  return candidates;
 }
 
 async function main() {
