@@ -454,3 +454,40 @@ def test_a_failed_repair_poll_never_raises():
     app._poll_and_execute_m1m5_protection_request()
 
     executor.modify_protection.assert_not_called()
+
+
+# --- algo-trading switch observability --------------------------------------
+
+
+def test_the_first_observation_of_algo_trading_is_logged(caplog):
+    app, _client, _api, _executor = _app()
+    with caplog.at_level("INFO", logger="collector.runner"):
+        app._note_terminal_trade_allowed({"trade_allowed": True})
+    assert any("algo trading is ON" in r.message for r in caplog.records)
+
+
+def test_algo_trading_turning_off_is_a_warning_with_its_transition(caplog):
+    app, _client, _api, _executor = _app()
+    app._note_terminal_trade_allowed({"trade_allowed": True})
+    caplog.clear()
+    with caplog.at_level("INFO", logger="collector.runner"):
+        app._note_terminal_trade_allowed({"trade_allowed": False})
+    off = [r for r in caplog.records if "is OFF" in r.message]
+    assert off and off[0].levelname == "WARNING"
+
+
+def test_an_unchanged_state_is_not_logged_every_cycle(caplog):
+    app, _client, _api, _executor = _app()
+    app._note_terminal_trade_allowed({"trade_allowed": True})
+    caplog.clear()
+    with caplog.at_level("INFO", logger="collector.runner"):
+        for _ in range(5):
+            app._note_terminal_trade_allowed({"trade_allowed": True})
+    assert not caplog.records
+
+
+def test_an_unreadable_state_is_reported_not_treated_as_on(caplog):
+    app, _client, _api, _executor = _app()
+    with caplog.at_level("INFO", logger="collector.runner"):
+        app._note_terminal_trade_allowed(None)
+    assert any("could not be read" in r.message for r in caplog.records)

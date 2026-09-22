@@ -42,7 +42,7 @@ import type { Timeframe } from './spec';
  * than defaulted. See `mt5-snapshot.service.ts`: null means "could not read",
  * which is a third state and must survive the wire intact.
  */
-class M1M5Mt5SnapshotDto {
+export class M1M5Mt5SnapshotDto {
   @IsISO8601() capturedAt!: string;
   @IsOptional() @IsString() login?: string | null;
   @IsOptional() @IsString() server?: string | null;
@@ -62,12 +62,12 @@ class M1M5Mt5SnapshotDto {
  * The distinction is the point: section 9.3 establishes closure by re-querying
  * the broker, never by counting accepted requests.
  */
-class M1M5CloseResultDto {
+export class M1M5CloseResultDto {
   @IsBoolean() accepted!: boolean;
   @IsOptional() @IsString() errorMessage?: string;
 }
 
-class M1M5ExecutionResultDto {
+export class M1M5ExecutionResultDto {
   @IsBoolean() ok!: boolean;
   @IsOptional() @IsInt() ticket?: number;
   @IsOptional() @IsNumber() filledPrice?: number;

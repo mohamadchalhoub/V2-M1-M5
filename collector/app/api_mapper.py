@@ -84,7 +84,12 @@ def build_permissions_payload(
     return {
         # Identity first: every other check is meaningless if this is the
         # wrong account.
-        "login": account.get("login"),
+        # A STRING, not the integer MT5 reports. The backend validates with
+        # no implicit type conversion, so an integer here fails `@IsString()`
+        # and rejects the whole permission report -- which leaves readiness at
+        # NO_SNAPSHOT forever and silently prevents every order. A string also
+        # compares cleanly against MT5_EXPECTED_LOGIN, which is one.
+        "login": None if account.get("login") is None else str(account.get("login")),
         "server": account.get("server"),
         "tradeMode": _trade_mode_label(account.get("trade_mode")),
         "marginMode": _margin_mode_label(account.get("margin_mode")),
@@ -127,9 +132,15 @@ def build_snapshot_payload(
             **({"lastError": last_error} if last_error else {}),
         },
         "collectorVersion": collector_version,
-        # MT5 trading permissions, so the backend can block execution on a
-        # missing or unreadable one rather than discovering it at order time.
-        "permissions": build_permissions_payload(account, terminal_info, mt5_connected),
+        # NO `permissions` block here. This endpoint's contract is the
+        # backend's SnapshotDto, which is validated with forbidNonWhitelisted:
+        # any field it does not declare rejects the WHOLE request with a 400.
+        # A permissions block was once added here without the DTO learning
+        # about it, and every account snapshot -- balance, open positions and
+        # the live tick that rides along with them -- was silently discarded
+        # from then on. Permissions travel on this strategy's own route
+        # (`xauusd-m1m5/mt5-snapshot`) instead. See
+        # tests/test_snapshot_contract.py, which pins this payload to the DTO.
         "positions": [_position_payload(p) for p in positions],
     }
     # Global market data (not account-scoped) piggybacked onto this same,

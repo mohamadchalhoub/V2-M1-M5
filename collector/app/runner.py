@@ -42,6 +42,9 @@ logger = logging.getLogger("collector.runner")
 
 COLLECTOR_VERSION = "0.2.0"
 
+# Distinguishes "never observed" from an observed None ("could not read").
+_UNSEEN = object()
+
 # xauusd-m1-m5-rsi-threshold-v2 -- the only symbol this project's strategy
 # trades. Named here rather than read from config so it cannot drift from the
 # backend's own frozen SPEC.symbol.
@@ -230,6 +233,10 @@ class CollectorApp:
         self._rsi_last_observation_at: datetime | None = None
         self._rsi_cadence_samples: list[float] = []
         self._tick_sync_consecutive_failures = 0
+        # The terminal's algo-trading switch, as last seen. A sentinel rather
+        # than None, because None is itself a state worth logging ("could not
+        # read it") and the first observation must always be recorded.
+        self._last_terminal_trade_allowed: object = _UNSEEN
 
     def install_signal_handlers(self) -> None:
         signal.signal(signal.SIGINT, self._handle_signal)
@@ -339,6 +346,34 @@ class CollectorApp:
         logger.info("collector stopped cleanly")
         return 0
 
+    def _note_terminal_trade_allowed(self, terminal: dict[str, Any] | None) -> None:
+        """Logs the moment the terminal's algo-trading switch changes.
+
+        On this deployment the switch has been observed ON after one terminal
+        launch and OFF after an identical launch, with nothing in the
+        terminal's own journal explaining either. Without the time of the
+        change there is nothing to correlate it with. This records exactly
+        that, once per change rather than once per cycle, so it stays
+        readable.
+
+        OFF is a WARNING: with algo trading off every order is refused by the
+        terminal, and the backend's readiness gate blocks entries until it
+        comes back.
+        """
+        allowed = (terminal or {}).get("trade_allowed")
+        allowed = None if allowed is None else bool(allowed)
+        previous = self._last_terminal_trade_allowed
+        if allowed == previous:
+            return
+        self._last_terminal_trade_allowed = allowed
+        context = {"from": None if previous is _UNSEEN else previous, "to": allowed}
+        if allowed is False:
+            logger.warning("terminal algo trading is OFF -- every order will be refused until it is re-enabled", extra=context)
+        elif allowed is None:
+            logger.warning("terminal algo trading state could not be read", extra=context)
+        else:
+            logger.info("terminal algo trading is ON", extra=context)
+
     def _deals_lookup_adapter(self, since):
         """Adapts `Mt5Client.get_deals_since()`'s dicts to the flat
         `{"symbol", "magic", "ticket", "volume", "price"}` shape
@@ -389,6 +424,7 @@ class CollectorApp:
 
     def _push_and_print_snapshot(self) -> None:
         terminal = self._client.get_terminal_info()
+        self._note_terminal_trade_allowed(terminal)
         mt5_connected = terminal.get("connected") if terminal else None
         last_error = None if mt5_connected else self._client.last_error()[1]
         account = self._client.get_account_info()

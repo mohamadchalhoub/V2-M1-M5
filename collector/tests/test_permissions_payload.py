@@ -27,7 +27,9 @@ TERMINAL = {"trade_allowed": True, "tradeapi_disabled": False, "connected": True
 class TestPermissionsPayload:
     def test_reports_every_permission_the_backend_checks(self):
         p = build_permissions_payload(ACCOUNT, TERMINAL, mt5_connected=True)
-        assert p["login"] == 1234500001
+        # Sent as a string: the backend does no implicit conversion, and an
+        # integer fails its @IsString() check and rejects the whole report.
+        assert p["login"] == "1234500001"
         assert p["server"] == "MetaQuotes-Demo"
         assert p["tradeMode"] == "DEMO"
         assert p["marginMode"] == "RETAIL_HEDGING"
@@ -88,8 +90,16 @@ class TestPermissionsPayload:
         assert p["tradeMode"] == "REAL"
 
 
-class TestSnapshotCarriesPermissions:
-    def test_snapshot_includes_the_permissions_block(self):
+class TestSnapshotDoesNotCarryPermissions:
+    """The account snapshot must NOT carry a permissions block.
+
+    These tests used to assert the opposite, and passed, while the backend
+    rejected every snapshot that contained it. A test that only checks what
+    this side sends cannot see that the other side refuses it; the contract
+    test in test_snapshot_contract.py is what closes that gap.
+    """
+
+    def test_snapshot_omits_permissions(self):
         payload = build_snapshot_payload(
             account_id="acct-1",
             account=ACCOUNT,
@@ -99,19 +109,4 @@ class TestSnapshotCarriesPermissions:
             collector_version="test",
             terminal_info=TERMINAL,
         )
-        assert payload["permissions"]["accountTradeExpert"] is True
-        assert payload["permissions"]["marginMode"] == "RETAIL_HEDGING"
-
-    def test_snapshot_without_terminal_info_still_reports_unknowns(self):
-        # Existing callers that do not pass terminal_info must not crash, and
-        # must not silently claim the terminal permits trading.
-        payload = build_snapshot_payload(
-            account_id="acct-1",
-            account=ACCOUNT,
-            positions=[],
-            mt5_connected=True,
-            last_error=None,
-            collector_version="test",
-        )
-        assert payload["permissions"]["terminalTradeAllowed"] is None
-        assert payload["permissions"]["terminalTradeApiDisabled"] is None
+        assert "permissions" not in payload
