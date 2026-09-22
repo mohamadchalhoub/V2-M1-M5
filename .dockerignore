@@ -1,0 +1,16 @@
+# Build context for the MT5 collector image (context: ., see
+# docker-compose.prod.yml). Only collector/ and deploy/docker/m1m5-mt5-collector/
+# are COPYed, but without this file the WHOLE repository was sent as context
+# and `COPY collector/ /app/` baked collector/.env.production -- including the
+# MT5 account password -- into the image.
+#
+# No env file belongs in any image: every service receives its configuration at
+# runtime through `env_file` in docker-compose.prod.yml.
+**/.env
+**/.env.*
+.git
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+backend/dist
+frontend/.next

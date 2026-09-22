@@ -3,3 +3,7 @@ dist
 .env
 .env.test
 *.log
+# No env file belongs in the image: this service gets its configuration at
+# runtime through `env_file` in docker-compose.prod.yml. `.env.production`
+# was previously NOT excluded, so its secrets were baked into image layers.
+.env*
