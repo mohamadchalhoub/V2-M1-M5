@@ -165,7 +165,12 @@ export class M1M5ReconciliationService {
 
         await this.prisma.xauusdM1M5Decision.updateMany({
           where: { accountId, ticket: BigInt(closure.ticket) },
-          data: { orderStatus: 'FILLED', filledAt: new Date(closure.closedAtMs) },
+          // filledAt is deliberately NOT touched. It used to be overwritten
+          // with the CLOSE time, which destroyed the real fill time: the first
+          // VPS trade then read as filled 7m52s after its signal when it had
+          // filled in 26s. The close time lives in the deals and the
+          // processed-closure record.
+          data: { orderStatus: 'FILLED' },
         });
       }
     }

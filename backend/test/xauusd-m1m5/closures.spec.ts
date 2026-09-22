@@ -232,6 +232,20 @@ describe('end to end, through reconciliation', () => {
     expect(second.closuresApplied).toBe(0);
   });
 
+  it('leaves the recorded FILL time alone when it applies the closure', async () => {
+    await seedFilledSell();
+    const fillTime = new Date(NOW - 595_000);
+    await prisma.xauusdM1M5Decision.updateMany({ where: { accountId }, data: { filledAt: fillTime } });
+    await freshSnapshot();
+    await seedDeal('IN', 'd1');
+    await seedDeal('OUT', 'd2', { profit: -15.6, reason: 4 });
+
+    await reconciliation.reconcile(accountId, await buildBrokerSnapshot(prisma, accountId, NOW));
+
+    const row = await prisma.xauusdM1M5Decision.findFirst({ where: { accountId } });
+    expect(row?.filledAt?.getTime()).toBe(fillTime.getTime());
+  });
+
   it('keeps the slot held while the closing deal has not synced', async () => {
     await seedFilledSell();
     await freshSnapshot();
