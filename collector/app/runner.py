@@ -45,6 +45,31 @@ COLLECTOR_VERSION = "0.2.0"
 # Distinguishes "never observed" from an observed None ("could not read").
 _UNSEEN = object()
 
+
+def _as_utc_datetime(value: Any) -> datetime | None:
+    """An aware UTC datetime from an ISO string or a datetime, else None.
+
+    None rather than an exception for anything unrecognised: the callers are
+    permission and session checks, where "could not tell" must block, and an
+    exception would instead escape into the main loop.
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    else:
+        return None
+    if parsed.tzinfo is None:
+        # A naive value is not safe to guess at: it could be UTC or broker
+        # local, and the two differ by hours.
+        return None
+    return parsed.astimezone(timezone.utc)
+
 # xauusd-m1-m5-rsi-threshold-v2 -- the only symbol this project's strategy
 # trades. Named here rather than read from config so it cannot drift from the
 # backend's own frozen SPEC.symbol.
@@ -764,7 +789,13 @@ class CollectorApp:
         # compares against our own clock. The RAW MT5 tick time is in SERVER
         # time, and subtracting that here would be wrong by the broker offset
         # -- exactly the mistake that made a live feed look stale by 3 hours.
-        tick_at = tick.get("time")
+        #
+        # It arrives as an ISO-8601 STRING (`_mt5_time_to_utc` returns str),
+        # not a datetime. This check first subtracted it directly, which
+        # raises TypeError; that never fired only because a missing
+        # `trade_mode` returned early above. Anything unparseable is
+        # "unknown", which blocks -- never an exception out of the main loop.
+        tick_at = _as_utc_datetime(tick.get("time"))
         if tick_at is None:
             return None
         age = (datetime.now(timezone.utc) - tick_at).total_seconds()

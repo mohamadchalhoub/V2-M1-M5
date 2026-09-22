@@ -185,7 +185,7 @@ def test_the_snapshot_carries_leverage_and_session_state():
     client.is_connected.return_value = True
     client.get_symbol_info.return_value = {"trade_mode": 4}
     client.get_live_tick.return_value = {
-        "bid": 4360.0, "ask": 4360.5, "time": datetime.now(timezone.utc),
+        "bid": 4360.0, "ask": 4360.5, "time": datetime.now(timezone.utc).isoformat(),
     }
 
     app._push_m1m5_mt5_snapshot()
@@ -226,7 +226,7 @@ def test_a_stale_tick_means_the_session_is_not_open():
     client.get_symbol_info.return_value = {"trade_mode": 4}
     client.get_live_tick.return_value = {
         "bid": 4360.0, "ask": 4360.5,
-        "time": datetime.now(timezone.utc) - timedelta(hours=3),
+        "time": (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat(),
     }
 
     assert app._m1m5_session_open() is False

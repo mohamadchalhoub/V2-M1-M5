@@ -243,6 +243,7 @@ def test_get_symbol_info_maps_broker_fields_for_gold(monkeypatch):
         lambda symbol: _FakeSymbolInfo(
             volume_min=0.01, volume_max=50.0, volume_step=0.01,
             digits=2, point=0.01, trade_contract_size=100.0, currency_profit="USD",
+            trade_mode=4,
         ),
     )
     client = Mt5Client(_FakeConfig())
@@ -256,6 +257,8 @@ def test_get_symbol_info_maps_broker_fields_for_gold(monkeypatch):
         "point": 0.01,
         "contract_size": 100.0,
         "profit_currency": "USD",
+        # SYMBOL_TRADE_MODE_FULL. The m1m5 session check reads this field.
+        "trade_mode": 4,
     }
 
 

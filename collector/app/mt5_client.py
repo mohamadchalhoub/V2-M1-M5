@@ -314,6 +314,12 @@ class Mt5Client:
             "point": d.get("point"),
             "contract_size": d.get("trade_contract_size"),
             "profit_currency": d.get("currency_profit"),
+            # SYMBOL_TRADE_MODE_*: 0 disabled ... 4 full access. Read by the
+            # m1m5 session check, which reported the broker session as
+            # "unknown" -- and so blocked every entry -- for as long as this
+            # field was missing from this dict. Its unit test had mocked the
+            # field in, so it could not see that the real dict lacked it.
+            "trade_mode": d.get("trade_mode"),
         }
 
     def get_open_positions(self) -> list[dict[str, Any]]:
