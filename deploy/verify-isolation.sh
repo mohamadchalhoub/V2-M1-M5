@@ -138,6 +138,26 @@ docker exec m1m5-v2-mt5-collector bash -lc 'echo "  configured account: $MT5_EXP
 echo "  (the collector refuses to run if the terminal reports a different one)"
 echo
 
+echo "--- 10. V2 callers address V2's OWN API --------------------------"
+# The web container is on two networks (internal + the shared proxy network).
+# On the shared one, the bare name `api` resolves to ANOTHER bot's API, and the
+# dashboard once sent V2's token there. Every V2 caller must use the
+# project-unique alias instead.
+for pair in "web:BACKEND_API_URL" "m1m5-mt5-collector:COLLECTOR_API_BASE_URL"; do
+    svc=${pair%%:*}; var=${pair##*:}
+    cid=$(docker ps --filter "label=com.docker.compose.project=$PROJECT" --filter "label=com.docker.compose.service=$svc" -q | head -1)
+    if [ -z "$cid" ]; then
+        info "$svc not running"
+        continue
+    fi
+    url=$(docker exec "$cid" printenv "$var" 2>/dev/null)
+    case "$url" in
+        http://m1m5-v2-api:*) pass "$svc $var -> $url" ;;
+        *) fail "$svc $var is '$url' -- must use m1m5-v2-api, never the ambiguous 'api'" ;;
+    esac
+done
+echo
+
 echo "======================================================================"
 if [ "$FAIL" -eq 0 ]; then
     echo " ISOLATION VERIFIED. No other bot was modified by this check."

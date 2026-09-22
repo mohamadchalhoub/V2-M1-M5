@@ -141,7 +141,16 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
-    networks: [internal]
+    # `m1m5-v2-api` is the name every V2 caller uses. NOT the bare service
+    # name `api`: that is ambiguous for any container on more than one
+    # network. When `web` joined `proxy_shared` to be served at
+    # v2.jokertrade.tech, `api` there also resolved to ANOTHER bot's API
+    # container, and the dashboard sent V2's token to it -- rejected (401),
+    # with no V2 routes (404), but cross-talk the isolation exists to
+    # prevent. A project-unique alias cannot collide with anything.
+    networks:
+      internal:
+        aliases: [m1m5-v2-api]
 
   web:
     build:
@@ -149,6 +158,12 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: ./frontend/.env.production
+    environment:
+      # Overrides the env file on purpose. This container is on TWO networks,
+      # and `api` resolves to another bot's API on the shared one; only the
+      # project-unique alias is safe. Set here, in tracked config, so it cannot
+      # be lost or mistyped in a gitignored file.
+      BACKEND_API_URL: http://m1m5-v2-api:3000
     depends_on:
       api:
         # Genuinely useful here (not just added for symmetry): the
@@ -235,6 +250,11 @@ services:
       # Fail closed rather than auto-discovering a terminal. Set here, not only
       # in the env file, so it cannot be lost by editing that file.
       MT5_REQUIRE_EXPLICIT_TERMINAL: "true"
+      # The project-unique API alias, not the bare `api`. The collector is on
+      # one network today, so `api` is unambiguous for it now -- but the day
+      # it joins a second, `api` could resolve to another bot's API, which
+      # would then receive this collector's orders and credentials.
+      COLLECTOR_API_BASE_URL: http://m1m5-v2-api:3000
     volumes:
       # This project's OWN prefix directory. Distinct from every other bot's:
       # the sibling deployment uses /home/deploy/.mt5-v2, and pointing both at
