@@ -14,3 +14,12 @@
 **/.pytest_cache
 backend/dist
 frontend/.next
+
+# Engine B's Telegram MTProto USER session and the runtime state directory.
+# The session is an authorization key equivalent to being logged in as that
+# Telegram account. It is created at runtime, in a mounted volume, and must
+# never be baked into an image layer -- an image layer is copied wherever the
+# image goes and cannot be un-copied.
+xauusd-m1m5-runtime
+**/xauusd-m1m5-runtime
+**/telegram-ingest-session*

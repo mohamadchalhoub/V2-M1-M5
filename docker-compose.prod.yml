@@ -319,6 +319,50 @@ services:
         max-file: "5"
 
 
+  # ===========================================================================
+  # ENGINE B - the Telegram copy engine's ingestion process.
+  #
+  # Its own container, holding the Telegram USER session, for two reasons:
+  #
+  #   1. A credential of that weight should be reachable by one process, not
+  #      by every container that imports the module. Only this service mounts
+  #      the runtime volume for the purpose of reading it.
+  #   2. Engine A must be unaffected by Engine B's liveness. If ingestion
+  #      crashes, loses its Telegram connection or is deliberately stopped,
+  #      the scheduler and collector keep observing RSI and managing Engine
+  #      A's positions - they are different containers with different restart
+  #      lifecycles.
+  #
+  # Reuses the SAME image as `api` and the scheduler, overriding only the
+  # command, so ingestion and the API can never be running different builds.
+  #
+  # NO HOST PORTS: nothing needs to reach it.
+  # ===========================================================================
+  telegram-ingest:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: m1m5-v2-telegram-ingest
+    restart: unless-stopped
+    env_file: ./backend/.env.production
+    command: ["node", "dist/scripts/telegram-ingest.js"]
+    volumes:
+      # The same runtime volume the api and scheduler mount at the same path.
+      # The Telegram session lives here, which is what makes it survive
+      # container recreation, image rebuilds and a VPS reboot. It is never
+      # baked into the image and never committed.
+      - m1m5_v2_runtime_data:/app/xauusd-m1m5-runtime
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [internal]
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+
   # NOTE (topology alongside the other deployments on this host)
   #
   # No `caddy` service is defined here, on purpose: the legacy deployment's

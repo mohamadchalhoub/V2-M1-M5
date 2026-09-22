@@ -18,6 +18,7 @@ import { XtbImportModule } from './xtb-import/xtb-import.module';
 import { GoldExecutionModule } from './gold-execution/gold-execution.module';
 import { XauusdRsiModule } from './xauusd-rsi/xauusd-rsi.module';
 import { XauusdM1M5Module } from './xauusd-m1m5/xauusd-m1m5.module';
+import { TelegramEngineModule } from './telegram-engine/telegram-engine.module';
 import { AppController } from './app.controller';
 
 /**
@@ -33,7 +34,18 @@ import { AppController } from './app.controller';
  *   - `TrendBreakoutModule`         H4/H1 trend-breakout (EURUSD + XAUUSD).
  *   - `ConfirmedRetestDashboardModule`  the archived H4 gold research UI.
  *
- * The only module able to produce a new entry is `XauusdM1M5Module`.
+ * Two modules can produce a new entry, and they are independent strategy
+ * engines rather than two paths of one:
+ *
+ *   - `XauusdM1M5Module`      Engine A, the RSI M1/M5 threshold strategy,
+ *                             with its own schedule, locks and occupancy.
+ *   - `TelegramEngineModule`  Engine B, the Telegram copy engine, which has
+ *                             no RSI rule and no time-of-day pause. Engine
+ *                             A's 14:00-19:00 and 23:30-01:00 Beirut pauses
+ *                             and its Friday cutoff apply to Engine A alone.
+ *
+ * Importing either one starts nothing: both are driven by separate, manually
+ * started processes.
  *
  * `XauusdRsiModule` is still imported, and still serves its dashboard,
  * reconciliation and protective management, but its ENTRY wiring is disabled
@@ -69,10 +81,16 @@ import { AppController } from './app.controller';
     // Retained for its dashboard, reconciliation and protective management.
     // Its entry wiring is disabled in code in this copy.
     XauusdRsiModule,
-    // The single enabled entry strategy: two independent execution paths,
-    // M1 and M5. Importing it does not start trading — the observation loop
-    // is a separate, manually started process.
+    // Engine A: the RSI threshold strategy, with two independent execution
+    // paths, M1 and M5. Importing it does not start trading — the observation
+    // loop is a separate, manually started process.
     XauusdM1M5Module,
+    // Engine B. Importing it does not connect to Telegram and does not start
+    // copying trades — the ingestion adapter is a separate process. What it
+    // does do at construction is assert that the two engines' magic numbers
+    // are disjoint, so a colliding constant fails at boot rather than when
+    // Engine A's Friday liquidation selects a Telegram position.
+    TelegramEngineModule,
   ],
   controllers: [AppController],
 })

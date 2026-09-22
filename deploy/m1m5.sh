@@ -53,6 +53,18 @@ xauusd-m1-m5-rsi-threshold-v2 operations
   kill-switch on     EMERGENCY: block all new entries immediately
   kill-switch off    Allow entries again
   kill-switch        Show whether the kill switch is engaged
+
+ --- Engine B, the Telegram copy engine (@SFxauusd1). Independent of the
+     RSI engine above: these commands do not affect M1/M5 in any way.
+  telegram-auth      ONE-TIME interactive Telegram sign-in. Prompts for phone,
+                     login code and (if set) 2FA password. Writes a session
+                     that survives restarts and redeploys.
+  telegram-ready     Pre-flight checks before enabling execution
+  telegram-status    Ingestion health, source channel, reconciliation state
+  telegram-logs      Follow the Telegram ingestion container's logs
+  telegram-enable    Turn Telegram DEMO execution ON (deliberate, two-step)
+  telegram-disable   Turn Telegram execution OFF (positions stay managed)
+  telegram-kill on|off|status   EMERGENCY stop for Engine B alone
 USAGE
 }
 
@@ -171,6 +183,121 @@ case "${1:-}" in
           ;;
         *) echo "usage: m1m5.sh kill-switch [on|off|status]"; exit 1 ;;
       esac
+      ;;
+  telegram-auth)
+      # Interactive by design: `exec`, not `exec -T`, because Telegram will
+      # ask for a login code and possibly a 2FA password and those are typed,
+      # never passed as arguments or environment variables where they would
+      # outlive the moment in shell history or a process listing.
+      echo "One-time Telegram authorization for Engine B."
+      echo
+      echo "You will be asked for:"
+      echo "  1. your Telegram phone number, international format (+961...)"
+      echo "  2. the login code Telegram sends to that account"
+      echo "  3. your two-factor password, if you have one set (not echoed)"
+      echo
+      echo "The session is written to the runtime volume and reused after every"
+      echo "restart, redeploy and reboot. You will not be asked again."
+      echo
+      "${COMPOSE[@]}" run --rm -it telegram-ingest node dist/scripts/telegram-auth.js
+      ;;
+  telegram-status)
+      echo "=== Engine B: ingestion + reconciliation ==="
+      "${COMPOSE[@]}" exec -T api sh -c \
+          'wget -qO- --header="Authorization: Bearer $DASHBOARD_TOKEN" \
+           http://localhost:3000/xauusd-m1m5/telegram-engine/status | head -80' \
+          || echo "api not reachable, or DASHBOARD_TOKEN not set in the api container"
+      echo
+      echo "=== execution switches (read from the ingestion container) ==="
+      "${COMPOSE[@]}" exec -T telegram-ingest sh -c \
+          'echo "TELEGRAM_ENGINE_ENABLED=$TELEGRAM_ENGINE_ENABLED"; echo "TELEGRAM_ENGINE_EXECUTION_MODE=$TELEGRAM_ENGINE_EXECUTION_MODE"' \
+          2>/dev/null || echo "telegram-ingest not running"
+      ;;
+  telegram-logs)
+      "${COMPOSE[@]}" logs --tail 200 -f telegram-ingest
+      ;;
+  telegram-enable)
+      # Deliberately two-step and deliberately verbose. Turning this on is the
+      # single action that lets someone else's Telegram message place an order
+      # on this account, so it asks, and it says what it is about to do.
+      echo "This will enable TELEGRAM DEMO EXECUTION."
+      echo
+      echo "After this, a valid fresh signal from @SFxauusd1 will place real"
+      echo "DEMO orders: 0.01 lot per take profit, at the published SL and TP."
+      echo "The RSI engine is unaffected."
+      echo
+      echo "Confirm the checks first with: bash deploy/m1m5.sh telegram-ready"
+      read -r -p "Type ENABLE to continue: " answer
+      [ "$answer" = "ENABLE" ] || { echo "Not enabled."; exit 1; }
+      python3 - <<'PY' || { echo "could not update backend/.env.production"; exit 1; }
+import io, re
+p = "backend/.env.production"
+s = io.open(p, encoding="utf-8").read()
+for key, value in (("TELEGRAM_ENGINE_ENABLED", "true"), ("TELEGRAM_ENGINE_EXECUTION_MODE", "DEMO")):
+    if re.search(rf"^{key}=.*$", s, re.M):
+        s = re.sub(rf"^{key}=.*$", f"{key}={value}", s, flags=re.M)
+    else:
+        s += f"\n{key}={value}\n"
+io.open(p, "w", encoding="utf-8").write(s)
+print("backend/.env.production updated")
+PY
+      sed -i 's/^TELEGRAM_ENGINE_EXECUTION_ENABLED=.*/TELEGRAM_ENGINE_EXECUTION_ENABLED=true/' collector/.env.production 2>/dev/null \
+        || echo "TELEGRAM_ENGINE_EXECUTION_ENABLED=true" >> collector/.env.production
+      echo "Recreating the affected containers so they re-read their env files..."
+      "${COMPOSE[@]}" up -d telegram-ingest api m1m5-mt5-collector
+      echo
+      echo "Telegram DEMO execution is ON. Verify with: bash deploy/m1m5.sh telegram-status"
+      ;;
+  telegram-disable)
+      python3 - <<'PY'
+import io, re
+p = "backend/.env.production"
+s = io.open(p, encoding="utf-8").read()
+s = re.sub(r"^TELEGRAM_ENGINE_ENABLED=.*$", "TELEGRAM_ENGINE_ENABLED=false", s, flags=re.M)
+s = re.sub(r"^TELEGRAM_ENGINE_EXECUTION_MODE=.*$", "TELEGRAM_ENGINE_EXECUTION_MODE=SHADOW", s, flags=re.M)
+io.open(p, "w", encoding="utf-8").write(s)
+print("backend/.env.production updated")
+PY
+      sed -i 's/^TELEGRAM_ENGINE_EXECUTION_ENABLED=.*/TELEGRAM_ENGINE_EXECUTION_ENABLED=false/' collector/.env.production 2>/dev/null || true
+      "${COMPOSE[@]}" up -d telegram-ingest api m1m5-mt5-collector
+      echo "Telegram execution is OFF. Existing Telegram positions are still reconciled and managed."
+      ;;
+  telegram-kill)
+      # Engine B's own emergency stop. Deliberately NOT the same file as the
+      # RSI engine's: an operator stopping one engine must not silently stop
+      # the other. Blocks new Telegram entries only; reconciliation and
+      # management of open Telegram positions keep running.
+      TKS=/app/xauusd-m1m5-runtime/TELEGRAM_ENGINE_KILL_SWITCH
+      case "${2:-status}" in
+        on)
+          "${COMPOSE[@]}" exec -T api sh -c "touch $TKS" \
+            && echo "TELEGRAM KILL SWITCH ON. No new Telegram entries. Open Telegram positions are still managed."
+          ;;
+        off)
+          "${COMPOSE[@]}" exec -T api sh -c "rm -f $TKS" && echo "Telegram kill switch off."
+          ;;
+        status)
+          "${COMPOSE[@]}" exec -T telegram-ingest sh -c \
+            "test -f $TKS && echo 'telegram kill switch: ON (entries blocked)' || echo 'telegram kill switch: off'"
+          ;;
+        *) echo "usage: m1m5.sh telegram-kill [on|off|status]"; exit 1 ;;
+      esac
+      ;;
+  telegram-ready)
+      echo "=== 1. Telegram session and source channel ==="
+      "${COMPOSE[@]}" exec -T telegram-ingest sh -c \
+        'test -f "$TELEGRAM_INGEST_SESSION_PATH" && echo "session: present" || echo "session: MISSING - run telegram-auth"'
+      "${COMPOSE[@]}" exec -T telegram-ingest sh -c \
+        'ls -l "$TELEGRAM_INGEST_SESSION_PATH" 2>/dev/null | cut -d" " -f1,3,4 || true'
+      echo
+      echo "=== 2. ingestion + reconciliation state ==="
+      bash "$0" telegram-status
+      echo
+      echo "Telegram DEMO execution requires ALL of:"
+      echo "  - session present and source channel resolved"
+      echo "  - ingestion connected, with recent source messages"
+      echo "  - reconciliation recoveryComplete = true"
+      echo "  - MT5 ready (bash deploy/m1m5.sh mt5-verify)"
       ;;
   ""|-h|--help|help) usage ;;
   *) echo "unknown command: $1"; echo; usage; exit 1 ;;

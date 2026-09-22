@@ -162,6 +162,20 @@ class ApiClient:
     def post_m1m5_close_result(self, account_id: str, request_id: str, result: dict[str, Any]) -> dict[str, Any]:
         return self._post(f"/collector/{account_id}/xauusd-m1m5/close-request/{request_id}/result", result)
 
+    # --- Engine B, the Telegram copy engine. Its OWN route prefix, never a
+    # parameter on Engine A's: two engines place orders on the same account
+    # from this same process, and a wire contract that can be confused at the
+    # HTTP layer eventually is.
+
+    def get_pending_telegram_leg(self, account_id: str) -> dict[str, Any]:
+        return self._get(f"/collector/{account_id}/telegram-engine/pending-leg")
+
+    def post_telegram_leg_result(self, account_id: str, leg_id: str, result: dict[str, Any]) -> dict[str, Any]:
+        return self._post(f"/collector/{account_id}/telegram-engine/pending-leg/{leg_id}/result", result)
+
+    def post_telegram_reconcile(self, account_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._post(f"/collector/{account_id}/telegram-engine/reconcile", payload)
+
     def get_m1m5_protection_request(self, account_id: str) -> dict[str, Any]:
         return self._get(f"/collector/{account_id}/xauusd-m1m5/protection-request")
 

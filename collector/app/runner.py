@@ -75,6 +75,44 @@ def _as_utc_datetime(value: Any) -> datetime | None:
 # backend's own frozen SPEC.symbol.
 M1M5_SYMBOL = "XAUUSD"
 
+# Engine B's magic number. Distinct from every Engine A magic, which is what
+# keeps Engine A's Friday liquidation from selecting a Telegram position, and
+# what lets the reconciliation below select only Telegram ones.
+TELEGRAM_MAGIC = 262610210
+# How far back to look for closing deals when establishing a realised result.
+TELEGRAM_RECONCILE_DEAL_DAYS = 3
+
+
+def _position_magic(position: dict[str, Any]) -> int | None:
+    """MT5's magic number for an open position.
+
+    `get_open_positions()` flattens the terminal's tuple into a friendlier
+    dict but keeps the magic only inside `raw`. Reading it from the top level
+    silently yields None for every position, which would make Engine B's
+    reconciliation see an account with no Telegram positions - and therefore
+    conclude, from a complete snapshot, that live legs had closed.
+    """
+    raw = position.get("raw")
+    if isinstance(raw, dict):
+        magic = raw.get("magic")
+        if isinstance(magic, int):
+            return magic
+    magic = position.get("magic")
+    return magic if isinstance(magic, int) else None
+
+
+def _level_or_none(value: Any) -> float | None:
+    """MT5 reports "no stop loss" as 0.0 rather than null."""
+    if value is None:
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return None if number == 0.0 else number
+
+
+
 # How recent a tick must be for the broker session to count as OPEN.
 #
 # Generous on purpose. This is not the quote-freshness gate -- the backend
@@ -342,6 +380,21 @@ class CollectorApp:
                         # reconciliation and liquidation running.
                         self._poll_and_execute_m1m5_close_request()
                         self._poll_and_execute_m1m5_protection_request()
+                    # `getattr` with a default, not a direct attribute read:
+                    # Engine A's existing tests build their own config doubles,
+                    # and adding a field to the real Config must not make those
+                    # doubles raise inside the shared loop. Absent means off,
+                    # which is the safe default for an execution flag.
+                    if getattr(self._config, "telegram_engine_execution_enabled", False):
+                        # Engine B, in its OWN try. A Telegram ingestion,
+                        # execution or reconciliation failure must never stop
+                        # Engine A monitoring or placing its orders, so nothing
+                        # below is allowed to escape into the shared loop.
+                        try:
+                            self._push_telegram_reconciliation()
+                            self._poll_and_execute_pending_telegram_leg()
+                        except Exception as exc:  # noqa: BLE001
+                            logger.warning("telegram engine pass failed, continuing", extra={"error": str(exc)})
                     if self._config.rsi_execution_enabled:
                         # Tick observation now runs on its own one-second
                         # thread (see _start_rsi_observation_loop); only the
@@ -1036,6 +1089,250 @@ class CollectorApp:
                 "xauusd-m1m5 execution result report FAILED; the backend does not know this outcome",
                 extra={"decision_id": decision_id, "error": str(exc)},
             )
+
+
+    # =====================================================================
+    # ENGINE B - the Telegram copy engine.
+    #
+    # Entirely separate from the xauusd-m1m5 methods above: its own endpoints,
+    # its own magic number, its own final check and its own reconciliation.
+    # Nothing here reads or writes Engine A's state, and a failure here is
+    # caught so that Engine A's monitoring and execution continue regardless.
+    # =====================================================================
+
+    def _telegram_final_check(self, leg: dict[str, Any], now: datetime) -> str | None:
+        """The last check before order_send for a Telegram leg.
+
+        Repeats, against the terminal's own live price, the two things that
+        move with every tick and can have changed since the backend claimed
+        this leg: the hard 60-second lifetime, and whether the first target
+        has already been reached.
+
+        The limits arrive WITH the leg so there is one definition of each
+        rather than a copy here that could drift. A missing limit refuses
+        rather than skipping the check.
+        """
+        published_at = _as_utc_datetime(leg.get("publishedAt"))
+        max_age = leg.get("maxSignalAgeSeconds")
+        tp1 = leg.get("tp1")
+        if published_at is None or max_age is None or tp1 is None:
+            return "the leg is missing the publication time, lifetime or first target needed for the final check"
+
+        # The 60-second rule, measured from ORIGINAL PUBLICATION, at the last
+        # possible moment. Never from receipt, never from the claim.
+        age = (now - published_at).total_seconds()
+        if age > float(max_age):
+            return (
+                f"telegram signal is {age:.1f}s old at send, beyond the {max_age}s lifetime; "
+                "the leg is dropped, never sent late and never queued"
+            )
+
+        tick = self._client.get_live_tick(leg.get("symbol", M1M5_SYMBOL))
+        if not tick or not tick.get("bid") or not tick.get("ask"):
+            return "no live quote from the terminal at send time"
+
+        # A SELL is closed by buying (at the ask), a BUY by selling (at the
+        # bid). Using the wrong side declares the target reached a spread
+        # early and cancels legs that were still live.
+        closing_price = float(tick["ask"]) if leg["side"] == "SELL" else float(tick["bid"])
+        reached = closing_price <= float(tp1) if leg["side"] == "SELL" else closing_price >= float(tp1)
+        if reached:
+            return (
+                f"price {closing_price} has already reached the first target {tp1}; the signal is finished and "
+                "this leg is not opened"
+            )
+        return None
+
+    def _poll_and_execute_pending_telegram_leg(self) -> None:
+        """Claims one Telegram leg and places it. Caller holds the MT5 lock.
+
+        Outcomes are reported with the same three-way distinction Engine A
+        uses, for the same reason: a leg whose broker answer was lost MAY be
+        a live position, and calling that a plain failure would release a
+        signal group that should stay held.
+        """
+        try:
+            response = self._api.get_pending_telegram_leg(self._config.collector_account_id)
+        except ApiClientError as exc:
+            logger.warning("telegram pending-leg poll failed, will retry", extra={"error": str(exc)})
+            return
+
+        leg = response.get("leg")
+        if not leg:
+            return
+        leg_id = leg["legId"]
+        evaluated_at = datetime.now(timezone.utc)
+
+        def not_sent(reason: str) -> None:
+            logger.warning("telegram leg NOT sent at the final check", extra={"leg_id": leg_id, "reason": reason})
+            self._report_telegram_leg_result(leg_id, ok=False, not_sent=True, error_message=reason)
+
+        if not leg.get("volume"):
+            not_sent("queued leg carried no volume; refusing to substitute a default")
+            return
+
+        refusal = self._telegram_final_check(leg, evaluated_at)
+        if refusal:
+            not_sent(refusal)
+            return
+
+        logger.info("telegram leg claimed, sending", extra={
+            "leg_id": leg_id, "leg_index": leg.get("legIndex"), "side": leg["side"],
+            "volume": leg["volume"], "sl": leg["stopLoss"], "tp": leg["takeProfit"], "magic": leg["magic"],
+        })
+
+        submitted_at = datetime.now(timezone.utc)
+        try:
+            result = self._executor.send_telegram_leg(
+                side=leg["side"],
+                volume=leg["volume"],
+                # The SOURCE levels, sent as absolute prices. Never widened,
+                # never re-derived from the fill.
+                stop_loss=float(leg["stopLoss"]),
+                take_profit=float(leg["takeProfit"]),
+                magic=leg["magic"],
+                comment=leg["comment"],
+                idempotency_tag=leg["idempotencyTag"],
+                symbol=leg.get("symbol", M1M5_SYMBOL),
+            )
+        except DemoAccountRequiredError as exc:
+            logger.critical("TELEGRAM: DEMO ACCOUNT CHECK FAILED - refusing to trade", extra={"error": str(exc)})
+            not_sent(str(exc))
+            return
+        except Exception as exc:  # noqa: BLE001 - must never crash the loop
+            # The broker call may have happened. UNCERTAIN, never FAILED.
+            logger.error("telegram leg execution raised; outcome UNKNOWN", extra={"error": str(exc)})
+            self._report_telegram_leg_result(
+                leg_id, ok=False, uncertain=True, error_message=f"broker call raised: {exc}",
+                submitted_at=submitted_at, acknowledged_at=datetime.now(timezone.utc),
+            )
+            return
+        acknowledged_at = datetime.now(timezone.utc)
+
+        uncertain = (not result.ok) and result.ticket is None and result.retcode is None
+        logger.info("telegram leg execution result", extra={
+            "leg_id": leg_id, "ok": result.ok, "ticket": result.ticket, "retcode": result.retcode,
+            "uncertain": uncertain, "error": result.error_message,
+            "submit_to_ack_ms": round((acknowledged_at - submitted_at).total_seconds() * 1000),
+        })
+
+        broker_sl, broker_tp = self._read_position_protection(result.ticket, leg.get("symbol", M1M5_SYMBOL))
+        self._report_telegram_leg_result(
+            leg_id, ok=result.ok, ticket=result.ticket, filled_price=result.price,
+            error_message=result.error_message, uncertain=uncertain,
+            broker_stop_loss=broker_sl, broker_take_profit=broker_tp,
+            submitted_at=submitted_at, acknowledged_at=acknowledged_at,
+        )
+
+    def _report_telegram_leg_result(
+        self, leg_id: str, *, ok: bool, ticket: int | None = None,
+        filled_price: float | None = None, error_message: str | None = None,
+        uncertain: bool = False, not_sent: bool = False,
+        broker_stop_loss: float | None = None, broker_take_profit: float | None = None,
+        submitted_at: datetime | None = None, acknowledged_at: datetime | None = None,
+    ) -> None:
+        payload: dict[str, Any] = {"ok": ok, "uncertain": uncertain}
+        if not_sent:
+            payload["notSent"] = True
+        if ticket is not None:
+            payload["ticket"] = int(ticket)
+        if filled_price is not None:
+            payload["filledPrice"] = float(filled_price)
+        if broker_stop_loss is not None:
+            payload["brokerStopLoss"] = float(broker_stop_loss)
+        if broker_take_profit is not None:
+            payload["brokerTakeProfit"] = float(broker_take_profit)
+        if error_message:
+            payload["errorMessage"] = error_message
+        if submitted_at is not None:
+            payload["submittedAt"] = submitted_at.isoformat()
+        if acknowledged_at is not None:
+            payload["acknowledgedAt"] = acknowledged_at.isoformat()
+        try:
+            self._api.post_telegram_leg_result(self._config.collector_account_id, leg_id, payload)
+        except ApiClientError as exc:
+            logger.error(
+                "telegram leg result report FAILED; the backend does not know this outcome",
+                extra={"leg_id": leg_id, "error": str(exc)},
+            )
+
+    def _push_telegram_reconciliation(self) -> None:
+        """Sends the broker's own view of the account to the backend.
+
+        The single most consequential field is `snapshotComplete`. A query
+        that failed and an account with no positions look identical in the
+        payload, and only this flag tells them apart - so it is set from
+        whether the enumeration actually succeeded, never assumed true.
+        """
+        snapshot_at = datetime.now(timezone.utc)
+        try:
+            positions = self._client.get_open_positions()
+            complete = True
+        except PositionsUnavailable as exc:
+            # Cannot enumerate. Report the failure rather than an empty list:
+            # an empty list would be read as "everything closed".
+            logger.warning("telegram reconciliation: positions unavailable", extra={"error": str(exc)})
+            positions, complete = [], False
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("telegram reconciliation: position query failed", extra={"error": str(exc)})
+            positions, complete = [], False
+
+        deals: list[dict[str, Any]] = []
+        if complete:
+            try:
+                for deal in self._client.get_recent_deals(TELEGRAM_RECONCILE_DEAL_DAYS):
+                    # Only closing deals, and only ones carrying a Telegram
+                    # leg tag. Matching on magic alone is not possible here:
+                    # the collector's deal mapping does not surface it, and
+                    # the tag is the stronger identifier anyway because it
+                    # names the LEG rather than the engine.
+                    if deal.get("entry") not in ("OUT", "OUT_BY", "INOUT"):
+                        continue
+                    comment = deal.get("comment") or ""
+                    if "TG" not in comment:
+                        continue
+                    deals.append({
+                        "ticket": str(deal.get("ticket")),
+                        "positionId": str(deal["position_id"]) if deal.get("position_id") else None,
+                        "comment": comment,
+                        "profit": float(deal.get("profit") or 0.0),
+                        "closedAt": deal.get("closed_at"),
+                    })
+            except Exception as exc:  # noqa: BLE001
+                # Deals are how a realised result is established. Without them
+                # the snapshot is not complete enough to conclude closure.
+                logger.warning("telegram reconciliation: deal query failed", extra={"error": str(exc)})
+                complete = False
+
+        payload = {
+            "snapshotComplete": complete,
+            "snapshotAt": snapshot_at.isoformat(),
+            "positions": [
+                {
+                    "ticket": str(p.get("ticket")),
+                    "magic": _position_magic(p),
+                    "symbol": p.get("symbol"),
+                    "comment": p.get("comment"),
+                    "volume": float(p.get("volume") or 0.0),
+                    "openPrice": p.get("price_open"),
+                    # MT5 reports an absent protective level as 0.0, not null.
+                    # Passing the zero through would make an UNPROTECTED
+                    # position look like one with a stop at zero, so it is
+                    # normalised to null and the backend treats it as the
+                    # protection incident it is.
+                    "stopLoss": _level_or_none(p.get("sl")),
+                    "takeProfit": _level_or_none(p.get("tp")),
+                    "profit": p.get("profit"),
+                }
+                for p in positions
+                if _position_magic(p) == TELEGRAM_MAGIC
+            ],
+            "deals": deals,
+        }
+        try:
+            self._api.post_telegram_reconcile(self._config.collector_account_id, payload)
+        except ApiClientError as exc:
+            logger.warning("telegram reconciliation push failed, will retry", extra={"error": str(exc)})
 
     def _poll_and_execute_m1m5_close_request(self) -> None:
         """Closes one position this strategy owns, on the backend request.

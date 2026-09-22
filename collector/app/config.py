@@ -189,6 +189,10 @@ class Config:
     # submit without a recent report), and it polls this strategy's own
     # pending-order route.
     m1m5_execution_enabled: bool = False
+    # Engine B. Separate from m1m5_execution_enabled on purpose: an
+    # operator turning one engine's execution off must not silently
+    # turn the other's off, or on.
+    telegram_engine_execution_enabled: bool = False
 
     def timeframes_for(self, symbol: str) -> tuple[str, ...]:
         return (self.candle_timeframes_by_symbol or {}).get(symbol, self.candle_timeframes)
@@ -299,6 +303,7 @@ class Config:
         trend_breakout_execution_enabled = e.get("TREND_BREAKOUT_EXECUTION_ENABLED", "false").strip().lower() == "true"
         rsi_execution_enabled = e.get("XAUUSD_RSI_EXECUTION_ENABLED", "false").strip().lower() == "true"
         m1m5_execution_enabled = e.get("XAUUSD_M1M5_EXECUTION_ENABLED", "false").strip().lower() == "true"
+        telegram_engine_execution_enabled = e.get("TELEGRAM_ENGINE_EXECUTION_ENABLED", "false").strip().lower() == "true"
 
         require_explicit_terminal = (
             e.get("MT5_REQUIRE_EXPLICIT_TERMINAL", "false").strip().lower() == "true"
@@ -367,6 +372,7 @@ class Config:
             trend_breakout_execution_enabled=trend_breakout_execution_enabled,
             rsi_execution_enabled=rsi_execution_enabled,
             m1m5_execution_enabled=m1m5_execution_enabled,
+            telegram_engine_execution_enabled=telegram_engine_execution_enabled,
         )
 
     @property

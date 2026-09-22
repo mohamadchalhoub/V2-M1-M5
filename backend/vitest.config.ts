@@ -48,6 +48,13 @@ export default defineConfig({
     // All spec files share one disposable Postgres instance and truncate
     // it between tests — running spec files in parallel would race.
     fileParallelism: false,
+    // A corollary worth stating, because it cost real time to rediscover:
+    // this serialisation holds only WITHIN one vitest process. Two vitest
+    // commands running at once — a full suite in one terminal and a single
+    // spec file in another — share the one Postgres and truncate it under
+    // each other, producing "record not found" and null-row failures that
+    // move between runs and vanish when either is run alone. Run one suite at
+    // a time against this database.
   },
   plugins: [
     swc.vite({

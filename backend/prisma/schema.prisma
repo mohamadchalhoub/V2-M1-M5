@@ -2217,3 +2217,315 @@ model XauusdM1M5ProtectionRequest {
   @@index([accountId, ticket])
   @@map("xauusd_m1m5_protection_requests")
 }
+
+// ---------------------------------------------------------------------------
+// ENGINE B — the Telegram copy engine (`telegram-sfxauusd1-copy-v1`).
+//
+// Entirely separate tables from Engine A's. Nothing here is written by the
+// RSI M1/M5 engine and nothing here is read by it; the two engines share an
+// MT5 account and a database, and share no row.
+// ---------------------------------------------------------------------------
+
+enum TelegramEngineDirection {
+  BUY
+  SELL
+}
+
+enum TelegramLegOrderStatus {
+  // No order attempt was made for this leg.
+  NONE
+  // Durably marked before the broker call, so a crash between the mark and
+  // the broker's answer leaves a row saying "this may have been sent".
+  PENDING
+  FILLED
+  FAILED
+  // We reached for the broker and cannot say what happened. Never flattened
+  // into FAILED: it may already be a live position.
+  UNKNOWN
+  // This leg alone was refused — most often because it would have been
+  // submitted past the signal's 60-second lifetime while an earlier leg was
+  // in flight.
+  SKIPPED
+}
+
+enum TelegramGroupState {
+  RESERVED
+  SENT
+  FILLED
+  UNKNOWN
+}
+
+// One row per source message this engine has SEEN, whether or not it traded.
+//
+// Recording refusals is not bookkeeping, it is the duplicate guarantee: a
+// signal that was skipped for a closed market must still be recognisable as
+// already-seen if Telegram redelivers it, otherwise a reconnect would execute
+// what the closed-market rule consumed.
+model TelegramSignal {
+  id String @id @default(uuid())
+
+  engineVersion String @map("engine_version")
+
+  // Nullable and unrelated by foreign key on purpose: deleting a trading
+  // account must never delete the record of what this engine was told to do.
+  accountId String? @map("account_id")
+  symbol    String  @default("XAUUSD")
+
+  channelId String @map("channel_id")
+  messageId String @map("message_id")
+
+  // "<channelId>:<messageId>" — the message's identity. The unique constraint
+  // on it IS the replay guarantee, and it is durable rather than in-memory
+  // precisely so that a restart mid-signal cannot produce a second set of
+  // positions.
+  sourceKey String @map("source_key")
+
+  // Hash of the effective trade (direction, entry, stop, ordered targets).
+  // Equal keys within the repost window are the same trade published twice.
+  semanticKey String @map("semantic_key")
+
+  // The ORIGINAL Telegram publication instant. The 60-second lifetime is
+  // measured from here and never from receivedAt, so a delayed or replayed
+  // message cannot look fresh.
+  publishedAt DateTime @map("published_at")
+  receivedAt  DateTime @map("received_at")
+
+  // The message as published, retained so a parse can be re-examined against
+  // what was actually said rather than against what was extracted.
+  rawText String @map("raw_text")
+
+  direction   TelegramEngineDirection?
+  entry       Decimal?                 @db.Decimal(18, 6)
+  stopLoss    Decimal?                 @map("stop_loss") @db.Decimal(18, 6)
+  // In published order. One leg per element.
+  takeProfits Decimal[]                @map("take_profits") @db.Decimal(18, 6)
+
+  // SUBMITTED / TELEGRAM_DUPLICATE_SIGNAL / TELEGRAM_MARKET_CLOSED /
+  // TELEGRAM_SIGNAL_EXPIRED / a parse refusal / an availability block.
+  outcome String
+  detail  String
+
+  // Executable price at evaluation and its distance from the published entry,
+  // stored so a deviation refusal is auditable after the quote is gone.
+  executablePrice Decimal? @map("executable_price") @db.Decimal(18, 6)
+  deviationUsd    Decimal? @map("deviation_usd") @db.Decimal(18, 6)
+
+  // --- The first target, and the latch that says the signal is spent.
+  //
+  // tp1 is the NEAREST target in the trade's direction, which is the highest
+  // TP for a SELL and the lowest for a BUY - not "the first one listed". Once
+  // price has reached it, the move the message described has happened and no
+  // further leg may be opened from this signal.
+  //
+  // tp1Touched is a LATCH: it is set once and never cleared. A rule that
+  // re-read only the current price would let a retracement revive a signal
+  // that is finished, which is exactly what it must not do.
+  tp1           Decimal?  @db.Decimal(18, 6)
+  tp1Touched    Boolean   @default(false) @map("tp1_touched")
+  tp1TouchedAt  DateTime? @map("tp1_touched_at")
+  tp1TouchPrice Decimal?  @map("tp1_touch_price") @db.Decimal(18, 6)
+
+  // True when the market had moved TOWARD the target at evaluation - a better
+  // entry than published, which is accepted rather than refused as drift.
+  favourableEntry Boolean? @map("favourable_entry")
+
+  // Which parser read this message, so a later change to the parser cannot
+  // make an old row's extraction unexplainable.
+  parserVersion String @default("1") @map("parser_version")
+
+  // Telegram edits. The original parse is never overwritten in place: an edit
+  // that arrives before execution produces a new evaluation, and one that
+  // arrives after it is recorded and notified but never used to modify,
+  // reverse or close a position that already exists.
+  editVersion  Int       @default(0) @map("edit_version")
+  lastEditedAt DateTime? @map("last_edited_at")
+  editHistory  Json?     @map("edit_history")
+
+  // The execution timeline, measured rather than inferred. Each instant
+  // answers a different question about where time went, and the 60-second
+  // clock runs from publishedAt alone - never from any of the others.
+  parserCompletedAt DateTime? @map("parser_completed_at")
+  decisionAt        DateTime? @map("decision_at")
+
+  publicationToIngestionMs Int? @map("publication_to_ingestion_ms")
+  ingestionToParseMs       Int? @map("ingestion_to_parse_ms")
+  parseToDecisionMs        Int? @map("parse_to_decision_ms")
+  publicationToDecisionMs  Int? @map("publication_to_decision_ms")
+
+  // Freshness, availability, duplicate, quote and margin inputs as they stood.
+  evidence Json
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  legs      TelegramSignalLeg[]
+  groupLock TelegramSignalGroupLock?
+
+  @@unique([accountId, engineVersion, sourceKey])
+  @@index([accountId, semanticKey, publishedAt])
+  @@index([accountId, publishedAt])
+  @@map("telegram_signals")
+}
+
+// One row per take-profit: one independent broker position per target, all
+// carrying the source entry and the source stop.
+model TelegramSignalLeg {
+  id       String @id @default(uuid())
+  signalId String @map("signal_id")
+
+  // 1-based, in the order the channel published the targets.
+  legIndex Int @map("leg_index")
+
+  direction   TelegramEngineDirection
+  volumeLots  Decimal                 @map("volume_lots") @db.Decimal(18, 6)
+  sourceEntry Decimal                 @map("source_entry") @db.Decimal(18, 6)
+  stopLoss    Decimal                 @map("stop_loss") @db.Decimal(18, 6)
+  takeProfit  Decimal                 @map("take_profit") @db.Decimal(18, 6)
+
+  magicNumber Int     @map("magic_number")
+  ticket      BigInt?
+  positionId  String? @map("position_id")
+
+  orderStatus TelegramLegOrderStatus @default(NONE) @map("order_status")
+  skipReason  String?                @map("skip_reason")
+
+  // The signal's age at the instant THIS leg was judged, in milliseconds.
+  // Recorded per leg because the lifetime is re-checked per leg, and this is
+  // the evidence that it was.
+  ageAtSubmissionMs Int? @map("age_at_submission_ms")
+
+  sentAt         DateTime? @map("sent_at")
+  submittedAt    DateTime? @map("submitted_at")
+  acknowledgedAt DateTime? @map("acknowledged_at")
+  filledAt       DateTime? @map("filled_at")
+
+  fillPrice        Decimal? @map("fill_price") @db.Decimal(18, 6)
+  brokerStopLoss   Decimal? @map("broker_stop_loss") @db.Decimal(18, 6)
+  brokerTakeProfit Decimal? @map("broker_take_profit") @db.Decimal(18, 6)
+  failureReason    String?  @map("failure_reason")
+
+  // Per-leg latency. decisionToSubmission is OUR delay, the part this
+  // application controls; submissionToBrokerAck is broker and network, which
+  // it does not. publicationToSubmission is the number the 60-second rule is
+  // actually about.
+  decisionToSubmissionMs    Int? @map("decision_to_submission_ms")
+  publicationToSubmissionMs Int? @map("publication_to_submission_ms")
+  submissionToBrokerAckMs   Int? @map("submission_to_broker_ack_ms")
+
+  // The collector's claim on this leg. A leg is offered to exactly one
+  // collector pass; claiming is what stops two passes sending it twice.
+  claimedAt DateTime? @map("claimed_at")
+
+  // A short, stable tag carried into the MT5 order comment. It is what makes
+  // a leg recognisable at the broker after a crash, so recovery can tell "my
+  // leg, already sent" from "a position I have never seen" - the magic number
+  // alone cannot, because several Telegram legs share it.
+  idempotencyTag String @unique @map("idempotency_tag")
+
+  // Broker-side protection as actually read back after the fill. A filled
+  // entry whose SL/TP cannot be verified is a protection incident, not a
+  // clean trade, and is recorded as one.
+  protectionVerifiedAt DateTime? @map("protection_verified_at")
+  protectionIncident   String?   @map("protection_incident")
+
+  // Closure, established only from complete broker evidence. A position
+  // missing from a partial snapshot is not a closure.
+  reconciledAt    DateTime? @map("reconciled_at")
+  closedAt        DateTime? @map("closed_at")
+  closureComplete Boolean   @default(false) @map("closure_complete")
+  realizedPl      Decimal?  @map("realized_pl") @db.Decimal(18, 6)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  signal TelegramSignal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@unique([signalId, legIndex])
+  @@index([orderStatus])
+  @@map("telegram_signal_legs")
+}
+
+// Signal-GROUP occupancy: one Telegram signal group in flight per account.
+//
+// A row, not a query. "Is a group in flight?" answered by a SELECT is a race;
+// answered by an INSERT against a primary key it is not. The unit is the
+// group rather than the leg, because the legs of one signal are deliberately
+// simultaneous and must never compete with each other for the same claim.
+model TelegramSignalGroupLock {
+  accountId String             @id @map("account_id")
+  signalId  String             @unique @map("signal_id")
+  state     TelegramGroupState
+  claimedAt DateTime           @default(now()) @map("claimed_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+
+  signal TelegramSignal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_signal_group_locks")
+}
+
+// Whether Engine B has actually recovered enough broker state to be allowed
+// to trade.
+//
+// This table exists because `recoveryComplete` must never be a constant. Until
+// the Telegram reconciliation worker has genuinely compared this engine's legs
+// against broker reality, a new submission could duplicate an order whose
+// outcome is unknown. So the flag is a stored fact written by that worker,
+// with the evidence that justified it, and the execution path reads it rather
+// than assuming it.
+model TelegramReconciliationState {
+  accountId String @id @map("account_id")
+
+  // True only when a reconciliation pass has completed against a broker
+  // snapshot the collector confirmed was complete.
+  recoveryComplete Boolean @default(false) @map("recovery_complete")
+
+  // When that pass finished, and the broker snapshot it was based on.
+  lastCompletedAt  DateTime? @map("last_completed_at")
+  brokerSnapshotAt DateTime? @map("broker_snapshot_at")
+
+  // How many legs were still unresolved at the end of the last pass. A
+  // non-zero count with recoveryComplete true is possible and meaningful: the
+  // pass ran and identified them, which is what "recovered" means.
+  unresolvedLegs Int @default(0) @map("unresolved_legs")
+
+  detail String?
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("telegram_reconciliation_state")
+}
+
+// Every source message the ingestion adapter accepted from the configured
+// channel, whether or not it parsed as a trade.
+//
+// Separate from TelegramSignal on purpose: that table is the record of trades
+// this engine was told to take, and filling it with chat would make "how many
+// signals has the channel published" unanswerable. This one is the raw
+// ingestion log - what arrived, when, and how quickly - and it is what the
+// dashboard's latency and liveness figures are computed from.
+model TelegramIngestedMessage {
+  id String @id @default(uuid())
+
+  channelId String @map("channel_id")
+  messageId String @map("message_id")
+
+  publishedAt DateTime @map("published_at")
+  receivedAt  DateTime @map("received_at")
+
+  publicationToIngestionMs Int? @map("publication_to_ingestion_ms")
+
+  // Truncated: this is a liveness and latency log, not a mirror of the
+  // channel's content.
+  textPreview String @map("text_preview")
+
+  // PARSED_SIGNAL / NOT_A_SIGNAL / WRONG_CHANNEL / EDIT.
+  classification String
+
+  isEdit Boolean @default(false) @map("is_edit")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([channelId, messageId, isEdit])
+  @@index([receivedAt])
+  @@map("telegram_ingested_messages")
+}

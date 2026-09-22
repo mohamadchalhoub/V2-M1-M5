@@ -429,6 +429,173 @@ class Executor:
             )
             return self._verify_protective_stop(result)
 
+
+    # ------------------------------------------------------------------
+    # ENGINE B - the Telegram copy engine.
+    #
+    # A SEPARATE send path from send_bracket_order, and the separation is not
+    # stylistic. Three of that method's guarantees are wrong for Engine B:
+    #
+    #   1. It refuses to open when ANY position already exists under the
+    #      magic number. Engine B legitimately holds several positions under
+    #      one magic - that is what "one position per take profit" means - so
+    #      that check would let leg 1 through and refuse every leg after it.
+    #
+    #   2. It computes SL/TP as DISTANCES from the fill price. Engine B copies
+    #      the levels the channel published, as absolute prices. Recomputing
+    #      them from the fill would quietly turn a copied trade into a
+    #      different one whenever price moved between publication and fill,
+    #      which is precisely when copying matters.
+    #
+    #   3. Its duplicate check is per magic. Engine B's is per LEG, via the
+    #      idempotency tag carried in the order comment, because the magic
+    #      cannot distinguish leg 1 from leg 2.
+    #
+    # Engine A's method is untouched, and nothing here calls it.
+    # ------------------------------------------------------------------
+
+    def find_position_by_comment_tag(self, tag: str, symbol: str) -> Any | None:
+        """Finds an open position whose comment carries this leg's tag.
+
+        This is Engine B's duplicate check and its crash-recovery lookup in
+        one. A query FAILURE is raised rather than reported as "not found":
+        "I could not look" and "it is not there" must never be the same
+        answer, because acting on the second when the first is true opens a
+        second position on top of a live one.
+        """
+        positions = self._mt5.positions_get(symbol=symbol)
+        if positions is None:
+            code, message = (self._mt5.last_error() or (None, None))
+            raise ReconciliationQueryFailed(
+                f"positions_get({symbol}) returned None (last_error={code}: {message})"
+            )
+        for position in positions:
+            if tag and tag in (getattr(position, "comment", "") or ""):
+                return position
+        return None
+
+    def send_telegram_leg(
+        self,
+        *,
+        side: str,
+        volume: float,
+        stop_loss: float,
+        take_profit: float,
+        magic: int,
+        comment: str,
+        idempotency_tag: str,
+        symbol: str,
+        deviation_points: int = 20,
+    ) -> OrderResult:
+        """Places ONE Telegram leg at the SOURCE stop and the SOURCE target.
+
+        The levels arrive as absolute prices and are sent as absolute prices.
+        They are never widened, narrowed, re-derived from the fill or rounded
+        toward the market: the published levels are the trade, and a broker
+        that will not accept them is a reason to refuse the leg, not to change
+        it.
+        """
+        with self._lock:
+            self.verify_demo_account()
+
+            if side not in ("BUY", "SELL"):
+                raise ValueError(f"side must be BUY or SELL, got {side!r}")
+            if stop_loss is None or take_profit is None:
+                raise ValueError(
+                    "stop_loss and take_profit are both required - this system never sends a bare order."
+                )
+
+            # Per-leg idempotency. If this exact leg is already live at the
+            # broker - a previous attempt that filled but whose response was
+            # lost, or a restart after a crash mid-group - do not send a
+            # second one. A query failure refuses too, for the same reason it
+            # does in Engine A: we cannot confirm no duplicate exists.
+            try:
+                existing = self.find_position_by_comment_tag(idempotency_tag, symbol)
+            except ReconciliationQueryFailed as exc:
+                return _unknown_result(
+                    f"cannot verify this leg is not already live ({exc}) - refusing to send until resolved."
+                )
+            if existing is not None:
+                logger.warning(
+                    "telegram leg %s is ALREADY live at the broker (ticket=%s) - refusing to open a second one",
+                    idempotency_tag, existing.ticket,
+                )
+                return OrderResult(
+                    ok=True,
+                    outcome="FILLED",
+                    ticket=int(existing.ticket),
+                    price=float(getattr(existing, "price_open", 0) or 0),
+                    volume=float(getattr(existing, "volume", volume) or volume),
+                    error_message=None,
+                )
+
+            tick = self._mt5.symbol_info_tick(symbol)
+            if tick is None:
+                return OrderResult(
+                    ok=False, outcome="FAILED",
+                    error_message=f"No live tick for {symbol} - cannot determine an entry price.",
+                )
+            age_seconds, age_problem = self._quote_age_seconds(tick)
+            if age_problem is not None:
+                return OrderResult(ok=False, outcome="FAILED", error_message=f"Refusing to send {symbol} leg: {age_problem}.")
+            if age_seconds is not None and age_seconds > QUOTE_MAX_AGE_SECONDS:
+                return OrderResult(
+                    ok=False, outcome="FAILED",
+                    error_message=(
+                        f"Refusing to send {symbol} leg: the broker quote is {age_seconds:.1f}s old at the send "
+                        f"boundary (limit {QUOTE_MAX_AGE_SECONDS}s). The leg is dropped, not repriced."
+                    ),
+                )
+
+            order_type = self._mt5.ORDER_TYPE_BUY if side == "BUY" else self._mt5.ORDER_TYPE_SELL
+            price = tick.ask if side == "BUY" else tick.bid
+
+            request = {
+                "action": self._mt5.TRADE_ACTION_DEAL,
+                "symbol": symbol,
+                "volume": volume,
+                "type": order_type,
+                "price": price,
+                # The published levels, exactly as published.
+                "sl": stop_loss,
+                "tp": take_profit,
+                "deviation": deviation_points,
+                "magic": magic,
+                # Carries the leg tag to the broker, which is what makes this
+                # leg recognisable after a crash.
+                "comment": comment,
+                "type_time": self._mt5.ORDER_TIME_GTC,
+                "type_filling": self._mt5.ORDER_FILLING_IOC,
+            }
+
+            raw_result = self._mt5.order_send(request)
+            outcome = self._result_from_response(raw_result)
+
+            # An ambiguous response is resolved by asking the broker what it
+            # actually holds, by TAG - not by magic, which cannot tell this
+            # leg from its siblings.
+            if (not outcome.ok) and outcome.ticket is None and outcome.retcode is None:
+                try:
+                    recovered = self.find_position_by_comment_tag(idempotency_tag, symbol)
+                except ReconciliationQueryFailed:
+                    return _unknown_result(
+                        "the broker response was lost and the account could not be re-queried - outcome UNKNOWN."
+                    )
+                if recovered is not None:
+                    logger.warning(
+                        "telegram leg %s: response was lost but the position EXISTS (ticket=%s)",
+                        idempotency_tag, recovered.ticket,
+                    )
+                    return OrderResult(
+                        ok=True, outcome="FILLED", ticket=int(recovered.ticket),
+                        price=float(getattr(recovered, "price_open", 0) or 0),
+                        volume=float(getattr(recovered, "volume", volume) or volume),
+                    )
+                return _unknown_result("the broker response was lost; no matching position was found - outcome UNKNOWN.")
+
+            return self._verify_protective_stop(outcome)
+
     def close_position(self, *, ticket: int, side: str, volume: float, symbol: str = DEFAULT_SYMBOL) -> OrderResult:
         """Closes an existing position — the kill switch's "close all open
         positions" effect, and the only other way this module ever touches

@@ -18,6 +18,13 @@ export async function resetDatabase(prisma: PrismaClient): Promise<void> {
   // parents: slot locks and the volume audit reference decisions and the
   // account, and a leftover slot lock from an earlier test would make a later
   // one see a timeframe as permanently occupied.
+  // Telegram copy engine (Engine B) tables, children before parents: the
+  // group lock and the legs both reference a signal, and a leftover group
+  // lock would make a later test see the account as permanently occupied by
+  // a signal group that no longer exists.
+  await prisma.telegramSignalGroupLock.deleteMany();
+  await prisma.telegramSignalLeg.deleteMany();
+  await prisma.telegramSignal.deleteMany();
   await prisma.xauusdM1M5SlotLock.deleteMany();
   await prisma.xauusdM1M5CloseRequest.deleteMany();
   await prisma.xauusdM1M5ProtectionRequest.deleteMany();
