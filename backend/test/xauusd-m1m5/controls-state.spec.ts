@@ -15,6 +15,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   entriesBlockedByControls,
   getM1M5ExecutionMode,
+  getM1M5KillSwitchPath,
+  getM1M5StopNewEntriesPath,
   isSubmissionEnabled,
   killSwitchState,
   stopNewEntriesState,
@@ -220,5 +222,31 @@ describe('§10 durable observation state', () => {
     const read = readWatchState(tempDir)!;
     expect(read.lastCycleIntervalMs).toBe(1000);
     expect(read.lastSubmissionLatencyMs).toBe(4200);
+  });
+});
+
+describe('the control files are shared between containers', () => {
+  // The API and the scheduler run in separate containers that share ONLY the
+  // state-directory volume. A control file anywhere else is private to the
+  // container that wrote it -- so a kill switch engaged from the API would be
+  // invisible to the scheduler, which would keep trading while the API
+  // reported the switch as on.
+  it('puts the kill switch inside the state directory by default', () => {
+    process.env.XAUUSD_M1M5_STATE_DIR = tempDir;
+    expect(getM1M5KillSwitchPath()).toBe(join(tempDir, 'XAUUSD_M1M5_KILL_SWITCH'));
+  });
+
+  it('puts stop-new-entries inside the state directory by default', () => {
+    process.env.XAUUSD_M1M5_STATE_DIR = tempDir;
+    expect(getM1M5StopNewEntriesPath()).toBe(join(tempDir, 'XAUUSD_M1M5_STOP_NEW_ENTRIES'));
+  });
+
+  it('is honoured when a file appears in the shared directory', () => {
+    // What the scheduler does after an operator touches the file via the API.
+    process.env.XAUUSD_M1M5_STATE_DIR = tempDir;
+    expect(killSwitchState().active).toBe(false);
+    writeFileSync(join(tempDir, 'XAUUSD_M1M5_KILL_SWITCH'), '');
+    expect(killSwitchState().active).toBe(true);
+    expect(entriesBlockedByControls()).not.toBeNull();
   });
 });

@@ -324,10 +324,17 @@ To block new entries without stopping anything — reconciliation, protective
 management and Friday liquidation keep running:
 
 ```bash
-docker compose -p trading-monitor-m1m5-v2-prod -f docker-compose.prod.yml \
-  --env-file backend/.env.production \
-  exec api touch /app/XAUUSD_M1M5_KILL_SWITCH
+bash deploy/m1m5.sh kill-switch on      # block new entries now
+bash deploy/m1m5.sh kill-switch         # confirm, as the scheduler sees it
+bash deploy/m1m5.sh kill-switch off     # resume
 ```
 
-Remove that file to resume. It is checked fresh on every evaluation, so it
-takes effect on the next cycle rather than on the next restart.
+It is checked fresh on every evaluation, so it takes effect on the next cycle
+rather than on the next restart.
+
+An earlier version of this guide said to `touch /app/XAUUSD_M1M5_KILL_SWITCH`
+inside the api container. **That did nothing.** The api and the scheduler are
+separate containers, each with its own private `/app`; only the runtime volume
+is shared. The file now lives in that volume, and `status` deliberately checks
+from the scheduler, because that is the process whose view decides whether an
+order is queued.

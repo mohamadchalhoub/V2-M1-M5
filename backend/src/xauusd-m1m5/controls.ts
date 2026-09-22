@@ -30,6 +30,7 @@
  */
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { defaultStateDir } from './state-store';
 
 /**
  * There is no REAL mode and no automatic real-account path — the type cannot
@@ -53,13 +54,28 @@ export function getM1M5ExecutionMode(): M1M5ExecutionMode {
   return 'OFF';
 }
 
+/**
+ * The control files live in the STATE DIRECTORY, not in the process's working
+ * directory.
+ *
+ * They used to default to `process.cwd()`, which is `/app` in every container.
+ * The API and the scheduler are separate containers, so each had its own
+ * private `/app` -- and a kill switch engaged from the API landed where the
+ * scheduler could never see it. The API would then report the switch as
+ * engaged while the scheduler went on queueing orders: a safety control that
+ * appears to work and does nothing, which is the worst way one can fail.
+ *
+ * The state directory is the volume both containers mount at the same path,
+ * so defaulting here makes the switch shared by construction rather than by
+ * an environment variable someone has to remember to set identically twice.
+ */
 export function getM1M5KillSwitchPath(): string {
-  return process.env.XAUUSD_M1M5_KILL_SWITCH_PATH?.trim() || join(process.cwd(), 'XAUUSD_M1M5_KILL_SWITCH');
+  return process.env.XAUUSD_M1M5_KILL_SWITCH_PATH?.trim() || join(defaultStateDir(), 'XAUUSD_M1M5_KILL_SWITCH');
 }
 
 export function getM1M5StopNewEntriesPath(): string {
   return (
-    process.env.XAUUSD_M1M5_STOP_NEW_ENTRIES_PATH?.trim() || join(process.cwd(), 'XAUUSD_M1M5_STOP_NEW_ENTRIES')
+    process.env.XAUUSD_M1M5_STOP_NEW_ENTRIES_PATH?.trim() || join(defaultStateDir(), 'XAUUSD_M1M5_STOP_NEW_ENTRIES')
   );
 }
 

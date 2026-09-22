@@ -49,6 +49,9 @@ xauusd-m1-m5-rsi-threshold-v2 operations
   collector-logs     Alias of mt5-logs (collector runs in that container)
   ready              Everything needed before enabling execution
   isolation-check    Prove this project is not touching the other bots
+  kill-switch on     EMERGENCY: block all new entries immediately
+  kill-switch off    Allow entries again
+  kill-switch        Show whether the kill switch is engaged
 USAGE
 }
 
@@ -128,6 +131,33 @@ case "${1:-}" in
       ;;
   isolation-check)
       bash deploy/verify-isolation.sh
+      ;;
+  kill-switch)
+      # The file lives in the runtime VOLUME, which the api and the scheduler
+      # both mount at this same path. Anywhere else would be private to the
+      # container that wrote it, and the scheduler -- the process that
+      # actually queues orders -- would never see it.
+      #
+      # Blocks NEW entries only. Reconciliation, protection repair and Friday
+      # liquidation keep running, which is why this, and not stopping the
+      # stack, is the right first move in an emergency: stopping the stack
+      # also stops the thing that would close an open position before the
+      # weekend.
+      KS=/app/xauusd-m1m5-runtime/XAUUSD_M1M5_KILL_SWITCH
+      case "${2:-status}" in
+        on)
+          "${COMPOSE[@]}" exec -T api sh -c "touch $KS"             && echo "KILL SWITCH ON. No new entries. Open positions are still managed and liquidated on Friday."
+          ;;
+        off)
+          "${COMPOSE[@]}" exec -T api sh -c "rm -f $KS" && echo "Kill switch off. Entries allowed again."
+          ;;
+        status)
+          # Checked from the SCHEDULER, deliberately: that is the process whose
+          # view actually decides whether an order gets queued.
+          "${COMPOSE[@]}" exec -T m1m5-scheduler sh -c "test -f $KS && echo 'kill switch: ON (entries blocked)' || echo 'kill switch: off'"
+          ;;
+        *) echo "usage: m1m5.sh kill-switch [on|off|status]"; exit 1 ;;
+      esac
       ;;
   ""|-h|--help|help) usage ;;
   *) echo "unknown command: $1"; echo; usage; exit 1 ;;
