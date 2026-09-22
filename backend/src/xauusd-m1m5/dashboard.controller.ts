@@ -17,6 +17,7 @@
  *    tested for it directly.
  */
 import { Controller, Get, UseGuards } from '@nestjs/common';
+import { M1M5Mt5SnapshotService } from './mt5-snapshot.service';
 import { executionLatency } from './execution-latency';
 import { DashboardTokenGuard } from '../auth/dashboard-token.guard';
 import { PrismaService } from '../prisma/prisma.service';
@@ -34,7 +35,10 @@ import { V2_MAGIC_NUMBERS } from './safety-constants';
 @Controller('xauusd-m1m5')
 @UseGuards(DashboardTokenGuard)
 export class M1M5DashboardController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly snapshots: M1M5Mt5SnapshotService,
+  ) {}
 
   @Get('dashboard')
   async dashboard() {
@@ -79,12 +83,20 @@ export class M1M5DashboardController {
       };
     }
 
-    // --- MT5 readiness. No snapshot source is wired yet, and that is
-    // reported honestly as a blocker rather than defaulted to ready.
-    const snapshot: Mt5PermissionSnapshot | null = null;
+    // --- MT5 readiness and broker session: the SAME sources the observation
+    // loop decides with -- the collector's permission snapshot and its
+    // session report -- so the dashboard cannot say "not ready" while the
+    // loop trades, or the reverse. These were placeholders (null) from before
+    // the permission pipeline existed, and the page showed NO_SNAPSHOT and
+    // "session unknown" while the bot was placing real orders.
+    const latestMt5 = accountId ? await this.snapshots.latest(accountId) : null;
+    const snapshot: Mt5PermissionSnapshot | null = latestMt5?.permissions ?? null;
     const readiness = evaluateReadiness({
       snapshot,
-      expectedLoginId: process.env.XAUUSD_M1M5_EXPECTED_LOGIN?.trim() ?? null,
+      // MT5_EXPECTED_LOGIN is the variable the loop reads. The old name is
+      // kept only as a fallback so an existing env file still works.
+      expectedLoginId:
+        process.env.MT5_EXPECTED_LOGIN?.trim() || process.env.XAUUSD_M1M5_EXPECTED_LOGIN?.trim() || null,
       nowMs: now,
     });
 
@@ -101,9 +113,9 @@ export class M1M5DashboardController {
     }
 
     const eligibility = evaluateEntryEligibility(now, {
-      // Session state comes from the collector, which is not wired yet.
-      // null blocks, which is the correct and honest default (§9.4).
-      brokerSessionOpen: null,
+      // From the collector, as the loop reads it. Still null -- which blocks
+      // -- when the collector has not reported one (§9.4).
+      brokerSessionOpen: latestMt5?.sessionOpen ?? null,
       dataFresh: heartbeatFresh,
       recoveryComplete: state?.recoveryCompleteAtMs !== null && state?.recoveryCompleteAtMs !== undefined,
       killSwitchEngaged: killSwitchState().active,

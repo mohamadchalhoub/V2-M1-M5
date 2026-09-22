@@ -208,7 +208,9 @@ export default async function XauusdM1M5Page() {
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-text-muted">Last execution</h2>
         {view.lastExecution === null ? (
-          <p className="text-sm text-text-muted">No order has reached the broker yet.</p>
+          <p className="text-sm text-text-muted">
+            No order with a measured execution timeline yet. Orders placed before the timing was added have none.
+          </p>
         ) : (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
