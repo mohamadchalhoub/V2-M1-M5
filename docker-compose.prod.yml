@@ -170,14 +170,24 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
-    # No domain/Caddy yet — host port lets you reach the dashboard over an
-    # SSH tunnel (`ssh -L 3011:localhost:3011 ...`) in the meantime. Loopback
-    # only, same reasoning as api's WEB_HOST_PORT below; add this service to
-    # v1's shared Caddy later (see the NOTE below) once a domain exists,
-    # dropping this host-port publish at that point if you want it gone.
+    # Loopback-only host port, kept for an SSH tunnel if the domain is ever
+    # unreachable. The public route is v2.jokertrade.tech, below.
     ports:
       - "127.0.0.1:${WEB_HOST_PORT:-3011}:3001"
-    networks: [internal]
+    # `proxy_shared` is how the host's ONE Caddy (it belongs to the legacy
+    # trading-monitor project and owns ports 80/443) reaches each bot's
+    # dashboard: every bot's web container joins it, and Caddy proxies to it
+    # by name with basic auth in front. v2.jokertrade.tech -> m1m5-v2-web:3001.
+    #
+    # ONLY this container joins it. The api, scheduler, collector, database
+    # and MT5 terminal stay on `internal`, unreachable from the shared
+    # network. The alias is this project's own, so it cannot collide with
+    # another bot's container name on that network, and does not depend on
+    # the name Compose happens to generate.
+    networks:
+      internal: {}
+      proxy_shared:
+        aliases: [m1m5-v2-web]
 
   # ===========================================================================
   # The inherited `mt5-collector` service is deliberately NOT defined here.
@@ -318,6 +328,11 @@ services:
 
 networks:
   internal:
+  # Created and owned outside this project (the legacy deployment's Caddy is
+  # on it). External, so `m1m5.sh stop` / `down` can never remove it and take
+  # the other bots' public sites with it.
+  proxy_shared:
+    external: true
 
 volumes:
   m1m5_v2_pgdata:

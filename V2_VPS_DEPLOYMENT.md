@@ -338,3 +338,23 @@ separate containers, each with its own private `/app`; only the runtime volume
 is shared. The file now lives in that volume, and `status` deliberately checks
 from the scheduler, because that is the process whose view decides whether an
 order is queued.
+
+## Public dashboard: v2.jokertrade.tech
+
+The host has ONE Caddy, owned by the legacy `trading-monitor` project, on
+ports 80/443. Each bot's dashboard reaches it the same way: its `web`
+container joins the external `proxy_shared` network, and a site block in
+`/opt/trading-monitor/Caddyfile` proxies to it by name with basic auth in
+front. For this project only `web` joins that network, as `m1m5-v2-web`.
+
+The dashboard has no login of its own: the web server holds the API token, so
+anyone reaching the URL sees the account. **Basic auth is not optional.**
+
+Two things to get right:
+
+- The Caddyfile is bind-mounted as a single FILE. Editors and `sed -i` replace
+  the file, and the running container keeps reading the old one. **Append**
+  with `>>`, which keeps it the same file.
+- Validate before reloading. `caddy reload` is graceful and refuses an invalid
+  config, leaving the running one in place.
+
