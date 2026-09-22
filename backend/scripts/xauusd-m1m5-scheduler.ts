@@ -45,6 +45,7 @@ import { M1M5ExecutionService } from '../src/xauusd-m1m5/execution.service';
 import { M1M5Mt5SnapshotService } from '../src/xauusd-m1m5/mt5-snapshot.service';
 import { M1M5QueueingBrokerPort } from '../src/xauusd-m1m5/queue-broker.port';
 import { buildExecutionContext } from '../src/xauusd-m1m5/execution-context';
+import { resolveVolume } from '../src/xauusd-m1m5/volume';
 import { buildBrokerSnapshot } from '../src/xauusd-m1m5/broker-snapshot';
 import { M1M5ReconciliationService, type ProtectionIssue } from '../src/xauusd-m1m5/reconciliation.service';
 import { M1M5ProtectionService } from '../src/xauusd-m1m5/protection.service';
@@ -181,6 +182,19 @@ async function main() {
   log(`  interval      : ${cycleMs}ms`);
   log(`  account       : ${accountId ?? 'NOT CONFIGURED - observation only'}`);
   log(`  Beirut now    : ${beirutLabel(Date.now())}`);
+  // The volume actually in force, read the same way every order reads it.
+  if (accountId) {
+    const setting = await prisma.xauusdM1M5VolumeSetting.findUnique({ where: { accountId } });
+    const volume = resolveVolume(setting ? Number(setting.volumeLots) : null);
+    log(`  volume        : ${volume.lots} lot (${volume.source})`);
+  }
+  if (process.env.XAUUSD_M1M5_VOLUME_LOTS?.trim()) {
+    // It looks like it should work, which is exactly why it is a trap.
+    log(
+      '  WARNING: XAUUSD_M1M5_VOLUME_LOTS is set, but NOTHING reads it and it has no effect. ' +
+        'Set the volume with: bash deploy/m1m5.sh set-volume <lots>',
+    );
+  }
   if (mode !== 'DEMO') {
     log('  Execution is not DEMO: decisions are observed and recorded, and no order is ever queued.');
   }

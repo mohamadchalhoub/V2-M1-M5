@@ -49,6 +49,7 @@ xauusd-m1-m5-rsi-threshold-v2 operations
   collector-logs     Alias of mt5-logs (collector runs in that container)
   ready              Everything needed before enabling execution
   isolation-check    Prove this project is not touching the other bots
+  set-volume <lots>  Set the order volume (validated, audited). e.g. set-volume 0.03
   kill-switch on     EMERGENCY: block all new entries immediately
   kill-switch off    Allow entries again
   kill-switch        Show whether the kill switch is engaged
@@ -136,6 +137,13 @@ case "${1:-}" in
       ;;
   isolation-check)
       bash deploy/verify-isolation.sh
+      ;;
+  set-volume)
+      # The ONLY supported way to change the volume. The XAUUSD_M1M5_VOLUME_LOTS
+      # variable in the env file is read by no code at all. Runs inside the
+      # scheduler container, which already has the account and the database.
+      [ -n "${2:-}" ] || { echo "usage: m1m5.sh set-volume <lots>"; exit 1; }
+      "${COMPOSE[@]}" exec -T m1m5-scheduler node dist/scripts/xauusd-m1m5-set-volume.js "$2" --by "${SUDO_USER:-${USER:-operator}}"
       ;;
   kill-switch)
       # The file lives in the runtime VOLUME, which the api and the scheduler
