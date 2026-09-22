@@ -688,7 +688,19 @@ export interface XauusdM1M5Dashboard {
   };
   timeframes: {
     timeframe: 'M1' | 'M5';
-    health: string;
+    /** The engine's own health object, from backend engine.ts EngineHealth. NOT a string. */
+    health: {
+      timeframe: 'M1' | 'M5';
+      rsi: number | null;
+      warmedUp: boolean;
+      closedBarCount: number;
+      barsUntilWarm: number;
+      lastTickT: number | null;
+      lastObservationIntervalMs: number | null;
+      cadenceMet: boolean;
+      observationCount: number;
+      continuityResetCount: number;
+    };
     sellArming: string;
     buyArming: string;
     occupancy: string;

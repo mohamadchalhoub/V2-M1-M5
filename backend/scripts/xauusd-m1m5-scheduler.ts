@@ -41,6 +41,7 @@ import { createEngineState } from '../src/xauusd-m1m5/engine';
 import { rewarmColdTimeframes, warmTimeframeFromHistory, WARMUP_BARS_NEEDED } from '../src/xauusd-m1m5/warmup';
 import { isWarmedUp } from '../src/xauusd-m1m5/rsi';
 import { createLockSet, type LockSet } from '../src/xauusd-m1m5/locks';
+import { loadLockSet, persistUnlock } from '../src/xauusd-m1m5/lock-store';
 import { M1M5OccupancyService } from '../src/xauusd-m1m5/occupancy.service';
 import { M1M5ExecutionService } from '../src/xauusd-m1m5/execution.service';
 import { M1M5Mt5SnapshotService } from '../src/xauusd-m1m5/mt5-snapshot.service';
@@ -451,6 +452,15 @@ async function main() {
         executionBlockers: [] as string[],
       };
 
+      // The post-loss locks, from the DATABASE, every cycle. Locks are
+      // activated there by reconciliation when a losing closure is applied;
+      // this loop used to decide against an in-memory set created empty at
+      // startup and never loaded, so an active lock was invisible to every
+      // entry decision. See lock-store.ts.
+      if (accountId) {
+        lockSet = await loadLockSet(prisma, accountId, SPEC_HASH);
+      }
+
       const result = runCycle({
         candidates,
         evaluatedAtMs: startedAt,
@@ -592,7 +602,34 @@ async function main() {
       }
 
       for (const outcome of result.outcomes) {
+        // A crossing that formed but was skipped by the strategy's own rules --
+        // most importantly a post-loss lock -- never becomes an order
+        // candidate, so it must be announced here or it would be silent.
+        const skipped = outcome.decision?.signal && outcome.decision.skipReason ? outcome.decision : null;
+        if (skipped?.signal && skipped.skipReason) {
+          log(`${outcome.timeframe} ${skipped.signal.direction} signal SKIPPED -- ${skipped.skipReason}: ${skipped.skipDetail ?? ''}`);
+          void telegram.notify(
+            'SIGNAL_SKIPPED',
+            `m1m5-skip-signal:${skipped.signal.signalId}`,
+            skippedMessage(messageCtx, {
+              timeframe: outcome.timeframe,
+              direction: skipped.signal.direction,
+              reason: skipped.skipReason,
+              detail: skipped.skipDetail ?? '',
+            }),
+            'OPS',
+          );
+        }
+
         for (const { direction, evidence } of outcome.decision?.unlocks ?? []) {
+          // Written back to the database, which is the lock's source of truth.
+          // Without this an observed unlock lived only in memory and the lock
+          // stayed active in the database forever. Guarded by §6.5 ordering
+          // inside persistUnlock; announced only if it actually released.
+          if (accountId) {
+            const released = await persistUnlock(prisma, accountId, outcome.timeframe, direction, evidence);
+            if (!released) continue;
+          }
           log(
             `Post-loss lock RELEASED for ${direction} on ${evidence.condition} ${evidence.threshold} at RSI ${evidence.rsi}.`,
           );

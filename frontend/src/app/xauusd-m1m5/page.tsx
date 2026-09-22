@@ -125,8 +125,23 @@ export default async function XauusdM1M5Page() {
               </div>
               <dl className="text-sm space-y-1">
                 <div className="flex justify-between gap-4">
-                  <dt className="text-text-muted">Engine</dt>
-                  <dd className="font-mono">{tf.health}</dd>
+                  <dt className="text-text-muted">RSI(5)</dt>
+                  <dd className="font-mono">{n(tf.health.rsi, 4)}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-text-muted">Warm-up</dt>
+                  <dd className="font-mono text-right">
+                    {tf.health.warmedUp
+                      ? "warm"
+                      : `warming ${tf.health.closedBarCount}/${tf.health.closedBarCount + tf.health.barsUntilWarm} bars`}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-text-muted">Cadence</dt>
+                  <dd className="font-mono text-right">
+                    {tf.health.cadenceMet ? "1s ok" : "SLOW"}
+                    {tf.health.lastObservationIntervalMs !== null ? ` (${tf.health.lastObservationIntervalMs}ms)` : ""}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-text-muted">SELL arming</dt>

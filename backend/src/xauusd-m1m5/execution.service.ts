@@ -37,6 +37,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { bracketsFor, type BrokerStopConstraints } from './brackets';
 import type { CrossingSignal } from './crossing';
 import { isSubmissionEnabled, entriesBlockedByControls, getM1M5ExecutionMode } from './controls';
+import { lockoutReasonFor } from './locks';
 import { M1M5OccupancyService } from './occupancy.service';
 import { evaluateRisk, preSendCheck, type AccountRiskState, type CommittedRisk } from './risk';
 import { evaluateReadiness, type Mt5PermissionSnapshot } from './mt5-readiness';
@@ -49,6 +50,8 @@ export type ExecutionOutcome =
   /** Handed to the collector queue; the broker outcome is not known yet. */
   | 'QUEUED'
   | 'SKIPPED_OCCUPIED'
+  /** A post-loss lock is active for this timeframe and direction (§6). */
+  | 'SKIPPED_LOCKED'
   /** This exact crossing already produced a decision; it is never submitted twice. */
   | 'SKIPPED_DUPLICATE'
   | 'REFUSED_RISK'
@@ -176,6 +179,14 @@ export class M1M5ExecutionService {
     // refused signal is as much a part of the audit trail as a submitted one
     // (§12), and writing it before the claim means a crash mid-claim still
     // leaves evidence that the signal existed.
+    // --- Post-loss lock, read from the DATABASE, which is its source of truth.
+    // Independent of the observation loop's own lock check, so an entry into a
+    // locked direction would need both to fail. This check did not exist, and
+    // the loop's in-memory locks were never loaded from the database: after a
+    // real losing trade locked M1 SELL, further M1 SELL signals reached the
+    // risk gate and were stopped only because their size exceeded the cap.
+    const locked = await this.occupancy.isLocked(accountId, signal.timeframe, signal.direction);
+
     let decision;
     try {
       decision = await this.prisma.xauusdM1M5Decision.create({
@@ -229,8 +240,10 @@ export class M1M5ExecutionService {
             mt5: { ready: readiness.ready, hedgingSupported: readiness.hedgingSupported },
             executionMode: getM1M5ExecutionMode(),
           },
-          approved: risk.approved,
-          skipReason: risk.approved ? null : risk.refusal,
+          approved: !locked && risk.approved,
+          // The lock takes precedence: a locked direction is recorded as locked,
+          // whatever risk would also have said about it.
+          skipReason: locked ? lockoutReasonFor(signal.direction) : risk.approved ? null : risk.refusal,
         },
       });
     } catch (err) {
@@ -247,6 +260,16 @@ export class M1M5ExecutionService {
         };
       }
       throw err;
+    }
+
+    if (locked) {
+      return {
+        outcome: 'SKIPPED_LOCKED',
+        decisionId: decision.id,
+        detail:
+          `${signal.timeframe} ${signal.direction} is locked after a realized loss (${lockoutReasonFor(signal.direction)}). ` +
+          'The signal is recorded and consumed; nothing is sent.',
+      };
     }
 
     if (!risk.approved) {
