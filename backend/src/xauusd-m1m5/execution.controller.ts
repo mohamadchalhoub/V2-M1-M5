@@ -295,7 +295,10 @@ export class M1M5ExecutionController {
     try {
       const row = await this.queue.findDecision(decisionId);
       if (!row) return;
-      const ctx = { accountLabel: `DEMO ${row.accountId ?? 'unknown'}` };
+      // The broker LOGIN, as the scheduler's messages use -- not the internal
+      // account row id, which an operator cannot check against the terminal
+      // and which made one trade's SUBMITTED and FILLED messages disagree.
+      const ctx = { accountLabel: `DEMO ${process.env.MT5_EXPECTED_LOGIN?.trim() || row.accountId || 'unknown'}` };
       const timeframe = row.timeframe as Timeframe;
       const direction = row.direction as 'BUY' | 'SELL';
 
