@@ -46,6 +46,8 @@ import { resolveVolume, validateVolume } from './volume';
 
 export type ExecutionOutcome =
   | 'SUBMITTED'
+  /** Handed to the collector queue; the broker outcome is not known yet. */
+  | 'QUEUED'
   | 'SKIPPED_OCCUPIED'
   | 'REFUSED_RISK'
   | 'REFUSED_PRE_SEND'
@@ -73,7 +75,7 @@ export interface SubmitRequest {
 }
 
 export interface SubmitResponse {
-  readonly status: 'FILLED' | 'FAILED' | 'UNKNOWN';
+  readonly status: 'FILLED' | 'FAILED' | 'UNKNOWN' | 'QUEUED';
   readonly ticket?: string;
   readonly fillPrice?: number;
   readonly brokerStopLoss?: number;
@@ -307,6 +309,26 @@ export class M1M5ExecutionService {
       });
     } catch (err) {
       response = { status: 'UNKNOWN', error: (err as Error).message };
+    }
+
+    // A queueing port has handed the order to the collector but cannot know
+    // the broker's answer yet, so there is nothing to record and nothing to
+    // overwrite. The row deliberately stays PENDING: that is what the
+    // collector's poll selects on, and flattening it into UNKNOWN here would
+    // both lose the order and misreport a hand-off that went fine.
+    //
+    // The slot stays held at SENT. That over-states reality by however long
+    // the order waits in the queue, and it does so in the safe direction: a
+    // slot held too eagerly blocks a second entry, while a slot freed too
+    // eagerly permits one.
+    if (response.status === 'QUEUED') {
+      return {
+        outcome: 'QUEUED',
+        decisionId: decision.id,
+        detail:
+          `${signal.timeframe} ${signal.direction} handed to the collector queue. ` +
+          'The slot stays held until the collector reports the broker outcome.',
+      };
     }
 
     await this.prisma.xauusdM1M5Decision.update({

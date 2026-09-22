@@ -19,6 +19,14 @@ export async function resetDatabase(prisma: PrismaClient): Promise<void> {
   // account, and a leftover slot lock from an earlier test would make a later
   // one see a timeframe as permanently occupied.
   await prisma.xauusdM1M5SlotLock.deleteMany();
+  await prisma.xauusdM1M5CloseRequest.deleteMany();
+  await prisma.xauusdM1M5ProtectionRequest.deleteMany();
+  await prisma.xauusdM1M5Mt5Snapshot.deleteMany();
+  // No FK to anything, which is exactly why it is easy to forget -- and a
+  // leftover row here is not inert: the unique dedupKey makes an earlier
+  // test's notification silently suppress a later test's send, so the later
+  // test observes nothing and passes for the wrong reason.
+  await prisma.xauusdM1M5TelegramNotification.deleteMany();
   await prisma.xauusdM1M5DirectionalLock.deleteMany();
   await prisma.xauusdM1M5ProcessedClosure.deleteMany();
   await prisma.xauusdM1M5ReportPeriod.deleteMany();

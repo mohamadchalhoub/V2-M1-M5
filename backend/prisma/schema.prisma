@@ -78,12 +78,15 @@ model TradingAccount {
   xauusdRsiDecisions              XauusdRsiDecision[]
 
   // xauusd-m1-m5-rsi-threshold-v2 — the only enabled strategy in this project.
-  xauusdM1M5Decisions        XauusdM1M5Decision[]
-  xauusdM1M5SlotLocks        XauusdM1M5SlotLock[]
-  xauusdM1M5DirectionalLocks XauusdM1M5DirectionalLock[]
-  xauusdM1M5ReportPeriods    XauusdM1M5ReportPeriod[]
-  xauusdM1M5VolumeSetting    XauusdM1M5VolumeSetting?
-  xauusdM1M5VolumeAudits     XauusdM1M5VolumeAudit[]
+  xauusdM1M5Decisions          XauusdM1M5Decision[]
+  xauusdM1M5SlotLocks          XauusdM1M5SlotLock[]
+  xauusdM1M5DirectionalLocks   XauusdM1M5DirectionalLock[]
+  xauusdM1M5ReportPeriods      XauusdM1M5ReportPeriod[]
+  xauusdM1M5VolumeSetting      XauusdM1M5VolumeSetting?
+  xauusdM1M5VolumeAudits       XauusdM1M5VolumeAudit[]
+  xauusdM1M5Mt5Snapshot        XauusdM1M5Mt5Snapshot?
+  xauusdM1M5CloseRequests      XauusdM1M5CloseRequest[]
+  xauusdM1M5ProtectionRequests XauusdM1M5ProtectionRequest[]
 
   @@unique([platform, externalAccountId])
   @@map("trading_accounts")
@@ -110,18 +113,18 @@ enum AccountTradeMode {
 }
 
 model AccountSnapshot {
-  id          BigInt            @id @default(autoincrement())
-  accountId   String            @map("account_id")
-  balance     Decimal           @db.Decimal(18, 2)
-  equity      Decimal           @db.Decimal(18, 2)
-  margin      Decimal           @db.Decimal(18, 2)
-  freeMargin  Decimal           @map("free_margin") @db.Decimal(18, 2)
-  marginLevel Decimal?          @map("margin_level") @db.Decimal(9, 2)
-  profit      Decimal           @db.Decimal(18, 2)
+  id          BigInt             @id @default(autoincrement())
+  accountId   String             @map("account_id")
+  balance     Decimal            @db.Decimal(18, 2)
+  equity      Decimal            @db.Decimal(18, 2)
+  margin      Decimal            @db.Decimal(18, 2)
+  freeMargin  Decimal            @map("free_margin") @db.Decimal(18, 2)
+  marginLevel Decimal?           @map("margin_level") @db.Decimal(9, 2)
+  profit      Decimal            @db.Decimal(18, 2)
   // Autonomous demo trading (v2) — AUTONOMOUS_DEMO_TRADING_PLAN.md §1's
   // single most safety-critical input, pushed by the collector from MT5's
   // own account_info().trade_mode (mt5_client.py) on every snapshot cycle.
-  tradeMode   AccountTradeMode? @map("trade_mode")
+  tradeMode   AccountTradeMode?  @map("trade_mode")
   // The broker's position-accounting mode, from MT5's own
   // account_info().margin_mode.
   //
@@ -135,7 +138,7 @@ model AccountSnapshot {
   // stay distinguishable from "netting" — the risk gate fails closed on both,
   // but only one of them is an assertion about the broker.
   marginMode  AccountMarginMode? @map("margin_mode")
-  capturedAt  DateTime          @map("captured_at")
+  capturedAt  DateTime           @map("captured_at")
 
   account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
@@ -454,25 +457,25 @@ enum GoldTelegramNotificationStatus {
 }
 
 model GoldTelegramNotification {
-  id         String                         @id @default(uuid())
+  id             String                         @id @default(uuid())
   // Per RECIPIENT, not per event: the sender appends the destination chat to
   // the caller's logical key, so one event fanned out to several recipients
   // produces one row each. That is what lets a retry re-send only the
   // recipient that failed, without duplicating one that already succeeded,
   // and stops one recipient's success from hiding another's failure.
-  dedupKey   String                         @unique @map("dedup_key")
+  dedupKey       String                         @unique @map("dedup_key")
   // The destination this row's result belongs to. Nullable because rows
   // written before multi-recipient support existed have no recipient
   // recorded, and inventing one retroactively would misattribute history.
-  chatId         String?                    @map("chat_id")
-  recipientLabel String?                    @map("recipient_label")
-  eventType  String                         @map("event_type")
-  status     GoldTelegramNotificationStatus @default(PENDING)
-  messageId  Int?                           @map("message_id")
-  lastError  String?                        @map("last_error") // redacted — never contains the bot token
-  text       String
-  createdAt  DateTime                       @default(now()) @map("created_at")
-  sentAt     DateTime?                      @map("sent_at")
+  chatId         String?                        @map("chat_id")
+  recipientLabel String?                        @map("recipient_label")
+  eventType      String                         @map("event_type")
+  status         GoldTelegramNotificationStatus @default(PENDING)
+  messageId      Int?                           @map("message_id")
+  lastError      String?                        @map("last_error") // redacted — never contains the bot token
+  text           String
+  createdAt      DateTime                       @default(now()) @map("created_at")
+  sentAt         DateTime?                      @map("sent_at")
   // Delivery attempts made for THIS row, and when the last one happened.
   //
   // A failed send used to be final: the row was written FAILED and nothing
@@ -480,8 +483,8 @@ model GoldTelegramNotification {
   // permanently lost a trade alert. These two columns are what let a
   // retry sweep find the row, space its attempts out, and eventually give
   // up instead of trying forever.
-  attempts      Int       @default(0)
-  lastAttemptAt DateTime? @map("last_attempt_at")
+  attempts       Int                            @default(0)
+  lastAttemptAt  DateTime?                      @map("last_attempt_at")
 
   @@index([status, createdAt])
   @@index([chatId, createdAt])
@@ -507,19 +510,19 @@ enum GoldCloseRequestStatus {
 }
 
 model GoldCloseRequest {
-  id             String                 @id @default(uuid())
-  accountId      String                 @map("account_id")
-  symbol         String
-  positionTicket String                 @map("position_ticket") // MT5 position ticket (externalPositionId) — the exact position this request is scoped to
-  side           String // the POSITION's own side (BUY/SELL) — closing means trading the opposite direction, same convention as executor.py's close_position
-  volume         Decimal                @db.Decimal(18, 6)
-  status         GoldCloseRequestStatus @default(PENDING)
-  requestedAt    DateTime               @default(now()) @map("requested_at")
-  sentAt         DateTime?              @map("sent_at")
-  resultDealTicket Int?                 @map("result_deal_ticket")
-  resultClosedPrice Decimal?            @map("result_closed_price") @db.Decimal(18, 6)
-  resultError    String?                @map("result_error")
-  closedAt       DateTime?              @map("closed_at")
+  id                String                 @id @default(uuid())
+  accountId         String                 @map("account_id")
+  symbol            String
+  positionTicket    String                 @map("position_ticket") // MT5 position ticket (externalPositionId) — the exact position this request is scoped to
+  side              String // the POSITION's own side (BUY/SELL) — closing means trading the opposite direction, same convention as executor.py's close_position
+  volume            Decimal                @db.Decimal(18, 6)
+  status            GoldCloseRequestStatus @default(PENDING)
+  requestedAt       DateTime               @default(now()) @map("requested_at")
+  sentAt            DateTime?              @map("sent_at")
+  resultDealTicket  Int?                   @map("result_deal_ticket")
+  resultClosedPrice Decimal?               @map("result_closed_price") @db.Decimal(18, 6)
+  resultError       String?                @map("result_error")
+  closedAt          DateTime?              @map("closed_at")
 
   // Application-layer dedup only (gold-controls.controller.ts queries for an
   // existing PENDING/SENT row for this positionTicket before creating a new
@@ -1424,20 +1427,20 @@ enum TrendBreakoutCloseRequestStatus {
 }
 
 model TrendBreakoutCloseRequest {
-  id                String                           @id @default(uuid())
-  accountId         String                           @map("account_id")
+  id                String                          @id @default(uuid())
+  accountId         String                          @map("account_id")
   instrument        TrendBreakoutInstrument
   symbol            String // broker symbol at request time (resolveInstrumentMappings' own resolved value)
-  positionTicket    String                           @map("position_ticket") // MT5 position ticket (externalPositionId) — the exact position this request is scoped to
+  positionTicket    String                          @map("position_ticket") // MT5 position ticket (externalPositionId) — the exact position this request is scoped to
   side              String // the POSITION's own side (BUY/SELL) — closing means trading the opposite direction
-  volume            Decimal                          @db.Decimal(18, 6)
-  status            TrendBreakoutCloseRequestStatus  @default(PENDING)
-  requestedAt       DateTime                         @default(now()) @map("requested_at")
-  sentAt            DateTime?                        @map("sent_at")
-  resultDealTicket  Int?                             @map("result_deal_ticket")
-  resultClosedPrice Decimal?                         @map("result_closed_price") @db.Decimal(18, 6)
-  resultError       String?                          @map("result_error")
-  closedAt          DateTime?                        @map("closed_at")
+  volume            Decimal                         @db.Decimal(18, 6)
+  status            TrendBreakoutCloseRequestStatus @default(PENDING)
+  requestedAt       DateTime                        @default(now()) @map("requested_at")
+  sentAt            DateTime?                       @map("sent_at")
+  resultDealTicket  Int?                            @map("result_deal_ticket")
+  resultClosedPrice Decimal?                        @map("result_closed_price") @db.Decimal(18, 6)
+  resultError       String?                         @map("result_error")
+  closedAt          DateTime?                       @map("closed_at")
 
   account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
@@ -1588,15 +1591,15 @@ model XauusdRsiDecision {
   // real fill could not be recorded at all: recordExecutionResult threw
   // "Unable to fit integer value into an INT4", the decision stayed SENT,
   // and its slot was never released.
-  mt5Ticket      BigInt?   @map("mt5_ticket")
+  mt5Ticket        BigInt?   @map("mt5_ticket")
   // Requested vs. actual, so slippage is recorded rather than inferred.
-  requestedPrice Decimal?  @map("requested_price") @db.Decimal(18, 6)
-  filledPrice    Decimal?  @map("filled_price") @db.Decimal(18, 6)
-  slippagePoints Decimal?  @map("slippage_points") @db.Decimal(18, 6)
+  requestedPrice   Decimal?  @map("requested_price") @db.Decimal(18, 6)
+  filledPrice      Decimal?  @map("filled_price") @db.Decimal(18, 6)
+  slippagePoints   Decimal?  @map("slippage_points") @db.Decimal(18, 6)
   // What the broker actually reports as the position's protection after the
   // fill, reconciled against the requested bracket above.
-  brokerStopLoss   Decimal? @map("broker_stop_loss") @db.Decimal(18, 6)
-  brokerTakeProfit Decimal? @map("broker_take_profit") @db.Decimal(18, 6)
+  brokerStopLoss   Decimal?  @map("broker_stop_loss") @db.Decimal(18, 6)
+  brokerTakeProfit Decimal?  @map("broker_take_profit") @db.Decimal(18, 6)
   filledAt         DateTime? @map("filled_at")
   executionError   String?   @map("execution_error")
 
@@ -1640,28 +1643,28 @@ enum XauusdRsiLiquidationItemStatus {
 model XauusdRsiLiquidationItem {
   id String @id @default(uuid())
 
-  accountId String @map("account_id")
-  symbol    String @default("XAUUSD")
+  accountId  String   @map("account_id")
+  symbol     String   @default("XAUUSD")
   // The Friday 23:30 Beirut deadline this item belongs to, as a UTC instant.
   // Groups every item of one weekend's liquidation without a separate table.
   deadlineAt DateTime @map("deadline_at")
 
-  kind   XauusdRsiLiquidationItemKind
+  kind        XauusdRsiLiquidationItemKind
   // MT5 position ticket or order ticket.
-  ticket String
-  side   String
-  volume Decimal @db.Decimal(18, 6)
+  ticket      String
+  side        String
+  volume      Decimal                      @db.Decimal(18, 6)
   // Recorded so a deadline-miss report can state whose exposure remains.
-  magicNumber Int @map("magic_number")
+  magicNumber Int                          @map("magic_number")
 
-  status       XauusdRsiLiquidationItemStatus @default(OUTSTANDING)
-  attempts     Int      @default(0)
-  lastAttemptAt DateTime? @map("last_attempt_at")
-  lastError    String?   @map("last_error")
+  status        XauusdRsiLiquidationItemStatus @default(OUTSTANDING)
+  attempts      Int                            @default(0)
+  lastAttemptAt DateTime?                      @map("last_attempt_at")
+  lastError     String?                        @map("last_error")
   // Set only on broker-confirmed clearance — never on a submitted request.
-  clearedAt    DateTime? @map("cleared_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  clearedAt     DateTime?                      @map("cleared_at")
+  createdAt     DateTime                       @default(now()) @map("created_at")
+  updatedAt     DateTime                       @updatedAt @map("updated_at")
 
   // One live liquidation row per ticket per deadline; a retry updates this
   // row's attempt counter rather than creating a second one, so two workers
@@ -1779,7 +1782,7 @@ model XauusdM1M5Decision {
   // evidence, thresholds in force, schedule state, lock state, risk inputs.
   evidence  Json
 
-  approved Boolean @default(false)
+  approved   Boolean @default(false)
   // Why this decision did NOT become an order, in the operator's words:
   // POST_SELL_LOSS_LOCKOUT / POST_BUY_LOSS_LOCKOUT / TIMEFRAME_OCCUPIED /
   // SCHEDULE_BLOCKED, or a risk or pre-send reason.
@@ -1792,14 +1795,14 @@ model XauusdM1M5Decision {
   ticket      BigInt?
   positionId  String?               @map("position_id")
 
-  sentAt   DateTime? @map("sent_at")
-  filledAt DateTime? @map("filled_at")
+  sentAt           DateTime? @map("sent_at")
+  filledAt         DateTime? @map("filled_at")
   // Broker-reported fill detail, for the slippage and protection record
   // section 7 requires.
-  fillPrice        Decimal? @map("fill_price") @db.Decimal(18, 6)
-  brokerStopLoss   Decimal? @map("broker_stop_loss") @db.Decimal(18, 6)
-  brokerTakeProfit Decimal? @map("broker_take_profit") @db.Decimal(18, 6)
-  failureReason    String?  @map("failure_reason")
+  fillPrice        Decimal?  @map("fill_price") @db.Decimal(18, 6)
+  brokerStopLoss   Decimal?  @map("broker_stop_loss") @db.Decimal(18, 6)
+  brokerTakeProfit Decimal?  @map("broker_take_profit") @db.Decimal(18, 6)
+  failureReason    String?   @map("failure_reason")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1911,10 +1914,10 @@ model XauusdM1M5ReportPeriod {
   startT DateTime @map("start_t")
   endT   DateTime @map("end_t")
 
-  m1Wins   Int @default(0) @map("m1_wins")
-  m1Losses Int @default(0) @map("m1_losses")
-  m5Wins   Int @default(0) @map("m5_wins")
-  m5Losses Int @default(0) @map("m5_losses")
+  m1Wins      Int @default(0) @map("m1_wins")
+  m1Losses    Int @default(0) @map("m1_losses")
+  m5Wins      Int @default(0) @map("m5_wins")
+  m5Losses    Int @default(0) @map("m5_losses")
   // Reported separately, never folded into wins or losses.
   zeroResults Int @default(0) @map("zero_results")
   unresolved  Int @default(0)
@@ -1923,7 +1926,7 @@ model XauusdM1M5ReportPeriod {
 
   includedPositionIds String[] @map("included_position_ids")
 
-  generatedAt DateTime  @default(now()) @map("generated_at")
+  generatedAt   DateTime  @default(now()) @map("generated_at")
   // Delivery is tracked per period, and a failure here never affects trading.
   deliveredAt   DateTime? @map("delivered_at")
   deliveryError String?   @map("delivery_error")
@@ -1969,4 +1972,226 @@ model XauusdM1M5VolumeAudit {
 
   @@index([accountId, changedAt])
   @@map("xauusd_m1m5_volume_audits")
+}
+
+// The MT5 permission snapshot the collector reports, and the only source the
+// execution path will accept as evidence that the terminal may actually trade
+// (section 9.5).
+//
+// One row per account, overwritten in place: this is current state, not a
+// history, and a stale row is worse than no row because it can make a
+// disconnected terminal look ready. `capturedAt` is what makes staleness
+// detectable, and `evaluateReadiness` refuses a snapshot older than its
+// freshness bound rather than trusting the most recent thing it has.
+//
+// Every permission is nullable on purpose. Null means "the collector could not
+// read this", which is a third state distinct from false: encoding an
+// unreadable permission as `true` would let a missing answer look like a
+// granted one, and as `false` would hide a real fault behind a plausible
+// refusal. The backend treats null as a blocker.
+model XauusdM1M5Mt5Snapshot {
+  accountId String @id @map("account_id")
+
+  // When the COLLECTOR read these values, not when the row was written.
+  // Staleness is measured from the read, so queueing or a slow POST cannot
+  // make an old snapshot look fresh.
+  capturedAt DateTime @map("captured_at")
+
+  // Identity first: every other field here is meaningless if the terminal is
+  // logged into a different account than the one this strategy owns.
+  loginId String? @map("login_id")
+  server  String?
+
+  tradeMode  String? @map("trade_mode")
+  marginMode String? @map("margin_mode")
+
+  terminalConnected        Boolean? @map("terminal_connected")
+  terminalTradeAllowed     Boolean? @map("terminal_trade_allowed")
+  // Inverted sense: true is the BAD state. Stored as MT5 names it rather than
+  // flipped on the way in, so the check reads the same way the documentation
+  // does and nobody has to remember a local inversion.
+  terminalTradeApiDisabled Boolean? @map("terminal_trade_api_disabled")
+  accountTradeAllowed      Boolean? @map("account_trade_allowed")
+  accountTradeExpert       Boolean? @map("account_trade_expert")
+
+  // Account leverage as the terminal reports it (the 500 in "1:500"). Stored
+  // because it is the only way to compute the margin an order requires, and
+  // nothing else in this schema carries it. Null blocks: without it the margin
+  // requirement is unknown, and an unknown margin requirement must never be
+  // treated as an affordable one.
+  leverage Int?
+
+  // Whether the BROKER's trading session for this symbol is open, as observed
+  // by the collector rather than inferred from a clock. Section 9.4 requires
+  // reopening after the weekend to be confirmed, not assumed, so null here
+  // blocks entries exactly as false does -- "we have not confirmed the market
+  // is open" and "the market is shut" have the same correct consequence.
+  sessionOpen Boolean? @map("session_open")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("xauusd_m1m5_mt5_snapshots")
+}
+
+enum XauusdM1M5CloseKind {
+  POSITION
+  PENDING_ORDER
+}
+
+enum XauusdM1M5CloseStatus {
+  // Queued for the collector to act on.
+  PENDING
+  // Claimed by the collector; the broker call may be in flight.
+  SENT
+  // The broker ACCEPTED the request. Deliberately not called "CLOSED":
+  // acceptance is not closure, and section 9.3 is explicit that a submitted
+  // close request is not proof of anything. Only a later broker snapshot
+  // showing the position gone establishes that.
+  ACCEPTED
+  // The broker refused, with a reason.
+  FAILED
+}
+
+// A request to close one of THIS strategy's positions, or cancel one of its
+// pending orders (section 9.3).
+//
+// It exists because the backend cannot talk to MetaTrader directly -- the
+// terminal lives in the collector's container, behind a poll. So a close, like
+// an entry, is a durable row the collector claims and reports back on.
+//
+// Every row is scoped to a ticket this application owns by magic number. There
+// is deliberately no "close everything" request and no way to express one:
+// another bot trades the same symbol on the same broker, and a close request
+// that could name its positions is a close request that eventually will.
+model XauusdM1M5CloseRequest {
+  id        String @id @default(uuid())
+  accountId String @map("account_id")
+
+  // The broker's ticket, as a string: MT5 tickets exceed 2^53 and a numeric
+  // round-trip through JSON would silently corrupt them.
+  ticket      String
+  kind        XauusdM1M5CloseKind
+  // Recorded per row rather than re-derived later, so the ownership decision
+  // that authorised this close stays auditable even if configuration changes.
+  magicNumber Int                 @map("magic_number")
+  timeframe   XauusdM1M5Timeframe
+  volume      Decimal             @db.Decimal(18, 6)
+
+  // Why this close was requested, e.g. FRIDAY_LIQUIDATION.
+  reason String
+  status XauusdM1M5CloseStatus @default(PENDING)
+
+  requestedAt  DateTime  @default(now()) @map("requested_at")
+  claimedAt    DateTime? @map("claimed_at")
+  completedAt  DateTime? @map("completed_at")
+  errorMessage String?   @map("error_message")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  // One OPEN request per ticket at a time is enforced in the service rather
+  // than here, because a ticket legitimately gets a second request if the
+  // first is refused and the position is still there.
+  @@index([accountId, status])
+  @@index([accountId, ticket])
+  @@map("xauusd_m1m5_close_requests")
+}
+
+enum XauusdM1M5TelegramStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+// Telegram delivery records for xauusd-m1-m5-rsi-threshold-v2.
+//
+// Its OWN table, deliberately not the neighbouring strategy's. Both bots trade
+// the same symbol on the same broker from the same machine, so a shared dedup
+// table would let one strategy's event key suppress the other's alert about a
+// completely different position -- the exact confusion section 13 exists to
+// prevent.
+//
+// One row PER RECIPIENT, not per event. The sender appends the destination
+// chat to the caller's logical key, so an event fanned out to several chats
+// produces a row each. That is what lets a retry re-send only the recipient
+// that failed, and stops one recipient's success from hiding another's
+// failure.
+model XauusdM1M5TelegramNotification {
+  id String @id @default(uuid())
+
+  dedupKey       String  @unique @map("dedup_key")
+  chatId         String  @map("chat_id")
+  recipientLabel String? @map("recipient_label")
+  eventType      String  @map("event_type")
+
+  status    XauusdM1M5TelegramStatus @default(PENDING)
+  messageId Int?                     @map("message_id")
+  // Redacted before storage -- must never contain the bot token, which
+  // Telegram echoes back inside the request URL on some errors.
+  lastError String?                  @map("last_error")
+  text      String
+
+  // A failed send must not be final. Without these, one transient network
+  // problem silently and permanently loses a trade alert.
+  attempts      Int       @default(0)
+  lastAttemptAt DateTime? @map("last_attempt_at")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  sentAt    DateTime? @map("sent_at")
+
+  @@index([status, createdAt])
+  @@map("xauusd_m1m5_telegram_notifications")
+}
+
+enum XauusdM1M5ProtectionStatus {
+  PENDING
+  SENT
+  // The broker accepted the modification. Not the same as "verified": the
+  // next reconciliation pass re-reads the position and will queue another
+  // request if the levels still are not there.
+  ACCEPTED
+  FAILED
+}
+
+// A request to re-attach a missing stop loss or take profit (section 7).
+//
+// Deliberately its OWN table rather than a `kind` on the close-request table.
+// The two are superficially similar -- a ticket, a poll, a result -- and
+// exactly one bug away from catastrophe: a mis-branched request that CLOSES a
+// position when it meant to REPAIR it turns a protective action into an
+// unintended exit. Separate tables make that particular mistake unwriteable
+// rather than merely unlikely.
+//
+// This exists because a filled order is not proof that protection is attached.
+// The broker confirms a fill and may still report no SL, and an unprotected
+// gold position is the single most expensive state this application can be in.
+model XauusdM1M5ProtectionRequest {
+  id        String @id @default(uuid())
+  accountId String @map("account_id")
+
+  ticket      String
+  timeframe   XauusdM1M5Timeframe
+  magicNumber Int                 @map("magic_number")
+
+  // The levels this position SHOULD carry, recomputed from the decision that
+  // opened it rather than from the current price -- repairing a stop to where
+  // the market is now would silently move the risk the trade was sized for.
+  stopLoss   Decimal @map("stop_loss") @db.Decimal(18, 6)
+  takeProfit Decimal @map("take_profit") @db.Decimal(18, 6)
+
+  // STOP_LOSS / TAKE_PROFIT / BOTH, as reconciliation found it.
+  missing String
+  status  XauusdM1M5ProtectionStatus @default(PENDING)
+
+  requestedAt  DateTime  @default(now()) @map("requested_at")
+  claimedAt    DateTime? @map("claimed_at")
+  completedAt  DateTime? @map("completed_at")
+  errorMessage String?   @map("error_message")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, status])
+  @@index([accountId, ticket])
+  @@map("xauusd_m1m5_protection_requests")
 }

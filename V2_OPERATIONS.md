@@ -218,24 +218,24 @@ Execution stays OFF until every item below is done and verified.
   to this account. Never reuse the other project's.
 - **Database**: all 36 migrations applied to `m1m5_v2` on port 5453.
 
+- **A dedicated MT5 terminal installation and Wine prefix**, at
+  `/home/deploy/.mt5-m1m5-v2` on the VPS, verified distinct from `.mt5` and
+  `.mt5-v2`. `MT5_TERMINAL_PATH` is set explicitly so this collector can never
+  auto-discover another bot's terminal.
+- **Runtime MT5 verification passing**, on 2026-09-22, against the live
+  terminal. All 17 checks green, including the one that mattered most:
+  `margin_mode=2` (**RETAIL_HEDGING**) as MT5 itself reports it, not as the
+  signup screen labels it. Independent simultaneous M1 and M5 positions are
+  therefore genuinely possible on this account. See `V2_MT5_RUNTIME.md` for
+  every verified value.
+
 ### Still required
 
-1. **A dedicated MT5 terminal installation and Wine prefix** for this
-   application. This is the one piece that cannot be shared: the running bot's
-   terminal must not be switched to this application's account, and this application
-   must not attach to the terminal that bot is using. Set
-   `MT5_TERMINAL_PATH` in `collector/.env` once it exists, so this collector
-   can never pick the wrong terminal by default.
-2. **Runtime verification of MT5 permissions** through this application's own
-   collector: terminal connected, terminal `trade_allowed`, terminal
-   `tradeapi_disabled`, account `trade_allowed`, account `trade_expert`, and
-   the account's margin mode reported as `RETAIL_HEDGING`.
-
-   The account type reads "Forex Hedged USD", which is strong evidence of
-   hedging, but it is a label on a signup screen rather than the value MT5
-   reports at runtime. Section 8 requires the live value, and this is the last
-   substantive unknown.
-3. **Enable execution**, only after the checklist below passes: set
+1. **A SHADOW soak.** SHADOW runs every gate and records every decision
+   exactly as a live run would, and queues nothing. A session or two in SHADOW
+   shows what would have been traded, at no risk, and is the cheapest way to
+   find a disagreement between intent and behaviour.
+2. **Enable execution**, only after the checklist below passes: set
    `XAUUSD_M1M5_EXECUTION_MODE=DEMO` in `backend/.env` AND
    `XAUUSD_M1M5_EXECUTION_ENABLED=true` in `collector/.env`. Both are required;
    with only one set, nothing is ever sent.
@@ -258,3 +258,55 @@ Execution stays OFF until every item below is done and verified.
 
 Fresh market quotes are **not** evidence of permission to trade. A missing or
 disabled permission is an explicit execution blocker.
+
+## How an order actually reaches the broker
+
+The backend cannot talk to MetaTrader. The terminal lives inside the
+collector's container, behind a poll, so every instruction to the broker is a
+durable row the collector claims and reports back on. Four separate queues,
+deliberately not one table with a `kind` column:
+
+| Queue | Table | What it does |
+|---|---|---|
+| Entries | `xauusd_m1m5_decisions` at `PENDING` | places an approved order |
+| Closes | `xauusd_m1m5_close_requests` | closes a position this strategy owns |
+| Protection repairs | `xauusd_m1m5_protection_requests` | re-attaches a missing SL/TP |
+| Permissions | `xauusd_m1m5_mt5_snapshots` | what the terminal says it may do |
+
+Closes and protection repairs are separate tables on purpose. They are
+superficially the same shape — a ticket, a poll, a result — and exactly one
+mis-taken branch away from a repair that *closes* the position it meant to
+protect. Separate tables make that mistake unwriteable rather than merely
+unlikely.
+
+Every claim is an `updateMany` guarded on the row still being `PENDING`, so two
+collectors polling the same instant cannot both act on it.
+
+### Three outcomes, never two
+
+A broker answer is `FILLED`, `FAILED`, or **`UNKNOWN`** — and the third is not
+a variant of the second. An ambiguous or lost response may be a live position,
+so the timeframe slot **stays held** until reconciliation sees real broker
+state. Collapsing UNKNOWN into FAILED would free the slot and let the next
+signal open a second position on a timeframe that already has one.
+
+### What runs regardless of execution mode
+
+Friday liquidation, reconciliation and protection remediation run whether
+execution is ON or OFF. A position that is already open does not stop needing
+to be flat before the weekend because entries were switched off.
+
+That is also why the way to stop new entries is the **kill switch**, not the
+collector's execution flag: the kill switch blocks entries while leaving
+protective management running, whereas turning the collector flag off leaves an
+open position unmanaged, including through a Friday.
+
+### Recovery is a gate, not a formality
+
+`recoveryComplete` starts false and only becomes true after a reconciliation
+pass has actually run against fresh broker state. Until then the loop observes
+and refuses to enter, retrying each cycle. A snapshot older than 60 seconds is
+treated as incomplete, because "this position is missing" and "the collector
+has not reported recently" look identical otherwise — and concluding closure
+from stale data would record a phantom loss, fire a post-loss lock, and free a
+slot that still holds a live position.

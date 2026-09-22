@@ -179,6 +179,17 @@ class Config:
     # it polls the strategy's own pending-order route.
     rsi_execution_enabled: bool = False
 
+    # xauusd-m1-m5-rsi-threshold-v2 -- THIS project's strategy. Its own flag,
+    # off by default, and deliberately separate from every flag above: those
+    # belong to strategies this deployment does not run, and a shared flag
+    # would make enabling one of them enable this too.
+    #
+    # When true the collector does two extra things each cycle: it reports the
+    # terminal's own trading permissions to the backend (which refuses to
+    # submit without a recent report), and it polls this strategy's own
+    # pending-order route.
+    m1m5_execution_enabled: bool = False
+
     def timeframes_for(self, symbol: str) -> tuple[str, ...]:
         return (self.candle_timeframes_by_symbol or {}).get(symbol, self.candle_timeframes)
 
@@ -287,6 +298,7 @@ class Config:
         gold_execution_enabled = e.get("GOLD_EXECUTION_ENABLED", "false").strip().lower() == "true"
         trend_breakout_execution_enabled = e.get("TREND_BREAKOUT_EXECUTION_ENABLED", "false").strip().lower() == "true"
         rsi_execution_enabled = e.get("XAUUSD_RSI_EXECUTION_ENABLED", "false").strip().lower() == "true"
+        m1m5_execution_enabled = e.get("XAUUSD_M1M5_EXECUTION_ENABLED", "false").strip().lower() == "true"
 
         require_explicit_terminal = (
             e.get("MT5_REQUIRE_EXPLICIT_TERMINAL", "false").strip().lower() == "true"
@@ -354,6 +366,7 @@ class Config:
             gold_execution_enabled=gold_execution_enabled,
             trend_breakout_execution_enabled=trend_breakout_execution_enabled,
             rsi_execution_enabled=rsi_execution_enabled,
+            m1m5_execution_enabled=m1m5_execution_enabled,
         )
 
     @property

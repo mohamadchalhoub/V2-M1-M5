@@ -17,10 +17,12 @@ import threading
 import time
 from datetime import datetime, timedelta, timezone
 from types import FrameType
+from typing import Any
 
 from app.api_client import ApiClient, ApiClientError
 from app.api_mapper import (
     build_candles_payload,
+    build_permissions_payload,
     build_snapshot_payload,
     build_symbol_metadata_payload,
     build_ticks_payload,
@@ -39,6 +41,20 @@ from app.mt5_client import Mt5Client, PositionsUnavailable, stored_candle_time_t
 logger = logging.getLogger("collector.runner")
 
 COLLECTOR_VERSION = "0.2.0"
+
+# xauusd-m1-m5-rsi-threshold-v2 -- the only symbol this project's strategy
+# trades. Named here rather than read from config so it cannot drift from the
+# backend's own frozen SPEC.symbol.
+M1M5_SYMBOL = "XAUUSD"
+
+# How recent a tick must be for the broker session to count as OPEN.
+#
+# Generous on purpose. This is not the quote-freshness gate -- the backend
+# applies its own, tighter one before acting on a price. This answers the much
+# coarser question "is the market trading at all", where a quiet minute in thin
+# conditions must not read as a closed market and trigger a weekend-style
+# entry block.
+M1M5_SESSION_TICK_MAX_AGE_SECONDS = 120
 
 # Trend-breakout's canonical instrument identifiers — must match the
 # backend's own `TREND_BREAKOUT_INSTRUMENTS` (instrument-config.ts) exactly;
@@ -271,6 +287,22 @@ class CollectorApp:
                         self._poll_and_execute_pending_gold_order()
                         self._poll_and_execute_gold_close_request()
                         self._poll_and_execute_gold_restore_protection_request()
+                    if self._config.m1m5_execution_enabled:
+                        # Permissions FIRST, then the order poll. The backend
+                        # refuses to submit without a recent permission report,
+                        # so reporting after the poll would mean the first
+                        # candidate of every restart is refused for a reason
+                        # that had already been fixed.
+                        self._push_m1m5_mt5_snapshot()
+                        self._poll_and_execute_pending_m1m5_order()
+                        # Closes are polled on the same flag as entries. That
+                        # means turning this flag off while a position is open
+                        # leaves it unmanaged, including through a Friday --
+                        # so the way to stop NEW entries without abandoning an
+                        # open one is the backend kill switch, which keeps
+                        # reconciliation and liquidation running.
+                        self._poll_and_execute_m1m5_close_request()
+                        self._poll_and_execute_m1m5_protection_request()
                     if self._config.rsi_execution_enabled:
                         # Tick observation now runs on its own one-second
                         # thread (see _start_rsi_observation_loop); only the
@@ -634,6 +666,361 @@ class CollectorApp:
                 "median_interval_s": round(samples[len(samples) // 2], 3),
                 "max_interval_s": round(samples[-1], 3),
             })
+
+    # ---- xauusd-m1-m5-rsi-threshold-v2 --------------------------------
+
+    def _push_m1m5_mt5_snapshot(self) -> None:
+        """Reports what the terminal says about its own permission to trade.
+
+        This exists because fresh quotes are not permission to trade. A
+        terminal with algorithmic trading switched off, logged into the wrong
+        account, or disconnected from the trade server streams perfectly good
+        prices right up to the moment an order is rejected. The backend
+        therefore refuses to submit without a recent report of these values,
+        and treats an unreadable one as a blocker rather than as a grant.
+
+        Pushed on the ordinary poll cadence rather than on demand: a permission
+        that is only read when an order is imminent cannot reveal that trading
+        was switched off while nothing was happening.
+        """
+        account = self._client.get_account_info()
+        terminal = self._client.get_terminal_info()
+        payload = build_permissions_payload(account, terminal, self._client.is_connected())
+        payload["capturedAt"] = datetime.now(timezone.utc).isoformat()
+        payload["leverage"] = (account or {}).get("leverage")
+        payload["sessionOpen"] = self._m1m5_session_open()
+
+        try:
+            self._api.post_m1m5_mt5_snapshot(self._config.collector_account_id, payload)
+        except ApiClientError as exc:
+            # Never fatal. A failed push leaves the previous snapshot in place,
+            # which ages out and blocks on its own -- the safe direction.
+            logger.warning("xauusd-m1m5 mt5 snapshot push failed, will retry next tick", extra={"error": str(exc)})
+
+    def _m1m5_session_open(self) -> bool | None:
+        """Whether the broker session for this symbol is actually open.
+
+        Returns None when it cannot be established, and None blocks entries
+        exactly as False does. That matters most after a weekend: the spec
+        requires reopening to be CONFIRMED rather than inferred from a clock,
+        and "we could not tell" must never read as "the market is open".
+
+        Two things must both hold: the symbol is tradable at all, and a tick
+        has arrived recently. The first without the second is the weekend
+        state -- a tradable symbol nobody is quoting.
+        """
+        info = self._client.get_symbol_info(M1M5_SYMBOL)
+        if not info:
+            return None
+        trade_mode = info.get("trade_mode")
+        if trade_mode is None:
+            return None
+        if int(trade_mode) == 0:  # SYMBOL_TRADE_MODE_DISABLED
+            return False
+
+        tick = self._client.get_live_tick(M1M5_SYMBOL)
+        if not tick:
+            return None
+        if not tick.get("bid") or not tick.get("ask"):
+            return False
+
+        # get_live_tick normalises the broker timestamp to true UTC, so this
+        # compares against our own clock. The RAW MT5 tick time is in SERVER
+        # time, and subtracting that here would be wrong by the broker offset
+        # -- exactly the mistake that made a live feed look stale by 3 hours.
+        tick_at = tick.get("time")
+        if tick_at is None:
+            return None
+        age = (datetime.now(timezone.utc) - tick_at).total_seconds()
+        return 0 <= age <= M1M5_SESSION_TICK_MAX_AGE_SECONDS
+
+    def _poll_and_execute_pending_m1m5_order(self) -> None:
+        """Claims one approved entry and places it.
+
+        Same failure posture as every other execution poll here: it never
+        crashes the main loop, and every outcome is reported back so nothing is
+        left silently in flight.
+
+        An ambiguous broker response is reported as uncertain=True, never as
+        ok=False. The backend records that as UNKNOWN and KEEPS the timeframe
+        slot occupied, because a lost response does not mean the order never
+        reached the broker -- and freeing the slot would permit a second
+        position on a timeframe that may already hold one.
+        """
+        try:
+            response = self._api.get_pending_m1m5_order(self._config.collector_account_id)
+        except ApiClientError as exc:
+            logger.warning("xauusd-m1m5 pending-order poll failed, will retry next tick", extra={"error": str(exc)})
+            return
+
+        order = response.get("order")
+        if not order:
+            return
+
+        if not order.get("volume"):
+            # The backend sizes every order before queueing it. A row without a
+            # volume is a row whose risk approval cannot be reconstructed, so
+            # it is refused rather than filled in with a default here.
+            self._report_m1m5_execution_result(
+                order["decisionId"], ok=False,
+                error_message="queued order carried no volume; refusing to substitute a default",
+            )
+            return
+
+        logger.info("xauusd-m1m5 pending order claimed, attempting execution", extra={
+            "decision_id": order["decisionId"], "timeframe": order.get("timeframe"),
+            "side": order["side"], "volume": order["volume"], "magic": order["magic"],
+        })
+
+        try:
+            result = self._executor.send_bracket_order(
+                side=order["side"],
+                volume=order["volume"],
+                stop_loss_points=order["stopLossPoints"],
+                take_profit_points=order["takeProfitPoints"],
+                magic=order["magic"],
+                comment=order["comment"],
+                symbol=order["symbol"],
+                point_size=order["pointSize"],
+            )
+        except DemoAccountRequiredError as exc:
+            logger.critical("XAUUSD-M1M5: DEMO ACCOUNT CHECK FAILED - refusing to trade", extra={"error": str(exc)})
+            self._report_m1m5_execution_result(order["decisionId"], ok=False, error_message=str(exc))
+            return
+        except Exception as exc:  # noqa: BLE001 - must never crash the main loop
+            logger.error("xauusd-m1m5 order execution raised an unexpected error", extra={"error": str(exc)})
+            self._report_m1m5_execution_result(order["decisionId"], ok=False, error_message=str(exc))
+            return
+
+        # Neither a ticket nor a broker retcode means the executor could not
+        # establish what happened -- genuinely uncertain, as distinct from a
+        # broker that clearly refused.
+        uncertain = (not result.ok) and result.ticket is None and result.retcode is None
+
+        logger.info("xauusd-m1m5 order execution result", extra={
+            "decision_id": order["decisionId"], "ok": result.ok, "ticket": result.ticket,
+            "retcode": result.retcode, "uncertain": uncertain, "error": result.error_message,
+        })
+
+        broker_sl, broker_tp = self._read_position_protection(result.ticket, order["symbol"])
+        self._report_m1m5_execution_result(
+            order["decisionId"], ok=result.ok, ticket=result.ticket,
+            filled_price=result.price, error_message=result.error_message,
+            uncertain=uncertain, broker_stop_loss=broker_sl, broker_take_profit=broker_tp,
+        )
+
+    def _report_m1m5_execution_result(
+        self, decision_id: str, *, ok: bool, ticket: int | None = None,
+        filled_price: float | None = None, error_message: str | None = None,
+        uncertain: bool = False, broker_stop_loss: float | None = None,
+        broker_take_profit: float | None = None,
+    ) -> None:
+        payload: dict[str, Any] = {"ok": ok, "uncertain": uncertain}
+        if ticket is not None:
+            payload["ticket"] = int(ticket)
+        if filled_price is not None:
+            payload["filledPrice"] = float(filled_price)
+        if broker_stop_loss is not None:
+            payload["brokerStopLoss"] = float(broker_stop_loss)
+        if broker_take_profit is not None:
+            payload["brokerTakeProfit"] = float(broker_take_profit)
+        if error_message:
+            payload["errorMessage"] = error_message
+        try:
+            self._api.post_m1m5_execution_result(self._config.collector_account_id, decision_id, payload)
+        except ApiClientError as exc:
+            # The order may be live and the backend may not know. Loud, because
+            # reconciliation is now the only thing that can resolve it.
+            logger.error(
+                "xauusd-m1m5 execution result report FAILED; the backend does not know this outcome",
+                extra={"decision_id": decision_id, "error": str(exc)},
+            )
+
+    def _poll_and_execute_m1m5_close_request(self) -> None:
+        """Closes one position this strategy owns, on the backend request.
+
+        The ticket is verified against the LIVE position carrying that magic
+        number before anything is closed. The backend's request was built from
+        stored broker state that is by definition a little old; the terminal is
+        the authority on what is actually open, and on a host where another bot
+        trades the same symbol, closing a ticket that has moved on is the
+        mistake worth engineering against.
+
+        Accepting is not closing, and this reports only acceptance. The backend
+        establishes closure by re-querying the broker and finding zero owned
+        exposure, never by counting accepted requests.
+        """
+        try:
+            response = self._api.get_m1m5_close_request(self._config.collector_account_id)
+        except ApiClientError as exc:
+            logger.warning("xauusd-m1m5 close-request poll failed, will retry next tick", extra={"error": str(exc)})
+            return
+
+        request = response.get("request")
+        if not request:
+            return
+
+        request_id = request["requestId"]
+        symbol = request.get("symbol", M1M5_SYMBOL)
+        logger.warning("xauusd-m1m5 close requested", extra={
+            "request_id": request_id, "ticket": request["ticket"],
+            "magic": request["magic"], "reason": request.get("reason"),
+        })
+
+        try:
+            position = self._executor.find_open_position(request["magic"], symbol)
+        except Exception as exc:  # noqa: BLE001 - must never crash the main loop
+            self._report_m1m5_close_result(request_id, accepted=False, error_message=f"position lookup failed: {exc}")
+            return
+
+        if position is None:
+            # Already gone, or never ours. Either way there is nothing to close
+            # and reporting a failure is the honest answer -- the backend
+            # decides closure from broker state, not from this.
+            self._report_m1m5_close_result(
+                request_id, accepted=False,
+                error_message=f"no open position with magic {request['magic']} on {symbol}",
+            )
+            return
+
+        live_ticket = getattr(position, "ticket", None)
+        if live_ticket is None or str(live_ticket) != str(request["ticket"]):
+            self._report_m1m5_close_result(
+                request_id, accepted=False,
+                error_message=(
+                    f"ticket mismatch: request names {request['ticket']}, "
+                    f"the live position with magic {request['magic']} is {live_ticket}"
+                ),
+            )
+            return
+
+        # The LIVE side and volume, not the request's. A partial close since
+        # the request was written would make the stored volume wrong, and
+        # closing the wrong volume on a hedging account opens an opposing
+        # position rather than doing nothing.
+        side = "BUY" if int(getattr(position, "type", 0)) == 0 else "SELL"
+        volume = float(getattr(position, "volume", request["volume"]))
+
+        try:
+            result = self._executor.close_position(
+                ticket=int(live_ticket), side=side, volume=volume, symbol=symbol,
+            )
+        except Exception as exc:  # noqa: BLE001 - must never crash the main loop
+            logger.error("xauusd-m1m5 close raised an unexpected error", extra={"error": str(exc)})
+            self._report_m1m5_close_result(request_id, accepted=False, error_message=str(exc))
+            return
+
+        logger.warning("xauusd-m1m5 close result", extra={
+            "request_id": request_id, "ticket": live_ticket,
+            "ok": result.ok, "retcode": result.retcode, "error": result.error_message,
+        })
+        self._report_m1m5_close_result(
+            request_id, accepted=bool(result.ok), error_message=result.error_message,
+        )
+
+    def _report_m1m5_close_result(self, request_id: str, *, accepted: bool, error_message: str | None = None) -> None:
+        payload: dict[str, Any] = {"accepted": accepted}
+        if error_message:
+            payload["errorMessage"] = error_message
+        try:
+            self._api.post_m1m5_close_result(self._config.collector_account_id, request_id, payload)
+        except ApiClientError as exc:
+            logger.error(
+                "xauusd-m1m5 close result report FAILED; the backend will retry this close",
+                extra={"request_id": request_id, "error": str(exc)},
+            )
+
+    def _poll_and_execute_m1m5_protection_request(self) -> None:
+        """Re-attaches a stop loss or take profit the broker did not keep.
+
+        A filled order is not proof that protection is attached: the broker can
+        confirm a fill and still report the position with no SL. An
+        unprotected gold position is the most expensive state this application
+        can be in, and one that looks entirely normal from the fill alone.
+
+        The levels come from the backend, which took them from the decision
+        that OPENED the position -- never recomputed here from the current
+        price, which would silently move the stop and change the risk the trade
+        was sized for.
+
+        Acceptance is not verification. This reports only what the broker said;
+        the backend re-reads the position on its next reconciliation pass and
+        queues another repair if the levels still are not there.
+        """
+        try:
+            response = self._api.get_m1m5_protection_request(self._config.collector_account_id)
+        except ApiClientError as exc:
+            logger.warning("xauusd-m1m5 protection-request poll failed, will retry next tick", extra={"error": str(exc)})
+            return
+
+        request = response.get("request")
+        if not request:
+            return
+
+        request_id = request["requestId"]
+        symbol = request.get("symbol", M1M5_SYMBOL)
+        logger.error("xauusd-m1m5 PROTECTION REMEDIATION requested", extra={
+            "request_id": request_id, "ticket": request["ticket"],
+            "missing": request.get("missing"), "magic": request["magic"],
+        })
+
+        try:
+            position = self._executor.find_open_position(request["magic"], symbol)
+        except Exception as exc:  # noqa: BLE001 - must never crash the main loop
+            self._report_m1m5_protection_result(request_id, accepted=False, error_message=f"position lookup failed: {exc}")
+            return
+
+        if position is None:
+            # Gone since the request was written. Nothing to protect, and
+            # nothing to conclude -- the backend decides from broker state.
+            self._report_m1m5_protection_result(
+                request_id, accepted=False,
+                error_message=f"no open position with magic {request['magic']} on {symbol}",
+            )
+            return
+
+        live_ticket = getattr(position, "ticket", None)
+        if live_ticket is None or str(live_ticket) != str(request["ticket"]):
+            self._report_m1m5_protection_result(
+                request_id, accepted=False,
+                error_message=(
+                    f"ticket mismatch: request names {request['ticket']}, "
+                    f"the live position with magic {request['magic']} is {live_ticket}"
+                ),
+            )
+            return
+
+        try:
+            result = self._executor.modify_protection(
+                ticket=int(live_ticket),
+                stop_loss=float(request["stopLoss"]),
+                take_profit=float(request["takeProfit"]),
+                symbol=symbol,
+            )
+        except Exception as exc:  # noqa: BLE001 - must never crash the main loop
+            logger.error("xauusd-m1m5 protection repair raised an unexpected error", extra={"error": str(exc)})
+            self._report_m1m5_protection_result(request_id, accepted=False, error_message=str(exc))
+            return
+
+        logger.warning("xauusd-m1m5 protection repair result", extra={
+            "request_id": request_id, "ticket": live_ticket,
+            "ok": result.ok, "retcode": result.retcode, "error": result.error_message,
+        })
+        self._report_m1m5_protection_result(
+            request_id, accepted=bool(result.ok), error_message=result.error_message,
+        )
+
+    def _report_m1m5_protection_result(self, request_id: str, *, accepted: bool, error_message: str | None = None) -> None:
+        payload: dict[str, Any] = {"accepted": accepted}
+        if error_message:
+            payload["errorMessage"] = error_message
+        try:
+            self._api.post_m1m5_protection_result(self._config.collector_account_id, request_id, payload)
+        except ApiClientError as exc:
+            logger.error(
+                "xauusd-m1m5 protection result report FAILED; the backend will queue this repair again",
+                extra={"request_id": request_id, "error": str(exc)},
+            )
 
     def _poll_and_execute_pending_rsi_order(self) -> None:
         """Polls the active strategy's own route and executes an approved

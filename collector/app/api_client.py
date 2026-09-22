@@ -142,6 +142,32 @@ class ApiClient:
     # Deliberately separate from every pair above so a retired strategy's
     # wire contract and this one can never be confused, and so disabling one
     # can never disable the other.
+    # ---- xauusd-m1-m5-rsi-threshold-v2 -------------------------------
+    # This project's OWN routes. Never a shared path with a strategy
+    # parameter: two bots on this host trade the same symbol on the same
+    # broker, and a wire contract that CAN be confused eventually will be.
+
+    def post_m1m5_mt5_snapshot(self, account_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._post(f"/collector/{account_id}/xauusd-m1m5/mt5-snapshot", payload)
+
+    def get_pending_m1m5_order(self, account_id: str) -> dict[str, Any]:
+        return self._get(f"/collector/{account_id}/xauusd-m1m5/pending-order")
+
+    def post_m1m5_execution_result(self, account_id: str, decision_id: str, result: dict[str, Any]) -> dict[str, Any]:
+        return self._post(f"/collector/{account_id}/xauusd-m1m5/pending-order/{decision_id}/result", result)
+
+    def get_m1m5_close_request(self, account_id: str) -> dict[str, Any]:
+        return self._get(f"/collector/{account_id}/xauusd-m1m5/close-request")
+
+    def post_m1m5_close_result(self, account_id: str, request_id: str, result: dict[str, Any]) -> dict[str, Any]:
+        return self._post(f"/collector/{account_id}/xauusd-m1m5/close-request/{request_id}/result", result)
+
+    def get_m1m5_protection_request(self, account_id: str) -> dict[str, Any]:
+        return self._get(f"/collector/{account_id}/xauusd-m1m5/protection-request")
+
+    def post_m1m5_protection_result(self, account_id: str, request_id: str, result: dict[str, Any]) -> dict[str, Any]:
+        return self._post(f"/collector/{account_id}/xauusd-m1m5/protection-request/{request_id}/result", result)
+
     def get_pending_rsi_order(self, account_id: str) -> dict[str, Any]:
         return self._get(f"/collector/{account_id}/xauusd-rsi/pending-order")
 

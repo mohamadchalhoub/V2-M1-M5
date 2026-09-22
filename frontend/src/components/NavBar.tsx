@@ -51,6 +51,14 @@ export function NavBar() {
             );
           })}
           <Link
+            href="/xauusd-m1m5"
+            className={`px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
+              pathname.startsWith("/xauusd-m1m5") ? "bg-accent-soft text-accent font-medium" : "text-text-muted hover:text-text"
+            }`}
+          >
+            XAUUSD M1/M5 (live)
+          </Link>
+          <Link
             href="/xauusd-rsi"
             className={`px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
               pathname.startsWith("/xauusd-rsi") ? "bg-accent-soft text-accent font-medium" : "text-text-muted hover:text-text"

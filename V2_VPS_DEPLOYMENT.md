@@ -119,6 +119,22 @@ Those three are already correct in the file as shipped. Only
 
 Leave `XAUUSD_M1M5_EXECUTION_MODE=OFF`. It stays off until step 9.
 
+### One value the scheduler needs its own copy of
+
+```
+MT5_EXPECTED_LOGIN=
+```
+
+Set it to the **same value** as `collector/.env.production`. The collector has
+its own copy; the scheduler needs one too, because it is a separate process and
+does not read the collector's file.
+
+Without it the readiness check cannot verify which account the terminal is
+logged into, and blocks every entry with `ACCOUNT_IDENTITY_UNKNOWN`. That is
+the correct fail-closed behaviour — an unverified account is not a permitted
+one — but it presents as "the bot never trades and will not say why" unless you
+read the blocker list, so set it before the soak rather than during it.
+
 **The application will not start without these three**, which the retained
 Telegram delivery layer validates at boot. Set them to this application's own
 bot and chat -- the same values as the `XAUUSD_M1M5_TELEGRAM_*` entries:

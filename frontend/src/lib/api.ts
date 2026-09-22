@@ -397,6 +397,7 @@ export const api = {
   // xauusd-m1-rsi-retest-extremes-v1 - the active strategy's own dashboard
   // and controls. Deliberately separate endpoints from the gold ones below,
   // which now serve only the retired strategy's remaining positions.
+  xauusdM1M5Dashboard: () => apiFetch<XauusdM1M5Dashboard>('/xauusd-m1m5/dashboard'),
   xauusdRsiStatus: () => apiFetch<XauusdRsiStatus>('/research/xauusd-rsi-status'),
   xauusdRsiControls: () => apiFetch<XauusdRsiControls>('/research/xauusd-rsi-controls'),
   setXauusdRsiVolume: (volumeLots: number, note?: string) =>
@@ -655,6 +656,69 @@ export interface XauusdRsiExposureItem {
   stopLoss: number | null;
   takeProfit: number | null;
   description: string;
+}
+
+/**
+ * The `xauusd-m1-m5-rsi-threshold-v2` dashboard payload.
+ *
+ * Mirrors the backend's `DashboardView`. Nullable fields are nullable here for
+ * the same reason they are there: the page must be able to render "unknown"
+ * rather than substitute a value that reads as reassurance.
+ */
+export interface XauusdM1M5Dashboard {
+  strategyVersion: string;
+  specHash: string;
+  buildCommit: string | null;
+  accountLabel: string | null;
+  executionMode: string;
+  entryThresholds: { sell: number; buy: number };
+  brackets: { takeProfitUsd: number; stopLossUsd: number };
+  indicator: string;
+  /**
+   * Always present: the API reports a stale heartbeat rather than omitting it,
+   * so "the loop is not running" is a value the page can render instead of an
+   * absence it has to interpret.
+   */
+  heartbeat: {
+    fresh: boolean;
+    lastCycleAt: string | null;
+    lastCycleIntervalMs: number | null;
+    /** Reported separately from the observation cadence: a 1s observation loop does not imply 1s order polling. */
+    lastSubmissionLatencyMs: number | null;
+  };
+  timeframes: {
+    timeframe: 'M1' | 'M5';
+    health: string;
+    sellArming: string;
+    buyArming: string;
+    occupancy: string;
+    magicNumber: number;
+  }[];
+  locks: {
+    timeframe: 'M1' | 'M5';
+    direction: 'BUY' | 'SELL';
+    state: 'ACTIVE' | 'INACTIVE';
+    causingTrade: string | null;
+    netRealizedLoss: number | null;
+    activatedAt: string | null;
+    currentRsi: number | null;
+    unlockCondition: string;
+    lastUnlock: string | null;
+    scope: string;
+  }[];
+  schedule: {
+    state: string;
+    detail: string;
+    nextEligibleT: number | null;
+    fridayDeadlineT: number | null;
+  };
+  mt5: {
+    ready: boolean;
+    summary: string;
+    blockers: { code: string; origin: string; detail: string }[];
+    hedgingSupported: boolean | null;
+  };
+  observationLimitations: string[];
 }
 
 export interface XauusdRsiStatus {
