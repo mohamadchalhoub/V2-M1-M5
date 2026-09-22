@@ -310,3 +310,49 @@ treated as incomplete, because "this position is missing" and "the collector
 has not reported recently" look identical otherwise — and concluding closure
 from stale data would record a phantom loss, fire a post-loss lock, and free a
 slot that still holds a live position.
+
+## Execution latency
+
+The collector evaluates queued V2 orders **every second**, inside its
+one-second loop. Previously it did so once per ten-second main-loop cycle, and
+the first real trade waited 22.5 s between being queued and being sent.
+
+Every order records four instants and three latencies, on the decision row, in
+the FILLED Telegram message and on the dashboard:
+
+| Instant | Recorded by |
+|---|---|
+| `detectedAt`: the scheduler's cycle formed the crossing | backend |
+| `executionEvaluatedAt`: the final pre-send checks began | collector |
+| `submittedAt`: immediately before `order_send` | collector |
+| `acknowledgedAt`: `order_send` returned | collector |
+
+| Latency | Whose |
+|---|---|
+| detection -> submission | **ours**: scheduling, queueing, checks |
+| submission -> fill | **the broker's and the network's** |
+| signal -> fill | the total |
+
+The one-second cadence bounds only the first. **It does not make the broker
+fill in a second**, and nothing here claims so.
+
+### What still runs at send time
+
+Faster evaluation changes none of the safeguards. At queue time the backend
+runs the full pre-send check; at claim time it re-checks schedule, controls and
+**signal age**; at send time the collector re-checks **signal age** and **entry
+drift** against the terminal's own live price, using limits sent with the order
+so there is one definition of each. The executor's quote-age gate, DEMO check
+and MT5 slippage limit are unchanged.
+
+### One crossing, at most one order
+
+- The crossing's identity is a unique constraint: evaluating it again, even
+  concurrently, returns `SKIPPED_DUPLICATE` and never reaches the broker.
+- The claim is an atomic guarded update: a queued order is handed out once.
+- The collector takes the MT5 lock **before** claiming, so it never claims an
+  order it cannot place, and no two passes execute at once.
+- A result that may be a live position, including an exception during the
+  broker call, is **UNKNOWN** and keeps its slot. Only a refusal *before*
+  `order_send` is reported as not sent, and only that frees the slot.
+

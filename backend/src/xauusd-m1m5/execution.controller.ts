@@ -33,8 +33,15 @@ import { M1M5DecisionQueueService } from './decision-queue.service';
 import { M1M5ProtectionService } from './protection.service';
 import { M1M5Mt5SnapshotService } from './mt5-snapshot.service';
 import { M1M5TelegramService } from './telegram.service';
-import { filledMessage, rejectedMessage, uncertainMessage } from './telegram-messages';
-import { V2_EXPECTED_GOLD_POINT_SIZE, V2_SYMBOL, v2MagicForTimeframe } from './safety-constants';
+import { describeLatency, executionLatency } from './execution-latency';
+import { filledMessage, rejectedMessage, skippedMessage, uncertainMessage } from './telegram-messages';
+import {
+  V2_EXPECTED_GOLD_POINT_SIZE,
+  V2_MAX_ENTRY_DEVIATION_POINTS,
+  V2_MAX_SIGNAL_AGE_SECONDS,
+  V2_SYMBOL,
+  v2MagicForTimeframe,
+} from './safety-constants';
 import type { Timeframe } from './spec';
 
 /**
@@ -80,6 +87,15 @@ export class M1M5ExecutionResultDto {
    * into `ok: false` would free a slot that may hold a live position.
    */
   @IsOptional() @IsBoolean() uncertain?: boolean;
+  /**
+   * The collector refused at its final check and never called the broker.
+   * Distinct from `ok: false`, which means the BROKER refused.
+   */
+  @IsOptional() @IsBoolean() notSent?: boolean;
+  /** The execution timeline, measured by the collector. ISO-8601, true UTC. */
+  @IsOptional() @IsISO8601() executionEvaluatedAt?: string;
+  @IsOptional() @IsISO8601() submittedAt?: string;
+  @IsOptional() @IsISO8601() acknowledgedAt?: string;
 }
 
 @Controller('collector/:accountId/xauusd-m1m5')
@@ -158,6 +174,14 @@ export class M1M5ExecutionController {
         magic: decision.magicNumber ?? v2MagicForTimeframe(timeframe),
         symbol: V2_SYMBOL,
         pointSize: V2_EXPECTED_GOLD_POINT_SIZE,
+        // For the collector's final check, immediately before order_send.
+        // Sent with the order rather than duplicated as constants in the
+        // collector, so there is ONE definition of each limit, not two that can
+        // drift apart.
+        observedAt: decision.observedAt.toISOString(),
+        signalPrice: decision.basisPrice.toNumber(),
+        maxSignalAgeSeconds: V2_MAX_SIGNAL_AGE_SECONDS,
+        maxEntryDeviationPoints: V2_MAX_ENTRY_DEVIATION_POINTS,
         comment: `m1m5-${timeframe.toLowerCase()}-${decision.id.slice(0, 8)}`,
       },
     };
@@ -178,6 +202,10 @@ export class M1M5ExecutionController {
       brokerTakeProfit: dto.brokerTakeProfit ?? null,
       errorMessage: dto.errorMessage ?? null,
       uncertain: dto.uncertain ?? false,
+      notSent: dto.notSent ?? false,
+      executionEvaluatedAt: dto.executionEvaluatedAt ? new Date(dto.executionEvaluatedAt) : null,
+      submittedAt: dto.submittedAt ? new Date(dto.submittedAt) : null,
+      acknowledgedAt: dto.acknowledgedAt ? new Date(dto.acknowledgedAt) : null,
     });
 
     // Fire-and-forget, and only AFTER the outcome is durably recorded above.
@@ -312,6 +340,20 @@ export class M1M5ExecutionController {
             detail: dto.errorMessage ?? 'no broker response',
           }),
         );
+      } else if (outcome === 'NOT_SENT') {
+        // Nothing reached the broker. To OPS: it is a reason a signal was not
+        // traded, not a trade.
+        await this.telegram.notify(
+          'SUBMISSION_NOT_SENT',
+          `m1m5-notsent:${decisionId}`,
+          skippedMessage(ctx, {
+            timeframe,
+            direction,
+            reason: 'NOT_SENT',
+            detail: dto.errorMessage ?? 'refused at the final pre-send check',
+          }),
+          'OPS',
+        );
       } else if (outcome === 'FILLED') {
         await this.telegram.notify(
           'FILL_CONFIRMED',
@@ -325,6 +367,7 @@ export class M1M5ExecutionController {
             fillPrice: dto.filledPrice ?? 0,
             brokerStopLoss: dto.brokerStopLoss ?? null,
             brokerTakeProfit: dto.brokerTakeProfit ?? null,
+            latency: describeLatency(executionLatency(row)),
           }),
         );
       } else if (outcome === 'FAILED') {

@@ -35,6 +35,7 @@ import { PrismaClient, type XauusdM1M5Decision } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { entriesBlockedByControls } from './controls';
 import { M1M5OccupancyService } from './occupancy.service';
+import { V2_MAX_SIGNAL_AGE_SECONDS } from './safety-constants';
 import { evaluateClockSchedule } from './schedule';
 import type { Timeframe } from './spec';
 
@@ -47,9 +48,19 @@ export interface ExecutionResultInput {
   readonly errorMessage: string | null;
   /** True when the broker's answer was lost or ambiguous. Never FAILED. */
   readonly uncertain: boolean;
+  /**
+   * True when the COLLECTOR refused at its final check and never called the
+   * broker. Distinct from FAILED, which means the broker refused: a not-sent
+   * order provably opened nothing, so its slot is safe to free.
+   */
+  readonly notSent?: boolean;
+  /** The execution timeline, as the collector measured it. See execution-latency.ts. */
+  readonly executionEvaluatedAt?: Date | null;
+  readonly submittedAt?: Date | null;
+  readonly acknowledgedAt?: Date | null;
 }
 
-export type RecordedOutcome = 'FILLED' | 'FAILED' | 'UNKNOWN' | 'IGNORED_UNCLAIMED';
+export type RecordedOutcome = 'FILLED' | 'FAILED' | 'UNKNOWN' | 'NOT_SENT' | 'IGNORED_UNCLAIMED';
 
 @Injectable()
 export class M1M5DecisionQueueService {
@@ -85,7 +96,17 @@ export class M1M5DecisionQueueService {
     // already claimed, so a refusal must cancel it, not merely decline it.
     const blockedByControls = entriesBlockedByControls();
     const clock = evaluateClockSchedule(nowMs);
-    const refusal = blockedByControls ?? (clock.clockAllowsEntries ? null : clock.detail);
+    // Signal age too. With a one-second execution pass an order is normally
+    // claimed within a second of being queued, but if the collector was down
+    // it could otherwise be claimed minutes later -- and a stale intrabar
+    // crossing is no longer the event the rules described (§9.2). The same
+    // limit the pre-send check uses; the collector re-checks it at send.
+    const signalAgeSeconds = (nowMs - candidate.observedAt.getTime()) / 1000;
+    const tooOld =
+      signalAgeSeconds > V2_MAX_SIGNAL_AGE_SECONDS
+        ? `signal is ${signalAgeSeconds.toFixed(1)}s old, beyond the ${V2_MAX_SIGNAL_AGE_SECONDS}s limit`
+        : null;
+    const refusal = blockedByControls ?? tooOld ?? (clock.clockAllowsEntries ? null : clock.detail);
     if (refusal) {
       await this.cancelClaimed(candidate.id, `Cancelled at collector claim: ${refusal}`);
       this.logger.warn(`decision ${candidate.id}: cancelled at claim rather than sent -- ${refusal}`);
@@ -141,6 +162,19 @@ export class M1M5DecisionQueueService {
       return 'IGNORED_UNCLAIMED';
     }
 
+    // Refused by the collector before the broker was ever called. The only
+    // outcome besides a broker-confirmed refusal that provably opened nothing,
+    // so the slot is released and the row cancelled -- not marked FAILED,
+    // which would claim the broker said no.
+    if (result.notSent && !result.uncertain) {
+      await this.prisma.xauusdM1M5Decision.update({
+        where: { id: decisionId },
+        data: { executionEvaluatedAt: result.executionEvaluatedAt ?? null },
+      });
+      await this.cancelClaimed(decisionId, `Not sent at the collector's final check: ${result.errorMessage ?? 'no reason given'}`);
+      return 'NOT_SENT';
+    }
+
     const status: 'FILLED' | 'FAILED' | 'UNKNOWN' = result.uncertain ? 'UNKNOWN' : result.ok ? 'FILLED' : 'FAILED';
 
     await this.prisma.xauusdM1M5Decision.update({
@@ -151,7 +185,12 @@ export class M1M5DecisionQueueService {
         fillPrice: result.filledPrice,
         brokerStopLoss: result.brokerStopLoss,
         brokerTakeProfit: result.brokerTakeProfit,
-        filledAt: status === 'FILLED' ? new Date() : null,
+        executionEvaluatedAt: result.executionEvaluatedAt ?? null,
+        submittedAt: result.submittedAt ?? null,
+        acknowledgedAt: result.acknowledgedAt ?? null,
+        // The broker's acknowledgement when the collector measured it, rather
+        // than whenever this report happened to arrive.
+        filledAt: status === 'FILLED' ? (result.acknowledgedAt ?? new Date()) : null,
         failureReason: result.errorMessage,
       },
     });

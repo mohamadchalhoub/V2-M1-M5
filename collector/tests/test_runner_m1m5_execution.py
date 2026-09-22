@@ -42,6 +42,11 @@ class _FakeConfig:
 
 def _app(**overrides):
     client, api, executor = MagicMock(), MagicMock(), MagicMock()
+    # A live quote right at the signal price, so the final check's drift test
+    # passes unless a test says otherwise. The REAL shape: an ISO time string.
+    client.get_live_tick.return_value = {
+        "bid": 4360.0, "ask": 4360.5, "time": datetime.now(timezone.utc).isoformat(),
+    }
     config = _FakeConfig(**overrides)
     app = CollectorApp(config=config, client=client, api=api, executor=executor)
     return app, client, api, executor
@@ -62,6 +67,11 @@ def _order(**overrides):
         "symbol": "XAUUSD",
         "pointSize": 0.01,
         "comment": "m1m5-m1-dec1",
+        # What the backend now sends for the collector's final check.
+        "observedAt": datetime.now(timezone.utc).isoformat(),
+        "signalPrice": 4360.0,
+        "maxSignalAgeSeconds": 60,
+        "maxEntryDeviationPoints": 100,
     }
     order.update(overrides)
     return order
@@ -159,6 +169,8 @@ def test_a_demo_account_check_failure_refuses_to_trade_and_reports_it():
     reported = api.post_m1m5_execution_result.call_args[0][2]
     assert reported["ok"] is False
     assert "REAL" in reported["errorMessage"]
+    # The DEMO check runs BEFORE order_send, so nothing reached the broker.
+    assert reported["notSent"] is True
 
 
 def test_an_order_without_a_volume_is_refused_rather_than_given_a_default():

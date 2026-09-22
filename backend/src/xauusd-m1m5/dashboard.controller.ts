@@ -17,6 +17,7 @@
  *    tested for it directly.
  */
 import { Controller, Get, UseGuards } from '@nestjs/common';
+import { executionLatency } from './execution-latency';
 import { DashboardTokenGuard } from '../auth/dashboard-token.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildDashboardView, describeNextEligibility, type LockStateInput } from './dashboard-view';
@@ -142,8 +143,33 @@ export class M1M5DashboardController {
       (p) => !V2_MAGIC_NUMBERS.includes(extractMagic(p.rawPayload) ?? Number.NaN),
     );
 
+    // The most recent order that reached the broker, with its measured
+    // execution timeline -- so our scheduling delay and the broker's latency
+    // are visible separately rather than folded into one "it was slow".
+    const lastSubmitted = accountId
+      ? await this.prisma.xauusdM1M5Decision.findFirst({
+          where: { accountId, submittedAt: { not: null } },
+          orderBy: { submittedAt: 'desc' },
+        })
+      : null;
+    const lastExecution = lastSubmitted
+      ? {
+          decisionId: lastSubmitted.id,
+          timeframe: lastSubmitted.timeframe,
+          direction: lastSubmitted.direction,
+          orderStatus: lastSubmitted.orderStatus,
+          ticket: lastSubmitted.ticket === null ? null : lastSubmitted.ticket.toString(),
+          signalDetectedAt: lastSubmitted.detectedAt?.toISOString() ?? null,
+          executionEvaluatedAt: lastSubmitted.executionEvaluatedAt?.toISOString() ?? null,
+          brokerSubmittedAt: lastSubmitted.submittedAt?.toISOString() ?? null,
+          brokerAcknowledgedAt: lastSubmitted.acknowledgedAt?.toISOString() ?? null,
+          ...executionLatency(lastSubmitted),
+        }
+      : null;
+
     return {
       ...view,
+      lastExecution,
       heartbeat: {
         fresh: heartbeatFresh,
         lastCycleAt: state ? new Date(state.lastCycleAtMs).toISOString() : null,

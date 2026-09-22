@@ -90,6 +90,8 @@ export function filledMessage(
     fillPrice: number;
     brokerStopLoss: number | null;
     brokerTakeProfit: number | null;
+    /** From execution-latency.ts; omitted when no timeline was measured. */
+    latency?: string | null;
   },
 ): string {
   const slippage = p.fillPrice - p.requestedPrice;
@@ -101,6 +103,7 @@ export function filledMessage(
     `${header(ctx, p.timeframe)} ${p.direction} FILLED — ticket ${p.ticket}`,
     `${p.volumeLots} lots at ${p.fillPrice} (requested ${p.requestedPrice}, slippage ${slippage >= 0 ? '+' : ''}${slippage.toFixed(2)})`,
     protection,
+    ...(p.latency ? [p.latency] : []),
   ].join('\n');
 }
 

@@ -45,7 +45,10 @@ async function queued(
       accountId,
       timeframe,
       direction,
-      observedAt: new Date(observedAtMs ?? Date.now() - seq * 1000),
+      // Relative to the claim time the tests use, never the wall clock: the
+      // claim now refuses a signal older than 60s, so a wall-clock default
+      // would make these tests pass or fail depending on the day.
+      observedAt: new Date(observedAtMs ?? at('2026-09-22T09:00:00Z') - seq * 1000),
       eventId: `evt-${timeframe}-${seq}`,
       rsiValue: 92,
       previousRsi: 90,
@@ -110,8 +113,9 @@ describe('claiming a queued order', () => {
     // observedAt, so a test that leaned on insertion order would pass without
     // saying anything about the rule it names -- and would keep passing if the
     // ordering were changed to createdAt.
-    const newer = await queued('M5', 'SELL', at('2026-09-22T08:59:00Z'));
-    const older = await queued('M1', 'SELL', at('2026-09-22T08:58:00Z'));
+    // Both inside the 60s signal-age limit, so ordering is all that differs.
+    const newer = await queued('M5', 'SELL', at('2026-09-22T08:59:50Z'));
+    const older = await queued('M1', 'SELL', at('2026-09-22T08:59:30Z'));
 
     const claimed = await queue.claimOldest(accountId, at('2026-09-22T09:00:00Z'));
 
@@ -120,7 +124,9 @@ describe('claiming a queued order', () => {
   });
 
   it('CANCELS rather than sends an order whose schedule window closed while it waited', async () => {
-    const id = await queued('M1');
+    // Observed ten seconds before the claim, so it is the SCHEDULE that
+    // refuses it here, not the signal-age limit.
+    const id = await queued('M1', 'SELL', at('2026-09-25T20:29:50Z'));
 
     // 23:30 Beirut on a Friday: inside both the overnight pause and the
     // Friday cutoff. The row was queued while entries were allowed.
@@ -134,7 +140,7 @@ describe('claiming a queued order', () => {
   });
 
   it('frees the slot when it cancels, because nothing was ever sent', async () => {
-    await queued('M1');
+    await queued('M1', 'SELL', at('2026-09-25T20:29:50Z'));
 
     await queue.claimOldest(accountId, at('2026-09-25T20:30:00Z'));
 

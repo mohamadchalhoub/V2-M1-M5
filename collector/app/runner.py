@@ -84,6 +84,12 @@ M1M5_SYMBOL = "XAUUSD"
 # entry block.
 M1M5_SESSION_TICK_MAX_AGE_SECONDS = 120
 
+# How long the one-second execution pass waits for the MT5 lock before giving
+# up for this second. Short, so a busy main-loop cycle costs at most one pass
+# rather than stretching the cadence; the order stays PENDING, unclaimed, and
+# is picked up by the next pass.
+M1M5_EXECUTION_LOCK_TIMEOUT_SECONDS = 0.25
+
 # Trend-breakout's canonical instrument identifiers — must match the
 # backend's own `TREND_BREAKOUT_INSTRUMENTS` (instrument-config.ts) exactly;
 # this is the internal identity used in the URL path segment, never the raw
@@ -639,6 +645,13 @@ class CollectorApp:
                 self._observe_rsi_once()
             except Exception as exc:  # noqa: BLE001 - never let this thread die
                 logger.warning("rsi observation failed, continuing", extra={"error": str(exc)})
+            # V2's one-second execution evaluation, in its OWN try: a failure in
+            # the tick stream must not stop orders being placed, nor the reverse.
+            if self._config.m1m5_execution_enabled:
+                try:
+                    self._m1m5_fast_execution_pass()
+                except Exception as exc:  # noqa: BLE001 - never let this thread die
+                    logger.warning("xauusd-m1m5 execution pass failed, continuing", extra={"error": str(exc)})
             delay = next_at - time.monotonic()
             if delay <= 0:
                 # Fell behind: resynchronise instead of trying to catch up with
@@ -818,44 +831,124 @@ class CollectorApp:
         age = (datetime.now(timezone.utc) - tick_at).total_seconds()
         return 0 <= age <= M1M5_SESSION_TICK_MAX_AGE_SECONDS
 
+    def _m1m5_fast_execution_pass(self) -> None:
+        """One execution evaluation, run every second by the observation loop.
+
+        Before this, a queued V2 order was picked up only once per MAIN-loop
+        cycle -- every POLL_INTERVAL_SECONDS (10) or longer -- and the first
+        real trade waited 22.5s between being queued and being sent. This
+        removes that avoidable scheduling delay. It does not, and cannot, make
+        the broker fill in a second: submission-to-fill is the broker's and the
+        network's, and is measured separately so it is never mistaken for ours.
+
+        The MT5 lock is taken BEFORE polling, never after. The poll CLAIMS the
+        order (PENDING -> SENT) on the backend, so polling without the lock
+        could claim an order this pass is then unable to place. Holding it also
+        means no two passes -- this one and the main loop's fallback poll --
+        can ever execute at the same moment. If the lock is busy this pass
+        simply does not poll; the order stays PENDING, unclaimed, for the next
+        second.
+
+        One crossing still produces at most one order attempt however often
+        this runs: the claim is an atomic guarded update on the backend, and a
+        claimed order is no longer offered.
+        """
+        if not self._mt5_call_lock.acquire(timeout=M1M5_EXECUTION_LOCK_TIMEOUT_SECONDS):
+            return
+        try:
+            self._poll_and_execute_pending_m1m5_order()
+        finally:
+            self._mt5_call_lock.release()
+
+    def _m1m5_final_check(self, order: dict[str, Any], now: datetime) -> str | None:
+        """The last check before order_send. A reason to refuse, or None.
+
+        The backend already ran the full pre-send check when it queued the
+        order, and re-checked the schedule, controls and signal age when this
+        collector claimed it. This repeats the two that move with every tick --
+        signal age and entry drift -- against the terminal's own live price,
+        because that is the price the order would actually be sent at.
+
+        The limits come WITH the order, from the backend, so there is one
+        definition of each rather than a copy here that could drift from it.
+        Missing a limit refuses rather than skipping the check.
+        """
+        observed_at = _as_utc_datetime(order.get("observedAt"))
+        max_age = order.get("maxSignalAgeSeconds")
+        signal_price = order.get("signalPrice")
+        max_drift = order.get("maxEntryDeviationPoints")
+        point = order.get("pointSize")
+        if observed_at is None or max_age is None or signal_price is None or max_drift is None or not point:
+            return "the order is missing the signal time, signal price or limits needed for the final check"
+
+        age = (now - observed_at).total_seconds()
+        if age > float(max_age):
+            return f"signal is {age:.1f}s old at send, beyond the {max_age}s limit; dropped rather than sent late"
+
+        tick = self._client.get_live_tick(order.get("symbol", M1M5_SYMBOL))
+        if not tick or not tick.get("bid") or not tick.get("ask"):
+            return "no live quote from the terminal at send time"
+        executable = float(tick["ask"]) if order["side"] == "BUY" else float(tick["bid"])
+        drift = abs(executable - float(signal_price)) / float(point)
+        if drift > float(max_drift):
+            return (
+                f"price has moved {drift:.0f} points from the {signal_price} the signal formed at, "
+                f"beyond the {max_drift}-point limit; the entry is skipped, never chased"
+            )
+        return None
+
     def _poll_and_execute_pending_m1m5_order(self) -> None:
-        """Claims one approved entry and places it.
+        """Claims one approved entry and places it. Caller holds the MT5 lock.
 
-        Same failure posture as every other execution poll here: it never
-        crashes the main loop, and every outcome is reported back so nothing is
-        left silently in flight.
+        Every outcome is reported back so nothing is left silently in flight,
+        and the three are never collapsed:
 
-        An ambiguous broker response is reported as uncertain=True, never as
-        ok=False. The backend records that as UNKNOWN and KEEPS the timeframe
-        slot occupied, because a lost response does not mean the order never
-        reached the broker -- and freeing the slot would permit a second
-        position on a timeframe that may already hold one.
+          not sent   refused BEFORE the broker was called (final check, DEMO
+                     check, missing volume). Provably opened nothing, so the
+                     backend cancels it and frees the slot.
+          uncertain  the broker call happened, or may have, and its answer was
+                     lost -- including an exception partway through. It MAY be
+                     a live position, so the backend records UNKNOWN and KEEPS
+                     the slot until reconciliation sees broker state. Freeing it
+                     would permit a second position on a timeframe that may
+                     already hold one.
+          ok / not   the broker answered.
         """
         try:
             response = self._api.get_pending_m1m5_order(self._config.collector_account_id)
         except ApiClientError as exc:
-            logger.warning("xauusd-m1m5 pending-order poll failed, will retry next tick", extra={"error": str(exc)})
+            logger.warning("xauusd-m1m5 pending-order poll failed, will retry", extra={"error": str(exc)})
             return
 
         order = response.get("order")
         if not order:
             return
+        decision_id = order["decisionId"]
+        evaluated_at = datetime.now(timezone.utc)
+
+        def not_sent(reason: str) -> None:
+            logger.warning("xauusd-m1m5 order NOT sent at the final check", extra={"decision_id": decision_id, "reason": reason})
+            self._report_m1m5_execution_result(
+                decision_id, ok=False, not_sent=True, error_message=reason, evaluated_at=evaluated_at,
+            )
 
         if not order.get("volume"):
             # The backend sizes every order before queueing it. A row without a
-            # volume is a row whose risk approval cannot be reconstructed, so
-            # it is refused rather than filled in with a default here.
-            self._report_m1m5_execution_result(
-                order["decisionId"], ok=False,
-                error_message="queued order carried no volume; refusing to substitute a default",
-            )
+            # volume is one whose risk approval cannot be reconstructed.
+            not_sent("queued order carried no volume; refusing to substitute a default")
             return
 
-        logger.info("xauusd-m1m5 pending order claimed, attempting execution", extra={
-            "decision_id": order["decisionId"], "timeframe": order.get("timeframe"),
+        refusal = self._m1m5_final_check(order, evaluated_at)
+        if refusal:
+            not_sent(refusal)
+            return
+
+        logger.info("xauusd-m1m5 pending order claimed, sending", extra={
+            "decision_id": decision_id, "timeframe": order.get("timeframe"),
             "side": order["side"], "volume": order["volume"], "magic": order["magic"],
         })
 
+        submitted_at = datetime.now(timezone.utc)
         try:
             result = self._executor.send_bracket_order(
                 side=order["side"],
@@ -868,13 +961,22 @@ class CollectorApp:
                 point_size=order["pointSize"],
             )
         except DemoAccountRequiredError as exc:
+            # Raised by the executor's own DEMO check, BEFORE order_send.
             logger.critical("XAUUSD-M1M5: DEMO ACCOUNT CHECK FAILED - refusing to trade", extra={"error": str(exc)})
-            self._report_m1m5_execution_result(order["decisionId"], ok=False, error_message=str(exc))
+            not_sent(str(exc))
             return
-        except Exception as exc:  # noqa: BLE001 - must never crash the main loop
-            logger.error("xauusd-m1m5 order execution raised an unexpected error", extra={"error": str(exc)})
-            self._report_m1m5_execution_result(order["decisionId"], ok=False, error_message=str(exc))
+        except Exception as exc:  # noqa: BLE001 - must never crash the loop
+            # Anything else may have happened DURING the broker call. We do not
+            # know whether the order reached the broker, so it is UNCERTAIN --
+            # never a plain failure, which would free the slot.
+            logger.error("xauusd-m1m5 order execution raised; outcome UNKNOWN", extra={"error": str(exc)})
+            self._report_m1m5_execution_result(
+                decision_id, ok=False, uncertain=True, error_message=f"broker call raised: {exc}",
+                evaluated_at=evaluated_at, submitted_at=submitted_at,
+                acknowledged_at=datetime.now(timezone.utc),
+            )
             return
+        acknowledged_at = datetime.now(timezone.utc)
 
         # Neither a ticket nor a broker retcode means the executor could not
         # establish what happened -- genuinely uncertain, as distinct from a
@@ -882,24 +984,32 @@ class CollectorApp:
         uncertain = (not result.ok) and result.ticket is None and result.retcode is None
 
         logger.info("xauusd-m1m5 order execution result", extra={
-            "decision_id": order["decisionId"], "ok": result.ok, "ticket": result.ticket,
+            "decision_id": decision_id, "ok": result.ok, "ticket": result.ticket,
             "retcode": result.retcode, "uncertain": uncertain, "error": result.error_message,
+            # Our part and the broker's part, separately. See execution-latency.ts.
+            "evaluate_to_submit_ms": round((submitted_at - evaluated_at).total_seconds() * 1000),
+            "submit_to_ack_ms": round((acknowledged_at - submitted_at).total_seconds() * 1000),
         })
 
         broker_sl, broker_tp = self._read_position_protection(result.ticket, order["symbol"])
         self._report_m1m5_execution_result(
-            order["decisionId"], ok=result.ok, ticket=result.ticket,
+            decision_id, ok=result.ok, ticket=result.ticket,
             filled_price=result.price, error_message=result.error_message,
             uncertain=uncertain, broker_stop_loss=broker_sl, broker_take_profit=broker_tp,
+            evaluated_at=evaluated_at, submitted_at=submitted_at, acknowledged_at=acknowledged_at,
         )
 
     def _report_m1m5_execution_result(
         self, decision_id: str, *, ok: bool, ticket: int | None = None,
         filled_price: float | None = None, error_message: str | None = None,
-        uncertain: bool = False, broker_stop_loss: float | None = None,
-        broker_take_profit: float | None = None,
+        uncertain: bool = False, not_sent: bool = False,
+        broker_stop_loss: float | None = None, broker_take_profit: float | None = None,
+        evaluated_at: datetime | None = None, submitted_at: datetime | None = None,
+        acknowledged_at: datetime | None = None,
     ) -> None:
         payload: dict[str, Any] = {"ok": ok, "uncertain": uncertain}
+        if not_sent:
+            payload["notSent"] = True
         if ticket is not None:
             payload["ticket"] = int(ticket)
         if filled_price is not None:
@@ -910,6 +1020,13 @@ class CollectorApp:
             payload["brokerTakeProfit"] = float(broker_take_profit)
         if error_message:
             payload["errorMessage"] = error_message
+        # The execution timeline, true UTC.
+        if evaluated_at is not None:
+            payload["executionEvaluatedAt"] = evaluated_at.isoformat()
+        if submitted_at is not None:
+            payload["submittedAt"] = submitted_at.isoformat()
+        if acknowledged_at is not None:
+            payload["acknowledgedAt"] = acknowledged_at.isoformat()
         try:
             self._api.post_m1m5_execution_result(self._config.collector_account_id, decision_id, payload)
         except ApiClientError as exc:

@@ -29,6 +29,8 @@ import { formatDateTime } from "@/lib/format";
  */
 export const dynamic = "force-dynamic";
 
+const secs = (ms: number | null): string => (ms === null ? "unknown" : `${(ms / 1000).toFixed(2)}s`);
+
 const n = (v: number | null | undefined, digits = 2): string =>
   v === null || v === undefined || !Number.isFinite(v) ? "unknown" : v.toFixed(digits);
 
@@ -184,6 +186,28 @@ export default async function XauusdM1M5Page() {
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      {/* --- The last execution's timeline. --- */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-medium text-text-muted">Last execution</h2>
+        {view.lastExecution === null ? (
+          <p className="text-sm text-text-muted">No order has reached the broker yet.</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              <Tile label="Signal -> submit (ours)" value={secs(view.lastExecution.detectionToSubmissionMs)} />
+              <Tile label="Submit -> fill (broker)" value={secs(view.lastExecution.submissionToFillMs)} />
+              <Tile label="Signal -> fill (total)" value={secs(view.lastExecution.signalToFillMs)} />
+            </div>
+            <p className="text-sm text-text-muted">
+              {view.lastExecution.timeframe} {view.lastExecution.direction} · {view.lastExecution.orderStatus}
+              {view.lastExecution.ticket ? ` · ticket ${view.lastExecution.ticket}` : ''}. The first figure is this
+              application&apos;s own scheduling delay; the second is the broker&apos;s and the network&apos;s, and a
+              one-second evaluation cadence does not shorten it.
+            </p>
+          </>
         )}
       </section>
 

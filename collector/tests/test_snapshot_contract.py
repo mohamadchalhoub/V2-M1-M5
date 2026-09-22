@@ -135,3 +135,42 @@ def test_every_live_tick_field_is_declared_by_the_backend():
     assert not (set(payload["liveTick"].keys()) - declared)
     for tick in payload["liveTicks"]:
         assert not (set(tick.keys()) - declared)
+
+
+
+# --- the V2 execution-result route ------------------------------------------
+
+M1M5_CONTROLLER = Path(__file__).resolve().parents[2] / "backend" / "src" / "xauusd-m1m5" / "execution.controller.ts"
+
+
+def _declared_in(path: Path, class_name: str) -> set[str]:
+    source = path.read_text(encoding="utf-8")
+    match = re.search(rf"export class {class_name} \{{(.*?)\n\}}", source, re.DOTALL)
+    if match is None:
+        pytest.fail(f"could not find `export class {class_name}` in {path}")
+    return set(re.findall(r"(?:^|\)\s+|\s)([a-zA-Z_][a-zA-Z0-9_]*)[!?]:", match.group(1), re.MULTILINE))
+
+
+def test_every_execution_result_field_is_declared_by_the_backend():
+    """The one-second execution pass added four fields to this payload. Any
+    one the DTO did not declare would reject EVERY result with a 400 -- and a
+    lost result leaves a live order the backend knows nothing about."""
+    from unittest.mock import MagicMock
+
+    from datetime import datetime, timezone
+
+    from app.runner import CollectorApp
+
+    api = MagicMock()
+    app = CollectorApp(config=MagicMock(collector_account_id="acct"), client=MagicMock(), api=api, executor=MagicMock())
+    now = datetime.now(timezone.utc)
+    # Every optional field populated, so none can hide from the check.
+    app._report_m1m5_execution_result(
+        "dec-1", ok=False, ticket=1, filled_price=1.0, error_message="x", uncertain=True, not_sent=True,
+        broker_stop_loss=1.0, broker_take_profit=1.0, evaluated_at=now, submitted_at=now, acknowledged_at=now,
+    )
+    sent = set(api.post_m1m5_execution_result.call_args[0][2].keys())
+    declared = _declared_in(M1M5_CONTROLLER, "M1M5ExecutionResultDto")
+
+    assert {"notSent", "executionEvaluatedAt", "submittedAt", "acknowledgedAt"} <= declared, "parse guard"
+    assert not (sent - declared), f"the collector sends {sorted(sent - declared)}, undeclared by M1M5ExecutionResultDto"

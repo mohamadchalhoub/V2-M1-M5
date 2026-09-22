@@ -1799,14 +1799,32 @@ model XauusdM1M5Decision {
   ticket      BigInt?
   positionId  String?               @map("position_id")
 
-  sentAt           DateTime? @map("sent_at")
-  filledAt         DateTime? @map("filled_at")
+  sentAt   DateTime? @map("sent_at")
+  filledAt DateTime? @map("filled_at")
+
+  // The execution timeline, measured rather than inferred (§10). Separate
+  // instants, because "why was this fill late?" has a different answer
+  // depending on WHICH gap was long:
+  //
+  //   detectedAt            the scheduler's cycle formed the crossing
+  //   executionEvaluatedAt  the collector began its final pre-send checks
+  //   submittedAt           immediately before order_send
+  //   acknowledgedAt        order_send returned: the broker's acknowledgement
+  //
+  // detected -> submitted is OUR scheduling delay, the part this application
+  // controls. submitted -> acknowledged is broker and network latency, which
+  // it does not. The collector and backend share the host clock (containers
+  // on one machine), so the differences are meaningful to milliseconds.
+  detectedAt           DateTime? @map("detected_at")
+  executionEvaluatedAt DateTime? @map("execution_evaluated_at")
+  submittedAt          DateTime? @map("submitted_at")
+  acknowledgedAt       DateTime? @map("acknowledged_at")
   // Broker-reported fill detail, for the slippage and protection record
   // section 7 requires.
-  fillPrice        Decimal?  @map("fill_price") @db.Decimal(18, 6)
-  brokerStopLoss   Decimal?  @map("broker_stop_loss") @db.Decimal(18, 6)
-  brokerTakeProfit Decimal?  @map("broker_take_profit") @db.Decimal(18, 6)
-  failureReason    String?   @map("failure_reason")
+  fillPrice            Decimal?  @map("fill_price") @db.Decimal(18, 6)
+  brokerStopLoss       Decimal?  @map("broker_stop_loss") @db.Decimal(18, 6)
+  brokerTakeProfit     Decimal?  @map("broker_take_profit") @db.Decimal(18, 6)
+  failureReason        String?   @map("failure_reason")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

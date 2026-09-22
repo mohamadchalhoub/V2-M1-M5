@@ -347,8 +347,13 @@ describe('§12 the decision row is the audit trail', () => {
     expect(first.outcome).toBe('SUBMITTED');
 
     // The unique constraint on (accountId, strategyVersion, eventId) is what
-    // makes replay impossible, so this throws rather than duplicating.
-    await expect(service(new FakeBroker(FILLED)).execute(ctx({ signal: s }))).rejects.toThrow();
+    // makes replay impossible. It used to surface as a thrown error; it is now
+    // an explicit, expected outcome -- and still never a second decision or a
+    // second broker attempt.
+    const broker = new FakeBroker(FILLED);
+    const replay = await service(broker).execute(ctx({ signal: s }));
+    expect(replay.outcome).toBe('SKIPPED_DUPLICATE');
+    expect(broker.calls).toBe(0);
     expect(await prisma.xauusdM1M5Decision.count()).toBe(1);
   });
 });

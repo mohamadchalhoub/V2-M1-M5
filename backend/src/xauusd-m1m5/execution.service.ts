@@ -32,7 +32,7 @@
  * post-loss locks, risk, quote freshness, drift and MT5 permissions.
  */
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { bracketsFor, type BrokerStopConstraints } from './brackets';
 import type { CrossingSignal } from './crossing';
@@ -49,6 +49,8 @@ export type ExecutionOutcome =
   /** Handed to the collector queue; the broker outcome is not known yet. */
   | 'QUEUED'
   | 'SKIPPED_OCCUPIED'
+  /** This exact crossing already produced a decision; it is never submitted twice. */
+  | 'SKIPPED_DUPLICATE'
   | 'REFUSED_RISK'
   | 'REFUSED_PRE_SEND'
   | 'REFUSED_MT5_NOT_READY'
@@ -174,58 +176,78 @@ export class M1M5ExecutionService {
     // refused signal is as much a part of the audit trail as a submitted one
     // (§12), and writing it before the claim means a crash mid-claim still
     // leaves evidence that the signal existed.
-    const decision = await this.prisma.xauusdM1M5Decision.create({
-      data: {
-        strategyVersion: XAUUSD_M1M5_STRATEGY_VERSION,
-        specHash: SPEC_HASH,
-        accountId,
-        timeframe: signal.timeframe,
-        direction: signal.direction,
-        observedAt: new Date(signal.observedAt),
-        eventId: signal.signalId,
-        rsiValue: signal.rsi,
-        previousRsi: signal.previousRsi,
-        threshold: signal.threshold,
-        basisPrice: signal.price,
-        observationMode: 'TICK',
-        entryPrice: brackets.entryPrice,
-        stopLoss: brackets.stopLoss,
-        takeProfit: brackets.takeProfit,
-        volumeLots: volume.lots,
-        magicNumber,
-        reasoning:
-          `${signal.timeframe} ${signal.direction}: RSI crossed ${signal.threshold} ` +
-          `(${signal.previousRsi} -> ${signal.rsi}).`,
-        // Spread into plain objects rather than passing the readonly
-        // interfaces directly: Prisma's Json input type requires an index
-        // signature, which a readonly interface does not have.
-        evidence: {
-          signal: {
-            signalId: signal.signalId,
-            timeframe: signal.timeframe,
-            direction: signal.direction,
-            rsi: signal.rsi,
-            previousRsi: signal.previousRsi,
-            threshold: signal.threshold,
-            price: signal.price,
-            observedAt: signal.observedAt,
+    let decision;
+    try {
+      decision = await this.prisma.xauusdM1M5Decision.create({
+        data: {
+          // When the scheduler's cycle formed this crossing: the start of the
+          // execution timeline (see execution-latency.ts).
+          detectedAt: new Date(ctx.nowMs),
+          strategyVersion: XAUUSD_M1M5_STRATEGY_VERSION,
+          specHash: SPEC_HASH,
+          accountId,
+          timeframe: signal.timeframe,
+          direction: signal.direction,
+          observedAt: new Date(signal.observedAt),
+          eventId: signal.signalId,
+          rsiValue: signal.rsi,
+          previousRsi: signal.previousRsi,
+          threshold: signal.threshold,
+          basisPrice: signal.price,
+          observationMode: 'TICK',
+          entryPrice: brackets.entryPrice,
+          stopLoss: brackets.stopLoss,
+          takeProfit: brackets.takeProfit,
+          volumeLots: volume.lots,
+          magicNumber,
+          reasoning:
+            `${signal.timeframe} ${signal.direction}: RSI crossed ${signal.threshold} ` +
+            `(${signal.previousRsi} -> ${signal.rsi}).`,
+          // Spread into plain objects rather than passing the readonly
+          // interfaces directly: Prisma's Json input type requires an index
+          // signature, which a readonly interface does not have.
+          evidence: {
+            signal: {
+              signalId: signal.signalId,
+              timeframe: signal.timeframe,
+              direction: signal.direction,
+              rsi: signal.rsi,
+              previousRsi: signal.previousRsi,
+              threshold: signal.threshold,
+              price: signal.price,
+              observedAt: signal.observedAt,
+            },
+            volume: { lots: volume.lots, source: volume.source, provenance: volume.provenance },
+            risk: { ...risk.evidence },
+            brackets: {
+              entryPrice: brackets.entryPrice,
+              stopLoss: brackets.stopLoss,
+              takeProfit: brackets.takeProfit,
+              takeProfitDistance: brackets.takeProfitDistance,
+              stopLossDistance: brackets.stopLossDistance,
+            },
+            mt5: { ready: readiness.ready, hedgingSupported: readiness.hedgingSupported },
+            executionMode: getM1M5ExecutionMode(),
           },
-          volume: { lots: volume.lots, source: volume.source, provenance: volume.provenance },
-          risk: { ...risk.evidence },
-          brackets: {
-            entryPrice: brackets.entryPrice,
-            stopLoss: brackets.stopLoss,
-            takeProfit: brackets.takeProfit,
-            takeProfitDistance: brackets.takeProfitDistance,
-            stopLossDistance: brackets.stopLossDistance,
-          },
-          mt5: { ready: readiness.ready, hedgingSupported: readiness.hedgingSupported },
-          executionMode: getM1M5ExecutionMode(),
+          approved: risk.approved,
+          skipReason: risk.approved ? null : risk.refusal,
         },
-        approved: risk.approved,
-        skipReason: risk.approved ? null : risk.refusal,
-      },
-    });
+      });
+    } catch (err) {
+      // The unique (accountId, strategyVersion, eventId) constraint IS the
+      // crossing's identity. A second evaluation of the same crossing -- a
+      // retried cycle, a restart mid-cycle -- lands here, and must produce no
+      // second order attempt. It used to surface as a cycle error; it is a
+      // normal, expected outcome and is reported as one.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        return {
+          outcome: 'SKIPPED_DUPLICATE',
+          decisionId: null,
+          detail: `${signal.timeframe} ${signal.direction} crossing ${signal.signalId} already has a decision; not submitted again.`,
+        };
+      }
+      throw err;
+    }
 
     if (!risk.approved) {
       return { outcome: 'REFUSED_RISK', decisionId: decision.id, detail: risk.detail ?? 'risk refused' };

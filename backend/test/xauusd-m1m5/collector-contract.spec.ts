@@ -126,6 +126,32 @@ describe('pending-order result', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('accepts the execution timeline exactly as the one-second pass reports it', async () => {
+    await expect(
+      accepts(M1M5ExecutionResultDto, {
+        ok: true,
+        uncertain: false,
+        ticket: 58566028247,
+        filledPrice: 4317.83,
+        executionEvaluatedAt: '2026-09-22T08:41:44.101+00:00',
+        submittedAt: '2026-09-22T08:41:44.180+00:00',
+        acknowledgedAt: '2026-09-22T08:41:44.460+00:00',
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('accepts a not-sent refusal from the final check', async () => {
+    await expect(
+      accepts(M1M5ExecutionResultDto, {
+        ok: false,
+        uncertain: false,
+        notSent: true,
+        errorMessage: 'price has moved 150 points',
+        executionEvaluatedAt: '2026-09-22T08:41:44.101+00:00',
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   it('accepts an uncertain outcome with only an error message', async () => {
     await expect(
       accepts(M1M5ExecutionResultDto, { ok: false, uncertain: true, errorMessage: 'no response from broker' }),

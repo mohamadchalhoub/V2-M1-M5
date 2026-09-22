@@ -719,6 +719,25 @@ export interface XauusdM1M5Dashboard {
     hedgingSupported: boolean | null;
   };
   observationLimitations: string[];
+  /**
+   * The most recent order that reached the broker, with its measured timeline.
+   * Our share (detection -> submission) and the broker's (submission -> fill)
+   * are separate on purpose: only the first is this application's to shorten.
+   */
+  lastExecution: {
+    decisionId: string;
+    timeframe: 'M1' | 'M5';
+    direction: 'BUY' | 'SELL';
+    orderStatus: string;
+    ticket: string | null;
+    signalDetectedAt: string | null;
+    executionEvaluatedAt: string | null;
+    brokerSubmittedAt: string | null;
+    brokerAcknowledgedAt: string | null;
+    detectionToSubmissionMs: number | null;
+    submissionToFillMs: number | null;
+    signalToFillMs: number | null;
+  } | null;
 }
 
 export interface XauusdRsiStatus {
