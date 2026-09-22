@@ -284,10 +284,11 @@ class CollectorApp:
             "gold_execution_enabled": self._config.gold_execution_enabled,
             "trend_breakout_execution_enabled": self._config.trend_breakout_execution_enabled,
             "rsi_execution_enabled": self._config.rsi_execution_enabled,
+            "m1m5_execution_enabled": self._config.m1m5_execution_enabled,
         })
 
         backoff = self._config.reconnect_initial_backoff_seconds
-        if self._config.rsi_execution_enabled:
+        if self._tick_stream_wanted():
             self._start_rsi_observation_loop()
         try:
             while not self._stop_event.is_set():
@@ -595,6 +596,22 @@ class CollectorApp:
             # visibility problem, not a trading-safety one, but it does mean
             # the decision row stays stuck as SENT until this is noticed.
             logger.error("failed to report execution result back to backend", extra={"decision_id": decision_id, "error": str(exc)})
+
+    def _tick_stream_wanted(self) -> bool:
+        """Whether the one-second XAUUSD tick stream should run.
+
+        Named for the strategy that first needed it, but the stream itself is
+        strategy-neutral: it reads the terminal's ordered XAUUSD ticks and
+        posts them to the generic `/collector/ticks` endpoint, and touches no
+        strategy-specific route.
+
+        xauusd-m1-m5-rsi-threshold-v2 needs it too. Its spec requires a
+        ONE-SECOND observation cadence (§10), and without this stream the only
+        fresh price it got was the live tick riding on the account snapshot,
+        every ~10 seconds -- so an RSI move that crossed a threshold and came
+        back inside those ten seconds was never seen.
+        """
+        return bool(self._config.rsi_execution_enabled or self._config.m1m5_execution_enabled)
 
     def _start_rsi_observation_loop(self) -> None:
         """Launches the one-second XAUUSD observation thread."""

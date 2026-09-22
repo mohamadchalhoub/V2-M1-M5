@@ -491,3 +491,18 @@ def test_an_unreadable_state_is_reported_not_treated_as_on(caplog):
     with caplog.at_level("INFO", logger="collector.runner"):
         app._note_terminal_trade_allowed(None)
     assert any("could not be read" in r.message for r in caplog.records)
+
+
+# --- the one-second tick stream ----------------------------------------------
+
+
+def test_the_one_second_tick_stream_runs_for_this_strategy():
+    """§10 requires one-second observation. Without the stream the only fresh
+    price was the live tick on the ~10-second account snapshot."""
+    app, _client, _api, _executor = _app(m1m5_execution_enabled=True, rsi_execution_enabled=False)
+    assert app._tick_stream_wanted() is True
+
+
+def test_the_tick_stream_is_off_when_no_strategy_needs_it():
+    app, _client, _api, _executor = _app(m1m5_execution_enabled=False, rsi_execution_enabled=False)
+    assert app._tick_stream_wanted() is False
