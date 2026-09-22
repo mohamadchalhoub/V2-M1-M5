@@ -608,9 +608,18 @@ async function main() {
         const skipped = outcome.decision?.signal && outcome.decision.skipReason ? outcome.decision : null;
         if (skipped?.signal && skipped.skipReason) {
           log(`${outcome.timeframe} ${skipped.signal.direction} signal SKIPPED -- ${skipped.skipReason}: ${skipped.skipDetail ?? ''}`);
+          // RSI can chop back and forth across a threshold within the same
+          // forming bar, so the SAME gate (e.g. SCHEDULE_BLOCKED) can be hit by
+          // several distinct, genuinely-consumed crossings a minute apart.
+          // Each is still recorded in full via its own signalId above in the
+          // log line; the Telegram alert is coalesced per gate/timeframe/
+          // direction/window so the operator sees one notice per bucket
+          // instead of a flood of otherwise-identical messages.
+          const skipNotifyBucketMs = 10 * 60 * 1000;
+          const skipBucket = Math.floor(startedAt / skipNotifyBucketMs);
           void telegram.notify(
             'SIGNAL_SKIPPED',
-            `m1m5-skip-signal:${skipped.signal.signalId}`,
+            `m1m5-skip-signal:${outcome.timeframe}:${skipped.signal.direction}:${skipped.skipReason}:${skipBucket}`,
             skippedMessage(messageCtx, {
               timeframe: outcome.timeframe,
               direction: skipped.signal.direction,
