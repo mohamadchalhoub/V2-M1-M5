@@ -48,11 +48,13 @@ import { M1M5QueueingBrokerPort } from '../src/xauusd-m1m5/queue-broker.port';
 import { buildExecutionContext } from '../src/xauusd-m1m5/execution-context';
 import { resolveVolume } from '../src/xauusd-m1m5/volume';
 import { buildBrokerSnapshot } from '../src/xauusd-m1m5/broker-snapshot';
-import { M1M5ReconciliationService, type ProtectionIssue } from '../src/xauusd-m1m5/reconciliation.service';
+import { M1M5ReconciliationService, type BrokerClosure, type ProtectionIssue } from '../src/xauusd-m1m5/reconciliation.service';
+import { timeframeForPosition } from '../src/xauusd-m1m5/ownership';
 import { M1M5ProtectionService } from '../src/xauusd-m1m5/protection.service';
 import { M1M5ReportingService } from '../src/xauusd-m1m5/reporting.service';
 import { M1M5TelegramService } from '../src/xauusd-m1m5/telegram.service';
 import {
+  closedMessage,
   lockReleasedMessage,
   liquidationCompleteMessage,
   liquidationFailedMessage,
@@ -240,6 +242,32 @@ async function main() {
     }
   };
 
+  /**
+   * Tells the operator a position closed. Only closures whose every deal has
+   * been retrieved are announced -- an incomplete one is not yet a result.
+   * Keyed per ticket, so the many reconciliation passes that see the same
+   * closure produce exactly one message.
+   */
+  const announceClosures = (closures: readonly BrokerClosure[]): void => {
+    for (const c of closures) {
+      if (!c.dealsComplete) continue;
+      const timeframe = timeframeForPosition(c.magicNumber);
+      if (timeframe === null) continue;
+      void telegram.notify(
+        'POSITION_CLOSED',
+        `m1m5-closed:${c.ticket}`,
+        closedMessage(messageCtx, {
+          timeframe,
+          direction: c.direction,
+          ticket: c.ticket,
+          netRealized: c.netRealized,
+          closureReason: c.closureReason,
+          classification: c.netRealized < 0 ? 'LOSS' : c.netRealized > 0 ? 'WIN' : 'ZERO',
+        }),
+      );
+    }
+  };
+
   // --- Recovery, before the first cycle.
   //
   // `recoveryComplete` was previously set unconditionally at startup, which
@@ -257,6 +285,7 @@ async function main() {
       } else {
         const outcome = await reconciliation.reconcile(accountId, snapshot);
         state = { ...state, recoveryCompleteAtMs: Date.now() };
+        announceClosures(snapshot.closures);
         log(
           `Recovery complete: ${outcome.uncertainResolved} uncertain resolved, ` +
             `${outcome.closuresApplied} closures applied, ${outcome.locksActivated.length} lock(s) activated, ` +
@@ -333,6 +362,7 @@ async function main() {
         if (snapshot.complete) {
           const outcome = await reconciliation.reconcile(accountId, snapshot);
           lastReconciledAt = startedAt;
+          announceClosures(snapshot.closures);
           if (recovering) {
             state = { ...state, recoveryCompleteAtMs: Date.now() };
             log(
