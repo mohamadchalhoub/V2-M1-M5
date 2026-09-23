@@ -154,9 +154,12 @@ export function renderDailyReport(r: DailyReport, maxChars = 3800): string[] {
     );
   };
 
-  const section = (title: string, list: readonly ClosedPosition[]) => [
+  const sum = (list: readonly ClosedPosition[]) => list.reduce((s, p) => s + p.net, 0);
+
+  const section = (title: string, name: string, list: readonly ClosedPosition[]) => [
     title,
     ...(list.length ? list.map(orderLine) : ['No closed orders.']),
+    ...(list.length ? [`➡️ ${name} net: ${money(sum(list))}`] : []),
     '',
   ];
 
@@ -171,10 +174,13 @@ export function renderDailyReport(r: DailyReport, maxChars = 3800): string[] {
     `📊 DAILY REPORT — ${r.date} (Beirut time)`,
     `Account: ${r.accountLabel}`,
     '',
-    ...section('🅰️ ENGINE A (RSI M1 / M5)', engineA),
-    ...section('🅱️ ENGINE B (Telegram)', engineB),
-    ...(other.length ? section('Other (manual / legacy)', other) : []),
+    ...section('🅰️ ENGINE A (RSI M1 / M5)', 'Engine A', engineA),
+    ...section('🅱️ ENGINE B (Telegram)', 'Engine B', engineB),
+    ...(other.length ? section('Other (manual / legacy)', 'Other', other) : []),
     'TOTAL',
+    `Engine A net: ${money(sum(engineA))}`,
+    `Engine B net: ${money(sum(engineB))}`,
+    ...(other.length ? [`Other net: ${money(sum(other))}`] : []),
     `Winning orders: ${r.total.wins} · ${money(winsNet)}`,
     `Losing orders: ${r.total.losses} · ${money(lossesNet)}`,
     ...(r.total.zero > 0 ? [`Break-even orders: ${r.total.zero}`] : []),

@@ -98,6 +98,18 @@ describe('the report', () => {
     expect(t).toContain('Net: +4.64 USD');
   });
 
+  it('gives each engine its own net, at the end of its section and in the totals', () => {
+    const t = text();
+    // Engine A: 4.50 - 2.00 + 3.00; Engine B: 0.24 - 1.10.
+    expect(t).toContain('➡️ Engine A net: +5.50 USD');
+    expect(t).toContain('➡️ Engine B net: -0.86 USD');
+    const total = t.slice(t.indexOf('TOTAL'));
+    expect(total).toContain('Engine A net: +5.50 USD');
+    expect(total).toContain('Engine B net: -0.86 USD');
+    // The section subtotal comes after that engine's orders, before the next section.
+    expect(t.indexOf('➡️ Engine A net')).toBeLessThan(t.indexOf('ENGINE B'));
+  });
+
   it('says so when an engine closed nothing', () => {
     const t = renderDailyReport(buildDailyReport('2026-09-23', 'X', 'USD', [])).join('\n');
     expect(t.match(/No closed orders\./g)).toHaveLength(2);
