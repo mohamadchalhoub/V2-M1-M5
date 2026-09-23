@@ -394,18 +394,21 @@ describe('the remaining gates', () => {
     expect(broker.calls).toHaveLength(0);
   });
 
-  it('REFUSES a market that has moved toward the target, even though it looks like a better entry', async () => {
+  it('does not open a leg for a market that has moved toward the target — it is parked to await the retrace', async () => {
     // Changed on operator instruction: an earlier version accepted this
-    // unconditionally. The published entry is the trade now — price having
-    // moved at all off it, favourably included, is refused.
+    // unconditionally, then a later change refused it outright. The final
+    // rule is neither: the published entry is the trade, so this is not
+    // taken at the better price, but it is not given up on either — it is
+    // watched (see entry-retrace-watch.service.ts) until price comes back
+    // to the entry or reaches TP1 first.
     const broker = new FakeBroker();
     const result = await service(broker).process(
       // $4 better than published, and still short of TP1 at 4329.
       message(),
       ctx({ quote: { bid: 4334.0, ask: 4334.3, tickAtMs: NOW - 500 }, maxAdverseUsd: 1.5 }),
     );
-    expect(result.outcome).toBe('TELEGRAM_LEGS_REFUSED');
-    expect(result.detail).toMatch(/TELEGRAM_ADVERSE_ENTRY_DEVIATION/);
+    expect(result.outcome).toBe('TELEGRAM_AWAITING_ENTRY_RETRACE');
+    expect(result.detail).toMatch(/BETTER than the published entry/);
     expect(broker.calls).toHaveLength(0);
   });
 
@@ -479,5 +482,110 @@ describe('an ambiguous broker answer', () => {
     const broker = new FakeBroker({ status: 'FAILED', error: 'rejected' });
     await service(broker).process(message(), ctx());
     expect(await prisma.telegramSignalGroupLock.count()).toBe(0);
+  });
+});
+
+describe('resuming a signal that is awaiting its entry to retrace', () => {
+  // SIGNAL is SELL 4338, SL 4348, TP1 4329. Parking it first the same way
+  // `process` does — the live message quote is $4 favourable — then driving
+  // `retryAwaitingEntry` directly, the way TelegramEntryRetraceWatchService
+  // does on its sweep.
+  async function park(broker: FakeBroker) {
+    const svc = service(broker);
+    const parked = await svc.process(message(), ctx({ quote: { bid: 4334.0, ask: 4334.3, tickAtMs: NOW - 500 } }));
+    expect(parked.outcome).toBe('TELEGRAM_AWAITING_ENTRY_RETRACE');
+    return { svc, signalId: parked.signalId! };
+  }
+
+  it('does nothing while the market is still favourable — no DB write, still watching', async () => {
+    const broker = new FakeBroker();
+    const { svc, signalId } = await park(broker);
+
+    const result = await svc.retryAwaitingEntry(
+      signalId,
+      ctx({ quote: { bid: 4333.0, ask: 4333.3, tickAtMs: NOW - 500 } }),
+    );
+
+    expect(result).toBeNull();
+    expect(broker.calls).toHaveLength(0);
+    const row = await prisma.telegramSignal.findUnique({ where: { id: signalId } });
+    expect(row!.outcome).toBe('TELEGRAM_AWAITING_ENTRY_RETRACE');
+  });
+
+  it('opens the leg AT THE PUBLISHED ENTRY once price retraces there, not at the price first seen', async () => {
+    const broker = new FakeBroker();
+    const { svc, signalId } = await park(broker);
+
+    const result = await svc.retryAwaitingEntry(
+      signalId,
+      ctx({ quote: { bid: 4338.0, ask: 4338.3, tickAtMs: NOW - 500 } }),
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.outcome).toBe('SUBMITTED');
+    expect(broker.calls).toHaveLength(1);
+    expect(broker.calls[0].takeProfit).toBe(4329);
+    const legs = await prisma.telegramSignalLeg.findMany({ where: { signalId } });
+    expect(legs).toHaveLength(1);
+    expect(Number(legs[0].sourceEntry)).toBe(4338);
+  });
+
+  it('cancels outright, never taken, once price reaches TP1 before retracing', async () => {
+    const broker = new FakeBroker();
+    const { svc, signalId } = await park(broker);
+
+    const result = await svc.retryAwaitingEntry(
+      signalId,
+      ctx({ quote: { bid: 4328.7, ask: 4329.0, tickAtMs: NOW - 500 } }),
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.outcome).toBe('TELEGRAM_TP1_ALREADY_REACHED');
+    expect(broker.calls).toHaveLength(0);
+    const row = await prisma.telegramSignal.findUnique({ where: { id: signalId } });
+    expect(row!.tp1Touched).toBe(true);
+  });
+
+  it('cancels outright when the TP1 watcher latched it independently, without needing a quote', async () => {
+    const broker = new FakeBroker();
+    const { svc, signalId } = await park(broker);
+    await prisma.telegramSignal.update({
+      where: { id: signalId },
+      data: { tp1Touched: true, tp1TouchedAt: new Date(NOW), tp1TouchPrice: 4329 },
+    });
+
+    const result = await svc.retryAwaitingEntry(signalId, ctx());
+
+    expect(result).not.toBeNull();
+    expect(result!.outcome).toBe('TELEGRAM_TP1_ALREADY_REACHED');
+    expect(broker.calls).toHaveLength(0);
+  });
+
+  it('expires once its lifetime has passed, and stops waiting', async () => {
+    const broker = new FakeBroker();
+    const svc = service(broker);
+    const parked = await svc.process(
+      message({ publishedAtMs: NOW - (TELEGRAM_SPEC.maxSignalAgeMs - 2_000) }),
+      ctx({ quote: { bid: 4334.0, ask: 4334.3, tickAtMs: NOW - 500 } }),
+    );
+    expect(parked.outcome).toBe('TELEGRAM_AWAITING_ENTRY_RETRACE');
+
+    const result = await svc.retryAwaitingEntry(
+      parked.signalId!,
+      ctx({ nowMs: NOW + 5_000, quote: { bid: 4334.0, ask: 4334.3, tickAtMs: NOW - 500 } }),
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.outcome).toBe('TELEGRAM_SIGNAL_EXPIRED');
+    expect(broker.calls).toHaveLength(0);
+  });
+
+  it('leaves an already-resolved signal alone — returns null rather than acting twice', async () => {
+    const broker = new FakeBroker();
+    const submitted = await service(broker).process(message(), ctx());
+    expect(submitted.outcome).toBe('SUBMITTED');
+
+    const result = await service(broker).retryAwaitingEntry(submitted.signalId!, ctx());
+    expect(result).toBeNull();
   });
 });

@@ -37,6 +37,7 @@ import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { M1M5Mt5SnapshotService } from '../xauusd-m1m5/mt5-snapshot.service';
 import { TelegramDashboardController } from './dashboard.controller';
+import { TelegramEntryRetraceWatchService } from './entry-retrace-watch.service';
 import { TelegramExecutionController } from './execution.controller';
 import { TelegramEngineExecutionService } from './execution.service';
 import { TelegramIngestionService } from './ingestion/ingestion.service';
@@ -59,6 +60,7 @@ import { TelegramTp1WatchService } from './tp1-watch.service';
     TelegramLegQueueService,
     TelegramReconciliationService,
     TelegramTp1WatchService,
+    TelegramEntryRetraceWatchService,
     TelegramIngestionService,
     // Shared terminal-permission infrastructure. See the header for why this
     // one Engine A provider is acceptable and the rest are not.
@@ -75,6 +77,7 @@ import { TelegramTp1WatchService } from './tp1-watch.service';
     TelegramLegQueueService,
     TelegramReconciliationService,
     TelegramTp1WatchService,
+    TelegramEntryRetraceWatchService,
     TelegramIngestionService,
   ],
 })

@@ -46,6 +46,7 @@ import type { TelegramSourceMessage } from './ingestion.port';
 import { groupMarginRequired, planLegs, type TelegramLeg } from './legs';
 import { legIdempotencyTag } from './idempotency';
 import { firstTarget } from './tp1';
+import type { Direction } from './spec';
 import { parseTelegramSignal, TELEGRAM_PARSER_VERSION } from './parser';
 import { TelegramEngineNotificationService } from './notifications/notification.service';
 import {
@@ -71,8 +72,17 @@ export type TelegramOutcome =
   /** Some other availability block: permissions, quote, symbol, recovery. */
   | 'TELEGRAM_UNAVAILABLE'
   /** The market is materially worse than published, or the broker would
-   * reject a level. Favourable movement is NOT this. */
+   * reject a level. Favourable movement is NOT this — see
+   * TELEGRAM_AWAITING_ENTRY_RETRACE. */
   | 'TELEGRAM_LEGS_REFUSED'
+  /**
+   * Price had already moved favourably off the published entry. Not a
+   * refusal: the signal is parked and re-tried by
+   * `TelegramEntryRetraceWatchService` until it either retraces to the
+   * entry (opened there) or reaches TP1 first (cancelled outright), bounded
+   * by the signal's own lifetime.
+   */
+  | 'TELEGRAM_AWAITING_ENTRY_RETRACE'
   /** Price already reached the first target; the signal is spent. */
   | 'TELEGRAM_TP1_ALREADY_REACHED'
   | 'TELEGRAM_INSUFFICIENT_MARGIN'
@@ -367,6 +377,23 @@ export class TelegramEngineExecutionService {
       // A spent signal is its own outcome, not a generic refusal: it is
       // the one case where nothing was wrong with the signal at all.
       const spent = plan.refusal === 'TELEGRAM_TP1_ALREADY_REACHED';
+      // Favourable movement is not a refusal any more either: it is parked
+      // and re-tried by TelegramEntryRetraceWatchService (see there for the
+      // two ways out) rather than settled here.
+      const awaitingEntry = !spent && plan.refusal === 'TELEGRAM_ADVERSE_ENTRY_DEVIATION' && plan.favourable === true;
+      if (awaitingEntry) {
+        return settle(
+          'TELEGRAM_AWAITING_ENTRY_RETRACE',
+          `${plan.detail} Not refused: the signal is watched, and will be taken if price retraces to the ` +
+            'published entry, or cancelled outright if it reaches the first target first.',
+          {
+            executablePrice: plan.executablePrice,
+            deviationUsd: plan.deviationUsd,
+            favourableEntry: plan.favourable,
+            tp1: plan.tp1,
+          },
+        );
+      }
       return settle(
         spent ? 'TELEGRAM_TP1_ALREADY_REACHED' : 'TELEGRAM_LEGS_REFUSED',
         `${plan.refusal}: ${plan.detail}`,
@@ -396,14 +423,64 @@ export class TelegramEngineExecutionService {
       );
     }
 
-    // --- 8. Claim the group. Atomic; losing the race consumes the signal
-    // rather than queueing it.
+    const result = await this.claimAndSubmitLegs(
+      row.id,
+      { direction: signal.direction, entry: signal.entry, stopLoss: signal.stopLoss },
+      legs,
+      plan,
+      ctx,
+      message.messageId,
+      publishedAtMs,
+      { settleOccupiedAsTerminal: true },
+    );
+    // Never null: settleOccupiedAsTerminal:true means every branch inside
+    // returns a result rather than bailing out silently.
+    return result!;
+  }
+
+  /**
+   * Everything from "claim the group" through "record the outcome and
+   * notify", shared between a fresh signal (`process`) and one resuming
+   * after waiting for its entry to retrace (`retryAwaitingEntry`).
+   *
+   * `settleOccupiedAsTerminal` is the one place the two callers differ: a
+   * fresh signal that loses the occupancy race is consumed (`TELEGRAM_
+   * OCCUPIED`, terminal — queueing it would execute it after its lifetime).
+   * A signal that has been waiting for its entry does not get a second
+   * chance revoked by a race that may resolve within the next second, so it
+   * is left AWAITING and retried on the next sweep instead — this method
+   * returns `null` rather than settling anything.
+   */
+  private async claimAndSubmitLegs(
+    signalId: string,
+    signal: { direction: 'BUY' | 'SELL'; entry: number; stopLoss: number },
+    legs: readonly TelegramLeg[],
+    plan: { executablePrice: number | null; deviationUsd: number | null; favourable: boolean; tp1: number | null },
+    ctx: TelegramExecutionContext,
+    messageId: string,
+    publishedAtMs: number,
+    options: { settleOccupiedAsTerminal: boolean },
+  ): Promise<TelegramResult | null> {
+    const settle = async (outcome: TelegramOutcome, detail: string, extra: Prisma.TelegramSignalUpdateInput = {}) => {
+      await this.prisma.telegramSignal.update({ where: { id: signalId }, data: { outcome, detail, ...extra } });
+      this.announce(
+        outcome,
+        `telegram:skip:${signalId}:${outcome}`,
+        signalSkippedMessage(outcome, detail, { messageId, direction: signal.direction, entry: signal.entry }),
+      );
+      return { outcome, signalId, detail, legsSubmitted: 0 };
+    };
+
+    // --- 8. Claim the group. Atomic; losing the race consumes a FRESH
+    // signal rather than queueing it. A signal resuming from AWAITING_ENTRY
+    // just tries again next sweep.
     try {
       await this.prisma.telegramSignalGroupLock.create({
-        data: { accountId: ctx.accountId, signalId: row.id, state: 'RESERVED' },
+        data: { accountId: ctx.accountId, signalId, state: 'RESERVED' },
       });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        if (!options.settleOccupiedAsTerminal) return null;
         return settle(
           'TELEGRAM_OCCUPIED',
           'Another Telegram signal group is already in flight for this account. The signal is recorded and ' +
@@ -414,14 +491,14 @@ export class TelegramEngineExecutionService {
       throw err;
     }
 
-    const legRows = await this.createLegRows(row.id, legs);
+    const legRows = await this.createLegRows(signalId, legs);
 
     // SHADOW runs every gate above and stops here, so a shadow run rehearses
     // exactly what a live one would do.
     if (!isTelegramSubmissionEnabled()) {
       await this.releaseGroup(ctx.accountId);
       await this.prisma.telegramSignalLeg.updateMany({
-        where: { signalId: row.id },
+        where: { signalId },
         data: { orderStatus: 'SKIPPED', skipReason: `NOT_SUBMITTING_MODE_${getTelegramExecutionMode()}` },
       });
       return settle(
@@ -438,9 +515,7 @@ export class TelegramEngineExecutionService {
     });
 
     // --- 9. Submit each leg, re-checking the lifetime immediately before
-    // each one. A two-leg signal is two round trips and the second can easily
-    // land seconds after the first; a single check at the top would submit a
-    // leg at 63 seconds on the strength of a check that passed at 58.
+    // each one.
     let submitted = 0;
     let expiredMidGroup = 0;
     for (const [i, leg] of legs.entries()) {
@@ -469,7 +544,7 @@ export class TelegramEngineExecutionService {
           sentAt: new Date(atMs),
           submittedAt: new Date(atMs),
           ageAtSubmissionMs: Math.round(legFresh.ageMs),
-          // The number the 60-second rule is actually about.
+          // The number the lifetime rule is actually about.
           publicationToSubmissionMs: Math.round(legFresh.ageMs),
           decisionToSubmissionMs: Math.max(0, Math.round(atMs - ctx.nowMs)),
         },
@@ -478,7 +553,7 @@ export class TelegramEngineExecutionService {
       let response: TelegramSubmitResponse;
       try {
         response = await this.broker.submit({
-          signalId: row.id,
+          signalId,
           legId: legRow.id,
           legIndex: leg.legIndex,
           direction: leg.direction,
@@ -507,7 +582,7 @@ export class TelegramEngineExecutionService {
           'EXECUTION_UNKNOWN',
           `telegram:unknown:${legRow.id}`,
           uncertainExecutionMessage({
-            messageId: message.messageId,
+            messageId,
             legIndex: leg.legIndex,
             detail: response.error ?? 'The broker response was lost or ambiguous.',
           }),
@@ -533,7 +608,7 @@ export class TelegramEngineExecutionService {
     }
 
     const anyUnresolved = await this.prisma.telegramSignalLeg.count({
-      where: { signalId: row.id, orderStatus: { in: ['PENDING', 'UNKNOWN', 'FILLED'] } },
+      where: { signalId, orderStatus: { in: ['PENDING', 'UNKNOWN', 'FILLED'] } },
     });
     if (anyUnresolved === 0) {
       // Every leg is broker-confirmed refused or skipped, so nothing can
@@ -548,10 +623,10 @@ export class TelegramEngineExecutionService {
 
     const detail =
       `${legs.length} leg(s) planned, ${submitted} submitted` +
-      (expiredMidGroup > 0 ? `, ${expiredMidGroup} skipped for passing the 60-second lifetime mid-group` : '') +
+      (expiredMidGroup > 0 ? ', 1 skipped for passing its lifetime mid-submission' : '') +
       '.';
     await this.prisma.telegramSignal.update({
-      where: { id: row.id },
+      where: { id: signalId },
       data: {
         outcome: submitted > 0 ? 'SUBMITTED' : 'TELEGRAM_SIGNAL_EXPIRED',
         detail,
@@ -563,14 +638,14 @@ export class TelegramEngineExecutionService {
     });
     if (submitted > 0) {
       const finalLegs = await this.prisma.telegramSignalLeg.findMany({
-        where: { signalId: row.id },
+        where: { signalId },
         orderBy: { legIndex: 'asc' },
       });
       this.announce(
         'TRADE_SUBMITTED',
-        `telegram:executed:${row.id}`,
+        `telegram:executed:${signalId}`,
         tradeExecutedMessage({
-          messageId: message.messageId,
+          messageId,
           direction: signal.direction,
           sourceEntry: signal.entry,
           stopLoss: signal.stopLoss,
@@ -591,10 +666,125 @@ export class TelegramEngineExecutionService {
 
     return {
       outcome: submitted > 0 ? 'SUBMITTED' : 'TELEGRAM_SIGNAL_EXPIRED',
-      signalId: row.id,
+      signalId,
       detail,
       legsSubmitted: submitted,
     };
+  }
+
+  /**
+   * Re-evaluates a signal parked as `TELEGRAM_AWAITING_ENTRY_RETRACE`
+   * against the current market. Called by `TelegramEntryRetraceWatchService`
+   * on a sweep, never from the message-processing path.
+   *
+   * Returns `null` when nothing changed — the signal is still waiting and
+   * nothing was written — so the caller can distinguish "still watching"
+   * from "resolved" without a sentinel outcome.
+   */
+  async retryAwaitingEntry(signalId: string, ctx: TelegramExecutionContext): Promise<TelegramResult | null> {
+    const row = await this.prisma.telegramSignal.findUnique({ where: { id: signalId } });
+    if (!row || row.outcome !== 'TELEGRAM_AWAITING_ENTRY_RETRACE') return null;
+    if (row.direction === null || row.entry === null || row.stopLoss === null) return null;
+
+    const publishedAtMs = row.publishedAt.getTime();
+    const signal = {
+      direction: row.direction as Direction,
+      entry: Number(row.entry),
+      stopLoss: Number(row.stopLoss),
+      takeProfits: row.takeProfits.map((tp) => Number(tp)),
+    };
+
+    const settle = async (outcome: TelegramOutcome, detail: string, extra: Prisma.TelegramSignalUpdateInput = {}) => {
+      await this.prisma.telegramSignal.update({ where: { id: row.id }, data: { outcome, detail, ...extra } });
+      this.announce(
+        outcome,
+        `telegram:skip:${row.id}:${outcome}`,
+        signalSkippedMessage(outcome, detail, { messageId: row.messageId, direction: signal.direction, entry: signal.entry }),
+      );
+      return { outcome, signalId: row.id, detail, legsSubmitted: 0 };
+    };
+
+    // The TP1 watcher latches independently of this sweep and may have
+    // reached it first; either way, the outcome is the same.
+    if (row.tp1Touched) {
+      return settle(
+        'TELEGRAM_TP1_ALREADY_REACHED',
+        'The first target was reached while this signal was waiting for its entry to retrace. It is cancelled ' +
+          'outright: the move it described has already happened without it, and it is never taken at a worse ' +
+          'level than published.',
+      );
+    }
+
+    const freshness = evaluateFreshness(publishedAtMs, ctx.nowMs);
+    if (!freshness.fresh) {
+      return settle(
+        'TELEGRAM_SIGNAL_EXPIRED',
+        `${freshness.detail} It was awaiting its published entry to retrace and never got there.`,
+      );
+    }
+
+    const availability = evaluateTelegramAvailability({
+      nowMs: ctx.nowMs,
+      snapshot: ctx.snapshot,
+      expectedLoginId: ctx.expectedLoginId,
+      symbolSessionOpen: ctx.symbolSessionOpen,
+      symbolTradable: ctx.symbolTradable,
+      quote: ctx.quote,
+      recoveryComplete: ctx.recoveryComplete,
+    });
+    if (!availability.available) {
+      // Transient (a quote gap, an account snapshot not yet read this
+      // instant). Neither of this wait's two exits, so it is retried next
+      // sweep rather than settled.
+      return null;
+    }
+    const quote = ctx.quote!;
+
+    const plan = planLegs({
+      signal,
+      quote,
+      constraints: ctx.constraints,
+      tp1AlreadyTouched: false,
+      maxAdverseUsd: ctx.maxAdverseUsd,
+    });
+
+    if (plan.legs === null) {
+      if (plan.refusal === 'TELEGRAM_TP1_ALREADY_REACHED') {
+        return settle('TELEGRAM_TP1_ALREADY_REACHED', plan.detail ?? 'The first target has been reached.', {
+          executablePrice: plan.executablePrice,
+          tp1Touched: true,
+          tp1TouchedAt: new Date(ctx.nowMs),
+          tp1TouchPrice: plan.executablePrice,
+        });
+      }
+      // Still favourable (has not retraced yet), or adverse beyond the
+      // configured bound, or a broker-stop refusal at the current market:
+      // none of these end the wait. Only a retrace into the eligible zone
+      // or TP1 being reached does.
+      return null;
+    }
+
+    const marginRequired = groupMarginRequired(plan.legs, ctx.contractSize, plan.executablePrice!, ctx.leverage);
+    if (ctx.freeMargin === null || !(marginRequired <= ctx.freeMargin)) {
+      return settle(
+        'TELEGRAM_INSUFFICIENT_MARGIN',
+        ctx.freeMargin === null
+          ? 'Free margin is unknown, which refuses rather than permits: an unread account is not a solvent one.'
+          : `The group requires ${fmt(marginRequired)} of margin against ${fmt(ctx.freeMargin)} free.`,
+        { executablePrice: plan.executablePrice, deviationUsd: plan.deviationUsd, favourableEntry: plan.favourable, tp1: plan.tp1 },
+      );
+    }
+
+    return this.claimAndSubmitLegs(
+      row.id,
+      { direction: signal.direction, entry: signal.entry, stopLoss: signal.stopLoss },
+      plan.legs,
+      plan,
+      ctx,
+      row.messageId,
+      publishedAtMs,
+      { settleOccupiedAsTerminal: false },
+    );
   }
 
   /**

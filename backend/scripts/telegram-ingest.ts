@@ -23,6 +23,7 @@ import { Logger } from '@nestjs/common';
 import { TelegramEngineModule } from '../src/telegram-engine/telegram-engine.module';
 import { TelegramIngestionService } from '../src/telegram-engine/ingestion/ingestion.service';
 import { TelegramTp1WatchService, TP1_WATCH_WINDOW_MS } from '../src/telegram-engine/tp1-watch.service';
+import { TelegramEntryRetraceWatchService } from '../src/telegram-engine/entry-retrace-watch.service';
 import { getTelegramExecutionMode, telegramEngineEnabled } from '../src/telegram-engine/controls';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { TelegramEngineNotificationService } from '../src/telegram-engine/notifications/notification.service';
@@ -36,6 +37,12 @@ import { TelegramEngineNotificationService } from '../src/telegram-engine/notifi
  * from the last few minutes.
  */
 const TP1_SWEEP_INTERVAL_MS = 1_000;
+/**
+ * How often a signal awaiting its entry retrace is re-checked. Slightly
+ * slower than the TP1 sweep on purpose: this sweep can place a real order and
+ * touches the account snapshot, quote and margin, not just a boolean latch.
+ */
+const ENTRY_RETRACE_SWEEP_INTERVAL_MS = 2_000;
 const HEARTBEAT_INTERVAL_MS = 60_000;
 /** Slow: a retry storm against a revoked token helps nobody. */
 const ALERT_RETRY_INTERVAL_MS = 60_000;
@@ -92,6 +99,7 @@ async function main(): Promise<void> {
   });
   const ingestion = app.get(TelegramIngestionService);
   const tp1 = app.get(TelegramTp1WatchService);
+  const entryRetrace = app.get(TelegramEntryRetraceWatchService);
   const prisma = app.get(PrismaService);
   const notifier = app.get(TelegramEngineNotificationService);
 
@@ -117,6 +125,14 @@ async function main(): Promise<void> {
       logger.warn(`TP1 sweep failed: ${(err as Error).message}`);
     });
   }, TP1_SWEEP_INTERVAL_MS);
+
+  const entryRetraceSweep = setInterval(() => {
+    void entryRetrace.sweep(accountId, Date.now(), expectedLoginId).catch((err) => {
+      // A failed sweep leaves every waiting signal exactly as it was, so
+      // nothing is lost — the next tick tries again.
+      logger.warn(`entry-retrace sweep failed: ${(err as Error).message}`);
+    });
+  }, ENTRY_RETRACE_SWEEP_INTERVAL_MS);
 
   // Retries alerts that failed to send earlier. Without this, one transient
   // network blip permanently loses a trade alert -- the row would sit FAILED
@@ -155,6 +171,7 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string) => {
     logger.log(`${signal} received; stopping ingestion.`);
     clearInterval(sweep);
+    clearInterval(entryRetraceSweep);
     clearInterval(heartbeat);
     clearInterval(alertRetry);
     await ingestion.stop();
