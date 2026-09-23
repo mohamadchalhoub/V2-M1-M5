@@ -38,7 +38,14 @@ export class TelegramDashboardController {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaClient) {}
 
   @Get('status')
-  async status(@Query('accountId') accountId?: string) {
+  async status(@Query('accountId') queryAccountId?: string) {
+    // Single-account deployment: if the caller does not supply one (the
+    // dashboard page does not track a separate account concept), resolve
+    // the same account xauusd-m1m5's own dashboard uses. Without this,
+    // reconciliation and signal history silently defaulted to "no account",
+    // which reported a real recoveryComplete as false.
+    const accountId =
+      queryAccountId ?? (await this.prisma.tradingAccount.findFirst({ orderBy: { createdAt: 'asc' } }))?.id ?? undefined;
     const session = summariseSession();
     const recon = accountId
       ? await this.prisma.telegramReconciliationState.findUnique({ where: { accountId } })

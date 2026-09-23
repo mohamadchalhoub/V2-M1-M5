@@ -398,6 +398,14 @@ export const api = {
   // and controls. Deliberately separate endpoints from the gold ones below,
   // which now serve only the retired strategy's remaining positions.
   xauusdM1M5Dashboard: () => apiFetch<XauusdM1M5Dashboard>('/xauusd-m1m5/dashboard'),
+  xauusdM1M5Volume: () => apiFetch<XauusdM1M5Volume>('/xauusd-m1m5/volume'),
+  setXauusdM1M5Volume: (input: { volumeLots: number; note?: string }) =>
+    apiFetch<{ ok: boolean; volumeLots?: number; error?: string }>('/xauusd-m1m5/volume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    }),
+  telegramEngineStatus: () => apiFetch<TelegramEngineStatus>('/xauusd-m1m5/telegram-engine/status'),
   xauusdRsiStatus: () => apiFetch<XauusdRsiStatus>('/research/xauusd-rsi-status'),
   xauusdRsiControls: () => apiFetch<XauusdRsiControls>('/research/xauusd-rsi-controls'),
   setXauusdRsiVolume: (volumeLots: number, note?: string) =>
@@ -992,4 +1000,111 @@ export interface XauusdRsiControls {
   killSwitch: { active: boolean; source: string | null };
   stopNewEntries: { active: boolean; source: string | null };
   brackets: { stopLossPoints: number; takeProfitPoints: number };
+}
+
+export interface XauusdM1M5Volume {
+  volumeLots: number | null;
+  provenance: string | null;
+  constraints: { minLots: number; maxLots: number; stepLots: number } | null;
+  audit: {
+    previousLots: number | null;
+    newLots: number;
+    changedBy: string;
+    changedAt: string;
+    provenance: string;
+  }[];
+}
+
+// Engine B — the Telegram copy engine (@SFxauusd1). Deliberately its own
+// endpoint and its own type, never merged into XauusdM1M5Dashboard above:
+// the two engines share an account but no rule, and an operator reading a
+// row of this page needs to know unambiguously which engine it describes.
+export interface TelegramEngineStatus {
+  engine: {
+    label: string;
+    version: string;
+    magicNumber: number;
+    sourceChannel: string;
+    executionMode: string;
+    engineEnabled: boolean;
+    rules: {
+      lotsPerTakeProfit: number;
+      maxSignalAgeSeconds: number;
+      maxAdverseEntryDeviationUsd: number;
+      semanticDuplicateWindowMinutes: number;
+      schedule: string;
+    };
+    killSwitches: { telegram: boolean; global: boolean };
+  };
+  ingestion: {
+    telegramAuthorized: boolean;
+    sourceChannelResolved: boolean;
+    sourceChannel: string | null;
+    sourceChannelId: string | null;
+    account: string | null;
+    authorizedAt: string | null;
+    sessionPermissionsOk: boolean | null;
+    lastSourceMessageAt: string | null;
+    lastSourceMessageId: string | null;
+    lastIngestionLatencyMs: number | null;
+  };
+  reconciliation: {
+    recoveryComplete: boolean;
+    lastCompletedAt: string | null;
+    brokerSnapshotAt: string | null;
+    unresolvedLegs: number | null;
+    detail: string;
+  };
+  results: {
+    wins: number;
+    losses: number;
+    breakeven: number;
+    legsByStatus: Record<string, number>;
+  };
+  signals: {
+    id: string;
+    messageId: string;
+    direction: string | null;
+    sourceEntry: number | null;
+    stopLoss: number | null;
+    takeProfits: number[];
+    tp1: number | null;
+    tp1Touched: boolean;
+    tp1TouchedAt: string | null;
+    tp1TouchPrice: number | null;
+    publishedAt: string;
+    receivedAt: string;
+    ageAtDecisionMs: number | null;
+    latency: {
+      publicationToIngestionMs: number | null;
+      ingestionToParseMs: number | null;
+      parseToDecisionMs: number | null;
+      publicationToDecisionMs: number | null;
+    };
+    outcome: string;
+    detail: string;
+    executablePrice: number | null;
+    deviationUsd: number | null;
+    favourableEntry: boolean | null;
+    fingerprint: string;
+    parserVersion: string;
+    editVersion: number;
+    lastEditedAt: string | null;
+    legs: {
+      legIndex: number;
+      volumeLots: number;
+      takeProfit: number;
+      stopLoss: number;
+      status: string;
+      skipReason: string | null;
+      ticket: string | null;
+      fillPrice: number | null;
+      ageAtSubmissionMs: number | null;
+      publicationToSubmissionMs: number | null;
+      submissionToBrokerAckMs: number | null;
+      protectionIncident: string | null;
+      closureComplete: boolean;
+      realizedPl: number | null;
+    }[];
+  }[];
 }

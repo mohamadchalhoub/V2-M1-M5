@@ -16,7 +16,8 @@
  *    is enforced in `dashboard-view.ts`, which builds the payload and is
  *    tested for it directly.
  */
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 import { M1M5Mt5SnapshotService } from './mt5-snapshot.service';
 import { executionLatency } from './execution-latency';
 import { DashboardTokenGuard } from '../auth/dashboard-token.guard';
@@ -30,7 +31,14 @@ import { evaluateReadiness, type Mt5PermissionSnapshot } from './mt5-readiness';
 import { describeOwnership, extractMagic } from './ownership';
 import { heartbeatIsFresh, readWatchState, HEARTBEAT_STALE_AFTER_MS } from './state-store';
 import { SPEC_HASH, TIMEFRAMES, XAUUSD_M1M5_STRATEGY_VERSION, type Timeframe } from './spec';
-import { V2_MAGIC_NUMBERS } from './safety-constants';
+import { V2_MAGIC_NUMBERS, V2_SYMBOL } from './safety-constants';
+import { setVolume } from './volume-setting';
+import { validateVolume } from './volume';
+
+class SetM1M5VolumeDto {
+  @IsNumber() volumeLots!: number;
+  @IsOptional() @IsString() note?: string;
+}
 
 @Controller('xauusd-m1m5')
 @UseGuards(DashboardTokenGuard)
@@ -216,4 +224,69 @@ export class M1M5DashboardController {
       },
     };
   }
+
+  /** Broker-validated (live SymbolMetadata min/max/step) volume for this strategy's own orders. */
+  @Get('volume')
+  async getVolume() {
+    const account = await this.prisma.tradingAccount.findFirst({ orderBy: { createdAt: 'asc' } });
+    const accountId = account?.id ?? null;
+    const metadata = accountId ? await this.prisma.symbolMetadata.findUnique({ where: { symbol: V2_SYMBOL } }) : null;
+    const setting = accountId ? await this.prisma.xauusdM1M5VolumeSetting.findUnique({ where: { accountId } }) : null;
+    const auditRows = accountId
+      ? await this.prisma.xauusdM1M5VolumeAudit.findMany({ where: { accountId }, orderBy: { changedAt: 'desc' }, take: 10 })
+      : [];
+    return {
+      volumeLots: setting ? Number(setting.volumeLots) : null,
+      provenance: setting?.provenance ?? null,
+      constraints: metadata
+        ? { minLots: Number(metadata.volumeMin), maxLots: Number(metadata.volumeMax), stepLots: Number(metadata.volumeStep) }
+        : null,
+      audit: auditRows.map((a) => ({
+        previousLots: a.previousLots ? Number(a.previousLots) : null,
+        newLots: Number(a.newLots),
+        changedBy: a.changedBy,
+        changedAt: a.changedAt.toISOString(),
+        provenance: a.provenance,
+      })),
+    };
+  }
+
+  /**
+   * Sets this strategy's own order volume. Never resizes an already-open
+   * position or a decision already queued -- live from the next evaluation
+   * onward, same as the gold-demo control this mirrors.
+   */
+  @Post('volume')
+  async setVolume(@Body() dto: SetM1M5VolumeDto) {
+    const account = await this.prisma.tradingAccount.findFirst({ orderBy: { createdAt: 'asc' } });
+    if (!account) return { ok: false, error: 'no trading account exists yet' };
+
+    const metadata = await this.prisma.symbolMetadata.findUnique({ where: { symbol: V2_SYMBOL } });
+    if (metadata) {
+      const limits = { min: Number(metadata.volumeMin), max: Number(metadata.volumeMax), step: Number(metadata.volumeStep) };
+      const check = validateVolume(dto.volumeLots, limits);
+      if (!check.acceptable) {
+        return {
+          ok: false,
+          error: `${dto.volumeLots} lot is not valid for this broker (min ${limits.min}, max ${limits.max}, step ${limits.step}): ${check.reason}`,
+        };
+      }
+    }
+
+    const result = await setVolume(this.prisma as any, {
+      accountId: account.id,
+      lots: dto.volumeLots,
+      changedBy: 'dashboard operator',
+      note: dto.note ?? 'dashboard change',
+    });
+    if (!result.ok) return { ok: false, error: result.reason };
+    return {
+      ok: true,
+      volumeLots: result.lots,
+      previousLots: result.previousLots,
+      stopRiskPct: result.stopRiskPct,
+      aboveCap: result.aboveCap,
+    };
+  }
+
 }

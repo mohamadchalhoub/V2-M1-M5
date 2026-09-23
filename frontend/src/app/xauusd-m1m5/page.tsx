@@ -3,6 +3,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { Tile } from "@/components/Tile";
 import { EmptyState } from "@/components/EmptyState";
 import { formatDateTime } from "@/lib/format";
+import { VolumeForm } from "./VolumeForm";
+import type { TelegramEngineStatus, XauusdM1M5Volume } from "@/lib/api";
 
 /**
  * The live dashboard for `xauusd-m1-m5-rsi-threshold-v2`.
@@ -49,6 +51,8 @@ function modeTone(mode: string): "neutral" | "ok" | "warn" | "down" {
 
 export default async function XauusdM1M5Page() {
   let view;
+  let volume: XauusdM1M5Volume | null = null;
+  let telegramEngine: TelegramEngineStatus | null = null;
   try {
     view = await api.xauusdM1M5Dashboard();
   } catch (err) {
@@ -62,6 +66,20 @@ export default async function XauusdM1M5Page() {
         </EmptyState>
       </div>
     );
+  }
+
+  // Best-effort: neither control panel below is load-bearing for the RSI
+  // strategy's own status, so a failure here must not blank the whole page —
+  // it just means that one section reports itself unavailable.
+  try {
+    volume = await api.xauusdM1M5Volume();
+  } catch {
+    volume = null;
+  }
+  try {
+    telegramEngine = await api.telegramEngineStatus();
+  } catch {
+    telegramEngine = null;
   }
 
   const heartbeatOk = view.heartbeat.fresh === true;
@@ -271,6 +289,136 @@ export default async function XauusdM1M5Page() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* --- Volume control (RSI engine, Engine A). --- */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-medium text-text-muted">Order volume</h2>
+        <div className="rounded-lg border border-border bg-surface p-4 space-y-2">
+          <p className="text-sm">
+            Current: <span className="font-mono">{volume?.volumeLots ?? "unknown"}</span> lots
+          </p>
+          {volume ? (
+            <VolumeForm
+              currentVolumeLots={volume.volumeLots}
+              minLots={volume.constraints?.minLots ?? null}
+              maxLots={volume.constraints?.maxLots ?? null}
+              stepLots={volume.constraints?.stepLots ?? null}
+            />
+          ) : (
+            <p className="text-sm text-text-muted">Volume control unavailable — the API could not be reached.</p>
+          )}
+          {volume?.provenance && <p className="text-xs text-text-muted">{volume.provenance}</p>}
+        </div>
+      </section>
+
+      {/* --- Engine B: the Telegram copy engine. Its own section, its own
+          endpoint, never merged into the RSI view above it shares an
+          account with — see telegram-engine/dashboard.controller.ts. --- */}
+      <section className="space-y-2">
+        <h2 className="text-sm font-medium text-text-muted">Engine B — Telegram ({"@"}
+          {telegramEngine?.engine.sourceChannel?.replace(/^@/, "") ?? "SFxauusd1"})
+        </h2>
+        {!telegramEngine ? (
+          <EmptyState>
+            <strong>Engine B status could not be reached.</strong> This says nothing about whether it is running.
+          </EmptyState>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Tile
+                label="Execution mode"
+                value={telegramEngine.engine.executionMode}
+                tone={modeTone(telegramEngine.engine.executionMode)}
+              />
+              <Tile
+                label="Engine enabled"
+                value={telegramEngine.engine.engineEnabled ? "yes" : "no"}
+                tone={telegramEngine.engine.engineEnabled ? "ok" : "neutral"}
+              />
+              <Tile
+                label="Ingestion connected"
+                value={telegramEngine.ingestion.telegramAuthorized ? "authorized" : "not authorized"}
+                tone={telegramEngine.ingestion.telegramAuthorized ? "ok" : "down"}
+              />
+              <Tile
+                label="Reconciliation"
+                value={telegramEngine.reconciliation.recoveryComplete ? "complete" : "not complete"}
+                tone={telegramEngine.reconciliation.recoveryComplete ? "ok" : "warn"}
+              />
+              <Tile
+                label="Kill switch (telegram)"
+                value={telegramEngine.engine.killSwitches.telegram ? "ACTIVE" : "off"}
+                tone={telegramEngine.engine.killSwitches.telegram ? "down" : "ok"}
+              />
+              <Tile
+                label="Kill switch (global)"
+                value={telegramEngine.engine.killSwitches.global ? "ACTIVE" : "off"}
+                tone={telegramEngine.engine.killSwitches.global ? "down" : "ok"}
+              />
+              <Tile label="Magic number" value={String(telegramEngine.engine.magicNumber)} />
+              <Tile
+                label="Wins / losses / BE"
+                value={`${telegramEngine.results.wins} / ${telegramEngine.results.losses} / ${telegramEngine.results.breakeven}`}
+              />
+            </div>
+
+            <div className="rounded-lg border border-border bg-surface p-4 space-y-1 text-sm">
+              <p>
+                Source channel: <span className="font-mono">{telegramEngine.ingestion.sourceChannel ?? "unresolved"}</span>{" "}
+                ({telegramEngine.ingestion.sourceChannelId ?? "no id"})
+              </p>
+              <p>
+                Last source message:{" "}
+                {telegramEngine.ingestion.lastSourceMessageAt
+                  ? formatDateTime(telegramEngine.ingestion.lastSourceMessageAt)
+                  : "none received yet"}
+                {telegramEngine.ingestion.lastSourceMessageId
+                  ? ` (id ${telegramEngine.ingestion.lastSourceMessageId})`
+                  : ""}
+              </p>
+              <p className="text-text-muted">{telegramEngine.reconciliation.detail}</p>
+            </div>
+
+            <div>
+              <h3 className="text-xs uppercase tracking-wide text-text-muted mb-2">Recent signals</h3>
+              {telegramEngine.signals.length === 0 ? (
+                <p className="text-sm text-text-muted">No signals recorded yet.</p>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-sm">
+                    <thead className="bg-surface text-text-muted text-xs uppercase">
+                      <tr>
+                        <th className="text-left px-3 py-2">Published</th>
+                        <th className="text-left px-3 py-2">Direction</th>
+                        <th className="text-left px-3 py-2">Entry / SL</th>
+                        <th className="text-left px-3 py-2">TPs</th>
+                        <th className="text-left px-3 py-2">Outcome</th>
+                        <th className="text-left px-3 py-2">Legs</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {telegramEngine.signals.slice(0, 10).map((s) => (
+                        <tr key={s.id} className="border-t border-border">
+                          <td className="px-3 py-2 font-mono text-xs">{formatDateTime(s.publishedAt)}</td>
+                          <td className="px-3 py-2">{s.direction ?? "—"}</td>
+                          <td className="px-3 py-2 font-mono text-xs">
+                            {s.sourceEntry ?? "—"} / {s.stopLoss ?? "—"}
+                          </td>
+                          <td className="px-3 py-2 font-mono text-xs">{s.takeProfits.join(", ") || "—"}</td>
+                          <td className="px-3 py-2 text-xs">{s.outcome}</td>
+                          <td className="px-3 py-2 text-xs">
+                            {s.legs.map((l) => `${l.status}${l.ticket ? ` #${l.ticket}` : ""}`).join(", ") || "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* --- Anything degrading observation right now. --- */}
