@@ -84,13 +84,25 @@ TELEGRAM_RECONCILE_DEAL_DAYS = 3
 
 
 def _position_magic(position: dict[str, Any]) -> int | None:
-    """MT5's magic number for an open position.
+    """MT5's magic number for a position OR a deal.
 
-    `get_open_positions()` flattens the terminal's tuple into a friendlier
-    dict but keeps the magic only inside `raw`. Reading it from the top level
-    silently yields None for every position, which would make Engine B's
-    reconciliation see an account with no Telegram positions - and therefore
-    conclude, from a complete snapshot, that live legs had closed.
+    Despite the name (kept for the existing position call sites),
+    this reads the same "raw" shape `get_open_positions()` and
+    `get_deals_since()`/`get_recent_deals()` both produce, and MT5 carries
+    magic on deals exactly the same way it does on positions - it is set
+    once, on the order, and every deal that order produces (the opening fill
+    AND the broker's own auto-close on hitting TP/SL) inherits it. That is
+    what makes magic the reliable way to attribute a CLOSING deal to this
+    engine: unlike the order comment, which a broker's auto-close does not
+    reliably carry forward from the original order, magic survives it.
+
+    `get_open_positions()`/`get_deals_since()` flatten the terminal's tuple
+    into a friendlier dict but keep the magic only inside `raw`. Reading it
+    from the top level silently yields None, which for a position would make
+    reconciliation see an account with no Telegram positions and wrongly
+    conclude a live leg had closed; for a deal it would make every closing
+    deal invisible and leave a correctly-detected closure with no realised
+    P/L attached (see _push_telegram_reconciliation's own comment on this).
     """
     raw = position.get("raw")
     if isinstance(raw, dict):
@@ -1281,16 +1293,35 @@ class CollectorApp:
         if complete:
             try:
                 for deal in self._client.get_recent_deals(TELEGRAM_RECONCILE_DEAL_DAYS):
-                    # Only closing deals, and only ones carrying a Telegram
-                    # leg tag. Matching on magic alone is not possible here:
-                    # the collector's deal mapping does not surface it, and
-                    # the tag is the stronger identifier anyway because it
-                    # names the LEG rather than the engine.
+                    # Only closing deals, and only ones this engine's magic
+                    # number owns.
+                    #
+                    # This used to filter on "TG" appearing in the deal's own
+                    # comment, and that was a real bug, not a stricter check:
+                    # a broker's own auto-close on hitting TP/SL commonly does
+                    # NOT carry the original order's comment forward onto the
+                    # closing deal, so a completely legitimate closure was
+                    # silently dropped here before it ever reached the
+                    # backend. The backend's reconciliation then correctly
+                    # detected the leg was gone from a complete snapshot,
+                    # marked it closed - and had no deal to attach a realised
+                    # P/L to, because this loop had thrown the deal away.
+                    # First observed 2026-09-23: signal 77302 (BUY 4306 -> TP
+                    # 4315) filled, hit its target, and closed with
+                    # closureComplete=true but realizedPl=null.
+                    #
+                    # Magic survives an auto-close the way a comment does not
+                    # - it is set once on the order and every deal that order
+                    # produces inherits it, exactly as it does for positions.
+                    # The comment/tag is still SENT below and is still what
+                    # the backend uses to attribute a deal to one LEG among
+                    # several that share this magic; it is no longer what
+                    # decides whether the deal is examined at all.
                     if deal.get("entry") not in ("OUT", "OUT_BY", "INOUT"):
                         continue
-                    comment = deal.get("comment") or ""
-                    if "TG" not in comment:
+                    if _position_magic(deal) != TELEGRAM_MAGIC:
                         continue
+                    comment = deal.get("comment") or ""
                     deals.append({
                         "ticket": str(deal.get("ticket")),
                         "positionId": str(deal["position_id"]) if deal.get("position_id") else None,

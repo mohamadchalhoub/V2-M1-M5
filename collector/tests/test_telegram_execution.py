@@ -337,6 +337,75 @@ def test_an_absent_broker_stop_is_reported_as_null_not_as_zero():
     assert position["takeProfit"] is None
 
 
+def test_a_closing_deal_is_included_by_magic_even_without_the_comment_tag():
+    """Real incident, 2026-09-23: signal 77302 (BUY 4306, TP 4315) filled,
+    hit its target, and closed at the broker with a real profit -- but the
+    collector was filtering closing deals on "TG" appearing in the deal's
+    OWN comment, and a broker's auto-close on hitting TP/SL does not reliably
+    carry the original order's comment forward onto the closing deal. The
+    deal was silently dropped here, before the backend ever saw it, so a
+    correctly-detected closure was left with no realised P/L attached.
+
+    Magic survives an auto-close the way a comment does not: it is set once
+    on the order and every deal that order produces inherits it. This is the
+    regression test for the collector-side half of that fix."""
+    app, client, api, _executor = _telegram_app()
+    client.get_open_positions.return_value = []
+    client.get_recent_deals.return_value = [
+        {
+            "ticket": 900050,
+            "position_id": 58590477562,
+            "entry": "OUT",
+            # The broker's own comment on the auto-close -- NOT "TGabc123def456-L1".
+            "comment": "tp",
+            "profit": 0.24,
+            "closed_at": "2026-09-23T12:50:29.256000+00:00",
+            "raw": {"magic": 262610210},
+        },
+    ]
+
+    app._push_telegram_reconciliation()
+
+    payload = api.post_telegram_reconcile.call_args[0][1]
+    assert payload["snapshotComplete"] is True
+    assert len(payload["deals"]) == 1
+    deal = payload["deals"][0]
+    assert deal["positionId"] == "58590477562"
+    assert deal["profit"] == 0.24
+
+
+def test_a_closing_deal_under_another_engine_s_magic_is_still_excluded():
+    """The fix widens what counts as "carries the tag"; it must not also
+    widen what counts as "belongs to Engine B". A deal magic-owned by the RSI
+    engine (or anything else) is still never sent."""
+    app, client, api, _executor = _telegram_app()
+    client.get_open_positions.return_value = []
+    client.get_recent_deals.return_value = [
+        {"ticket": 1, "position_id": 111, "entry": "OUT", "comment": "", "profit": 5.0,
+         "closed_at": None, "raw": {"magic": 262610200}},
+    ]
+
+    app._push_telegram_reconciliation()
+
+    assert api.post_telegram_reconcile.call_args[0][1]["deals"] == []
+
+
+def test_a_non_closing_deal_is_excluded_regardless_of_magic():
+    """Only OUT/OUT_BY/INOUT deals establish a realised result. The entry
+    (IN) deal of the same position carries the same magic and must not be
+    read as a closure."""
+    app, client, api, _executor = _telegram_app()
+    client.get_open_positions.return_value = []
+    client.get_recent_deals.return_value = [
+        {"ticket": 2, "position_id": 58590477562, "entry": "IN", "comment": "TGabc-L1",
+         "profit": 0.0, "closed_at": None, "raw": {"magic": 262610210}},
+    ]
+
+    app._push_telegram_reconciliation()
+
+    assert api.post_telegram_reconcile.call_args[0][1]["deals"] == []
+
+
 def test_a_failed_deal_query_makes_the_snapshot_incomplete():
     """Deals are how a realised result is established. Without them the
     snapshot cannot support a closure conclusion."""
