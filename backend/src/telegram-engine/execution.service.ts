@@ -40,7 +40,7 @@ import type { BrokerStopConstraints } from '../xauusd-m1m5/brackets';
 import type { Mt5PermissionSnapshot } from '../xauusd-m1m5/mt5-readiness';
 import { evaluateTelegramAvailability } from './availability';
 import { getTelegramExecutionMode, isTelegramSubmissionEnabled } from './controls';
-import { evaluateDuplicate, semanticKey, sourceKey } from './duplicate';
+import { evaluateDuplicate, restatementKey, semanticKey, sourceKey } from './duplicate';
 import { legMayBeSubmitted, evaluateFreshness } from './freshness';
 import type { TelegramSourceMessage } from './ingestion.port';
 import { groupMarginRequired, planLegs, type TelegramLeg } from './legs';
@@ -207,6 +207,7 @@ export class TelegramEngineExecutionService {
     const keys = {
       sourceKey: sourceKey(message.channelId, message.messageId),
       semanticKey: semanticKey(signal),
+      restatementKey: restatementKey(signal),
       publishedAtMs,
     };
 
@@ -222,6 +223,7 @@ export class TelegramEngineExecutionService {
           messageId: message.messageId,
           sourceKey: keys.sourceKey,
           semanticKey: keys.semanticKey,
+          restatementKey: keys.restatementKey,
           publishedAt: new Date(publishedAtMs),
           receivedAt: new Date(message.receivedAtMs),
           rawText: message.text ?? '',
@@ -302,18 +304,26 @@ export class TelegramEngineExecutionService {
 
     // --- 4. Semantic repost: a genuinely new message carrying a trade
     // already taken. Identity cannot catch it, so content does.
+    // Selected on EITHER key: a restatement shares the restatement key but
+    // not the semantic one, so filtering on semanticKey alone would never
+    // load the row that proves it is a repost.
     const priors = await this.prisma.telegramSignal.findMany({
       where: {
         accountId: ctx.accountId,
-        semanticKey: keys.semanticKey,
         id: { not: row.id },
         publishedAt: { gte: new Date(publishedAtMs - TELEGRAM_SPEC.semanticDuplicateWindowMs) },
+        OR: [{ semanticKey: keys.semanticKey }, { restatementKey: keys.restatementKey }],
       },
-      select: { sourceKey: true, semanticKey: true, publishedAt: true },
+      select: { sourceKey: true, semanticKey: true, restatementKey: true, publishedAt: true },
     });
     const dup = evaluateDuplicate(
       keys,
-      priors.map((p) => ({ sourceKey: p.sourceKey, semanticKey: p.semanticKey, publishedAtMs: p.publishedAt.getTime() })),
+      priors.map((p) => ({
+        sourceKey: p.sourceKey,
+        semanticKey: p.semanticKey,
+        restatementKey: p.restatementKey,
+        publishedAtMs: p.publishedAt.getTime(),
+      })),
     );
     if (dup.duplicate) return settle('TELEGRAM_DUPLICATE_SIGNAL', dup.detail!);
 

@@ -2284,6 +2284,12 @@ model TelegramSignal {
   // Equal keys within the repost window are the same trade published twice.
   semanticKey String @map("semantic_key")
 
+  // Hash of direction + entry + stop ONLY, deliberately excluding the
+  // targets. The source channel restates a signal within seconds with the
+  // target list varied, and those are not equal by semanticKey; this is what
+  // recognises them as the same instruction rather than a second trade.
+  restatementKey String? @map("restatement_key")
+
   // The ORIGINAL Telegram publication instant. The 60-second lifetime is
   // measured from here and never from receivedAt, so a delayed or replayed
   // message cannot look fresh.
@@ -2363,6 +2369,7 @@ model TelegramSignal {
 
   @@unique([accountId, engineVersion, sourceKey])
   @@index([accountId, semanticKey, publishedAt])
+  @@index([accountId, restatementKey, publishedAt])
   @@index([accountId, publishedAt])
   @@map("telegram_signals")
 }

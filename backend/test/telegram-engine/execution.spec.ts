@@ -77,6 +77,11 @@ const READY_SNAPSHOT: Mt5PermissionSnapshot = {
 
 const SELL_TWO_TP = ['Gold sell now 4338', 'SL 4348', 'TP 4329', 'TP 4300'].join('\n');
 
+/** Builds a multi-line message body, matching the channel's real layout. */
+function lines(...parts: string[]): string {
+  return parts.join('\n');
+}
+
 function message(over: Partial<TelegramSourceMessage> = {}): TelegramSourceMessage {
   seq += 1;
   return {
@@ -286,6 +291,30 @@ describe('duplicates', () => {
     const afterRestart = await service(broker).process(msg, ctx());
     expect(afterRestart.outcome).toBe('TELEGRAM_DUPLICATE_SIGNAL');
     expect(broker.calls).toHaveLength(2);
+  });
+
+  it('does not open a second trade for a restatement with a DIFFERENT target list', async () => {
+    // The real pattern from @SFxauusd1: the same entry and stop republished
+    // seconds later with the targets varied. Not equal by fingerprint, so
+    // only this rule stops it becoming a second trade.
+    const broker = new FakeBroker();
+    const svc = service(broker);
+    await svc.process(
+      message({ messageId: '77242', text: lines('Gold buy now 4316', '', 'Sl 4305', '', 'Tp 4323') }),
+      ctx({ quote: { bid: 4315.7, ask: 4316.0, tickAtMs: NOW - 500 } }),
+    );
+    await prisma.telegramSignalGroupLock.deleteMany();
+
+    const restated = await svc.process(
+      message({ messageId: '77250', text: lines('Gold buy now 4316', '', 'Sl 4305', '', 'Tp 4323', 'Tp 4360') }),
+      ctx({ quote: { bid: 4315.7, ask: 4316.0, tickAtMs: NOW - 500 } }),
+    );
+
+    expect(restated.outcome).toBe('TELEGRAM_DUPLICATE_SIGNAL');
+    expect(restated.detail).toMatch(/same entry, same stop/);
+    // One leg from the first signal, and nothing more.
+    expect(broker.calls).toHaveLength(1);
+    expect(await prisma.telegramSignalLeg.count()).toBe(1);
   });
 
   it('does not open another two positions for a repost under a new message id', async () => {

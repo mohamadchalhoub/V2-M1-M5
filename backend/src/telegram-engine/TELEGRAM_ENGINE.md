@@ -57,7 +57,7 @@ Nothing polls. Updates are pushed by Telegram and processed on arrival; a
 | Entry protection | **adverse only** — `TELEGRAM_MAX_ADVERSE_ENTRY_DEVIATION_USD`, default $1.50 |
 | Favourable movement | always allowed, up to TP1 |
 | TP1 | nearest target; once reached, the signal is permanently spent |
-| Duplicates | exact `(channelId, messageId)` + semantic repost within 30 min |
+| Duplicates | three layers: exact `(channelId, messageId)`, exact content, and restatement (entry+SL) within 30 min |
 | Occupancy | one Telegram signal group at a time (legs of one signal coexist) |
 | Magic number | `262610210` |
 
@@ -103,6 +103,48 @@ was cancelled.
 It is never queued for reopening and never replayed on Monday. This is true of
 weekend closure too — Engine B has no Friday cutoff of its own and does not
 inherit Engine A's.
+
+## What the source channel actually publishes
+
+Verified against a 100-message scan on 2026-09-22/23. Real signals look like
+this, and the parser was confirmed against eight of them with zero false
+positives:
+
+```
+Gold sell now 4349
+
+Sl 4360
+
+Tp 4338
+Tp 4300
+```
+
+Everything else the channel posts — Arabic commentary, hype lines, `"شراء
+الذهب الان"` ("buy gold now" with no levels) — is correctly refused. Note
+that the parser recognises English keywords only; an entry written purely in
+Arabic would be missed rather than misread.
+
+**The channel bursts each signal several times within seconds**, and this
+shapes the duplicate rules. Observed clusters:
+
+| Time | Messages | What varied |
+|---|---|---|
+| 14:41:56–14:42:11 | 3 | `Tp 4331/4360` then `Tp 4331` twice |
+| 14:48:48–14:49:06 | 3 | `Tp 4323` twice, then `Tp 4323/4360` |
+| 22:05:30–34 | 3 | identical |
+| 00:12:24–32 | 2 | `Tp 4367` then `Tp 4368` |
+| 01:14:23–25 | 2 | identical |
+
+Identical reposts are caught by the content fingerprint. Three of five
+clusters also contained a **variant** — same entry and stop, different target
+list — which is a different fingerprint and was therefore not caught. Those
+are now caught by the restatement key (`direction + entry + stop`, targets
+deliberately excluded).
+
+**The first message of a burst is the one that trades.** Where the channel
+restates with an added target, Engine B takes the earlier, narrower version.
+That is the accepted cost of acting inside sixty seconds rather than waiting
+to see whether a richer version arrives.
 
 ## Controls
 

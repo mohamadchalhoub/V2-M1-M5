@@ -64,7 +64,7 @@ export function semanticKey(signal: ParsedSignal): string {
   return createHash('sha256').update(canonical).digest('hex').slice(0, 32);
 }
 
-export type DuplicateKind = 'EXACT_MESSAGE' | 'SEMANTIC_REPOST';
+export type DuplicateKind = 'EXACT_MESSAGE' | 'SEMANTIC_REPOST' | 'RESTATEMENT';
 
 export interface DuplicateVerdict {
   readonly duplicate: boolean;
@@ -72,10 +72,40 @@ export interface DuplicateVerdict {
   readonly detail: string | null;
 }
 
+/**
+ * The TRADE, ignoring its targets.
+ *
+ * Observed behaviour of the source channel, from a 100-message scan: it
+ * publishes a signal and then republishes it within seconds, sometimes
+ * identically and sometimes with the target list varied - one dollar moved,
+ * or a second target added. Three of five bursts contained such a variant.
+ *
+ * Those are not the same trade by `semanticKey`, because a different target
+ * list is a different fingerprint, so that check lets them through. They are
+ * plainly the same instruction restated, and treating them as new signals
+ * would open a second position from a repost.
+ *
+ * Direction, entry and stop are what identify the trade; the targets are how
+ * it is being managed. So the restatement key deliberately drops them.
+ *
+ * The cost, stated plainly: the FIRST message of a burst wins. Where the
+ * channel restates with an ADDED target, this engine trades the earlier,
+ * narrower version rather than the later, richer one. That is the price of
+ * acting inside sixty seconds instead of waiting to see whether a better
+ * version arrives.
+ */
+export function restatementKey(signal: ParsedSignal): string {
+  const n = (v: number): string => v.toFixed(3);
+  const canonical = [TELEGRAM_SPEC.symbol, signal.direction, n(signal.entry), n(signal.stopLoss)].join('|');
+  return createHash('sha256').update(canonical).digest('hex').slice(0, 32);
+}
+
 /** A previously recorded signal, as the duplicate check needs to see it. */
 export interface PriorSignal {
   readonly sourceKey: string;
   readonly semanticKey: string;
+  /** Absent on rows written before restatement detection existed. */
+  readonly restatementKey?: string | null;
   readonly publishedAtMs: number;
 }
 
@@ -87,7 +117,7 @@ export interface PriorSignal {
  * supplies the durable answer; this decides what it means.
  */
 export function evaluateDuplicate(
-  candidate: { sourceKey: string; semanticKey: string; publishedAtMs: number },
+  candidate: { sourceKey: string; semanticKey: string; restatementKey?: string | null; publishedAtMs: number },
   priors: readonly PriorSignal[],
 ): DuplicateVerdict {
   const sameMessage = priors.find((p) => p.sourceKey === candidate.sourceKey);
@@ -116,6 +146,29 @@ export function evaluateDuplicate(
         `within the ${TELEGRAM_SPEC.semanticDuplicateWindowMs / 60_000}-minute repost window. The signal is ` +
         'recorded and consumed; no additional positions are opened.',
     };
+  }
+
+  // --- The same trade restated with a different target list. Checked after
+  // the exact-content test so a genuine repost still reports as one.
+  if (candidate.restatementKey) {
+    const restated = priors.find(
+      (p) =>
+        p.restatementKey != null &&
+        p.restatementKey === candidate.restatementKey &&
+        Math.abs(candidate.publishedAtMs - p.publishedAtMs) <= TELEGRAM_SPEC.semanticDuplicateWindowMs,
+    );
+    if (restated) {
+      const seconds = Math.round(Math.abs(candidate.publishedAtMs - restated.publishedAtMs) / 1000);
+      return {
+        duplicate: true,
+        kind: 'RESTATEMENT',
+        detail:
+          `The same trade - same direction, same entry, same stop - was already published ${seconds}s ago under ` +
+          `message ${restated.sourceKey}, with a different target list. The source channel restates its signals ` +
+          'within seconds of posting them; a restatement is the same instruction, not a second trade. Recorded ' +
+          'and consumed; no additional positions are opened.',
+      };
+    }
   }
 
   return { duplicate: false, kind: null, detail: null };

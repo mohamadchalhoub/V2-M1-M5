@@ -59,6 +59,9 @@ xauusd-m1-m5-rsi-threshold-v2 operations
   telegram-auth      ONE-TIME interactive Telegram sign-in. Prompts for phone,
                      login code and (if set) 2FA password. Writes a session
                      that survives restarts and redeploys.
+  telegram-apply     Apply Engine B env changes to the RUNNING containers and
+                     print what they actually have. `restart` does NOT pick up
+                     env_file edits; this does.
   telegram-scan <n>  Run the parser over the last <n> channel messages and
                      print the RAW TEXT of everything it read as a trade.
                      Read this before enabling execution.
@@ -207,6 +210,21 @@ case "${1:-}" in
       echo
       "${COMPOSE[@]}" run --rm -it telegram-ingest node dist/scripts/telegram-auth.js
       ;;
+  telegram-apply)
+      # Applies Engine B environment changes to the RUNNING containers.
+      #
+      # Needed because `m1m5.sh restart` (a plain `up -d`) does not pick up an
+      # edit to the contents of an env_file: it reports "Running" and keeps the
+      # old values. This forces the two Engine B services to be recreated, and
+      # then prints what they actually have, because the file saying one thing
+      # while the process believes another is the failure this exists to catch.
+      echo "--- recreating Engine B services (Engine A untouched) ---"
+      "${COMPOSE[@]}" up -d --force-recreate telegram-ingest m1m5-mt5-collector
+      echo
+      echo "--- environment as the RUNNING containers see it ---"
+      "${COMPOSE[@]}" exec -T telegram-ingest sh -c         'echo "telegram-ingest: TELEGRAM_ENGINE_ENABLED=$TELEGRAM_ENGINE_ENABLED TELEGRAM_ENGINE_EXECUTION_MODE=$TELEGRAM_ENGINE_EXECUTION_MODE"'         || echo "telegram-ingest not running"
+      "${COMPOSE[@]}" exec -T m1m5-mt5-collector bash -lc         'echo "collector: TELEGRAM_ENGINE_EXECUTION_ENABLED=$TELEGRAM_ENGINE_EXECUTION_ENABLED"'         || echo "collector not running"
+      ;;
   telegram-scan)
       # Deeper history than telegram-check's default, for judging the
       # channel's actual message format before trusting the parser with an
@@ -289,7 +307,15 @@ PY
       # NOT m1m5-scheduler and NOT api: neither reads an Engine B variable,
       # and restarting the scheduler would interrupt Engine A's observation
       # loop for a change that has nothing to do with it.
-      "${COMPOSE[@]}" up -d telegram-ingest m1m5-mt5-collector
+      #
+      # --force-recreate, NOT a plain `up -d`. Compose recreates a container
+      # when it detects a CONFIG change, and editing the CONTENTS of a file
+      # named by env_file does not reliably count as one: `up -d` reports the
+      # container as "Running" and leaves the old environment in place. The
+      # change then appears to have been applied while the process is still
+      # using the previous values -- which, for an execution flag, is the
+      # worst way to be wrong. Observed on this deployment.
+      "${COMPOSE[@]}" up -d --force-recreate telegram-ingest m1m5-mt5-collector
 
       echo
       echo "--- verifying the RUNNING containers, not the files ---"
@@ -316,7 +342,10 @@ io.open(p, "w", encoding="utf-8").write(s)
 print("backend/.env.production updated")
 PY
       sed -i 's/^TELEGRAM_ENGINE_EXECUTION_ENABLED=.*/TELEGRAM_ENGINE_EXECUTION_ENABLED=false/' collector/.env.production 2>/dev/null || true
-      "${COMPOSE[@]}" up -d telegram-ingest m1m5-mt5-collector
+      # --force-recreate for the same reason as telegram-enable. Turning
+      # execution OFF that silently did not apply is the more dangerous half
+      # of the two.
+      "${COMPOSE[@]}" up -d --force-recreate telegram-ingest m1m5-mt5-collector
       "${COMPOSE[@]}" run --rm -T telegram-ingest node dist/scripts/telegram-announce.js disabled "${2:-disabled by operator}" || true
       echo "Telegram execution is OFF. Existing Telegram positions are still reconciled and managed."
       ;;
