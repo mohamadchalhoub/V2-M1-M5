@@ -49,6 +49,22 @@ function modeTone(mode: string): "neutral" | "ok" | "warn" | "down" {
   return "neutral";
 }
 
+/**
+ * Engine B's own timestamp formatter, used only in that section.
+ *
+ * `formatDateTime` (lib/format.ts) already renders every timestamp on this
+ * dashboard in Asia/Beirut — the backend's absolute UTC timestamps are never
+ * touched, only the DISPLAY conversion happens client/server-render side.
+ * This wrapper adds the explicit "Asia/Beirut" label the operator asked for,
+ * scoped to Engine B's panels specifically rather than changing the shared
+ * formatter (and therefore every other page and every Engine A timestamp)
+ * merely for one section's presentation preference.
+ */
+function beirutTime(iso: string | null | undefined): string {
+  if (!iso) return "none";
+  return `${formatDateTime(iso)} Asia/Beirut`;
+}
+
 export default async function XauusdM1M5Page() {
   let view;
   let volume: XauusdM1M5Volume | null = null;
@@ -291,9 +307,14 @@ export default async function XauusdM1M5Page() {
         </div>
       </section>
 
-      {/* --- Volume control (RSI engine, Engine A). --- */}
+      {/* --- Volume control. Belongs to ENGINE A only -- xauusd-m1m5's own
+          setVolume route, xauusd_m1m5_volume_settings table. The heading
+          says so explicitly: Engine B has a completely different, fixed
+          sizing rule (0.01 lot per TP leg), shown in its own section below,
+          and a bare "Order volume" heading here previously left that
+          ambiguous. --- */}
       <section className="space-y-2">
-        <h2 className="text-sm font-medium text-text-muted">Order volume</h2>
+        <h2 className="text-sm font-medium text-text-muted">Engine A — RSI order volume</h2>
         <div className="rounded-lg border border-border bg-surface p-4 space-y-2">
           <p className="text-sm">
             Current: <span className="font-mono">{volume?.volumeLots ?? "unknown"}</span> lots
@@ -314,8 +335,22 @@ export default async function XauusdM1M5Page() {
 
       {/* --- Engine B: the Telegram copy engine. Its own section, its own
           endpoint, never merged into the RSI view above it shares an
-          account with — see telegram-engine/dashboard.controller.ts. --- */}
-      <section className="space-y-2">
+          account with — see telegram-engine/dashboard.controller.ts.
+
+          Four sub-panels, deliberately kept separate rather than folded
+          into one wall of tiles, because they answer four different
+          questions an operator asks at different moments:
+
+            1. Transport health   — is the pipe to Telegram actually open?
+            2. Last source message — what did the channel just say, and did
+               the parser read it correctly? (never a trading record)
+            3. Configuration      — does the running config match what was
+               intended?
+            4. Recent signals     — what has this engine actually DONE?
+
+          Source message and signal history are kept apart on purpose: a
+          hype message must move #2 without ever appearing in #4. --- */}
+      <section className="space-y-3">
         <h2 className="text-sm font-medium text-text-muted">Engine B — Telegram ({"@"}
           {telegramEngine?.engine.sourceChannel?.replace(/^@/, "") ?? "SFxauusd1"})
         </h2>
@@ -324,96 +359,218 @@ export default async function XauusdM1M5Page() {
             <strong>Engine B status could not be reached.</strong> This says nothing about whether it is running.
           </EmptyState>
         ) : (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Tile
-                label="Execution mode"
-                value={telegramEngine.engine.executionMode}
-                tone={modeTone(telegramEngine.engine.executionMode)}
-              />
-              <Tile
-                label="Engine enabled"
-                value={telegramEngine.engine.engineEnabled ? "yes" : "no"}
-                tone={telegramEngine.engine.engineEnabled ? "ok" : "neutral"}
-              />
-              <Tile
-                label="Ingestion connected"
-                value={telegramEngine.ingestion.telegramAuthorized ? "authorized" : "not authorized"}
-                tone={telegramEngine.ingestion.telegramAuthorized ? "ok" : "down"}
-              />
-              <Tile
-                label="Reconciliation"
-                value={telegramEngine.reconciliation.recoveryComplete ? "complete" : "not complete"}
-                tone={telegramEngine.reconciliation.recoveryComplete ? "ok" : "warn"}
-              />
-              <Tile
-                label="Kill switch (telegram)"
-                value={telegramEngine.engine.killSwitches.telegram ? "ACTIVE" : "off"}
-                tone={telegramEngine.engine.killSwitches.telegram ? "down" : "ok"}
-              />
-              <Tile
-                label="Kill switch (global)"
-                value={telegramEngine.engine.killSwitches.global ? "ACTIVE" : "off"}
-                tone={telegramEngine.engine.killSwitches.global ? "down" : "ok"}
-              />
-              <Tile label="Magic number" value={String(telegramEngine.engine.magicNumber)} />
-              <Tile
-                label="Wins / losses / BE"
-                value={`${telegramEngine.results.wins} / ${telegramEngine.results.losses} / ${telegramEngine.results.breakeven}`}
-              />
+          <div className="space-y-4">
+            {/* --- 1. Transport health. Authorization, connection, push and
+                poll reported SEPARATELY -- conflating them is exactly what
+                let the 2026-09-23 ingestion stall go unnoticed: the old
+                dashboard's only signal was "authorized", which stayed true
+                the entire time push delivery was silently dead. --- */}
+            <div>
+              <h3 className="text-xs uppercase tracking-wide text-text-muted mb-2">Telegram ingestion</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Tile
+                  label="Authorized"
+                  value={telegramEngine.ingestion.telegramAuthorized ? "yes" : "no"}
+                  tone={telegramEngine.ingestion.telegramAuthorized ? "ok" : "down"}
+                />
+                <Tile
+                  label="Connected"
+                  value={
+                    telegramEngine.ingestionHealth.present
+                      ? telegramEngine.ingestionHealth.connected
+                        ? "yes"
+                        : "no"
+                      : "unknown"
+                  }
+                  tone={
+                    !telegramEngine.ingestionHealth.present
+                      ? "neutral"
+                      : telegramEngine.ingestionHealth.connected
+                        ? "ok"
+                        : "down"
+                  }
+                />
+                <Tile
+                  label="Poll fallback"
+                  value={
+                    !telegramEngine.ingestionHealth.present
+                      ? "unknown"
+                      : telegramEngine.ingestionHealth.pollLastError
+                        ? "FAILING"
+                        : "ok"
+                  }
+                  tone={
+                    !telegramEngine.ingestionHealth.present
+                      ? "neutral"
+                      : telegramEngine.ingestionHealth.pollLastError
+                        ? "down"
+                        : "ok"
+                  }
+                />
+                <Tile
+                  label="Reconciliation"
+                  value={telegramEngine.reconciliation.recoveryComplete ? "complete" : "not complete"}
+                  tone={telegramEngine.reconciliation.recoveryComplete ? "ok" : "warn"}
+                />
+              </div>
+              <div className="rounded-lg border border-border bg-surface p-4 mt-3 space-y-1 text-sm">
+                <p>
+                  Source channel: <span className="font-mono">{telegramEngine.ingestion.sourceChannel ?? "unresolved"}</span>{" "}
+                  ({telegramEngine.ingestion.sourceChannelId ?? "no id"})
+                </p>
+                <p>
+                  Push — last update:{" "}
+                  <span className="font-mono">{beirutTime(telegramEngine.ingestionHealth.pushLastUpdateAt)}</span>
+                </p>
+                <p>
+                  Poll — last poll: <span className="font-mono">{beirutTime(telegramEngine.ingestionHealth.pollLastAt)}</span>
+                  {telegramEngine.ingestionHealth.pollLastError ? (
+                    <span className="text-down"> — error: {telegramEngine.ingestionHealth.pollLastError}</span>
+                  ) : (
+                    " — no error"
+                  )}
+                </p>
+                {!telegramEngine.ingestionHealth.present && (
+                  <p className="text-text-muted">
+                    No ingestion health snapshot has been written yet. This says nothing about whether ingestion is
+                    running — only that no heartbeat has reached the database since the last restart.
+                  </p>
+                )}
+                {telegramEngine.ingestionHealth.updatedAt && (
+                  <p className="text-xs text-text-muted">
+                    Snapshot last written: {beirutTime(telegramEngine.ingestionHealth.updatedAt)}
+                  </p>
+                )}
+                <p className="text-text-muted">{telegramEngine.reconciliation.detail}</p>
+              </div>
             </div>
 
-            <div className="rounded-lg border border-border bg-surface p-4 space-y-1 text-sm">
-              <p>
-                Source channel: <span className="font-mono">{telegramEngine.ingestion.sourceChannel ?? "unresolved"}</span>{" "}
-                ({telegramEngine.ingestion.sourceChannelId ?? "no id"})
-              </p>
-              <p>
-                Last source message:{" "}
-                {telegramEngine.ingestion.lastSourceMessageAt
-                  ? formatDateTime(telegramEngine.ingestion.lastSourceMessageAt)
-                  : "none received yet"}
-                {telegramEngine.ingestion.lastSourceMessageId
-                  ? ` (id ${telegramEngine.ingestion.lastSourceMessageId})`
-                  : ""}
-              </p>
-              <p className="text-text-muted">{telegramEngine.reconciliation.detail}</p>
+            {/* --- 2. Last source message + parser result. NEVER the trading
+                history -- see the section header comment. --- */}
+            <div>
+              <h3 className="text-xs uppercase tracking-wide text-text-muted mb-2">Last source message</h3>
+              {!telegramEngine.lastMessage ? (
+                <p className="text-sm text-text-muted">No message has been received from the channel yet.</p>
+              ) : (
+                <div className="rounded-lg border border-border bg-surface p-4 space-y-1 text-sm">
+                  <p>
+                    Message ID: <span className="font-mono">{telegramEngine.lastMessage.messageId}</span>
+                    {telegramEngine.lastMessage.deliveryPath && (
+                      <span className="text-text-muted"> · delivered via {telegramEngine.lastMessage.deliveryPath}</span>
+                    )}
+                  </p>
+                  <p>
+                    Published: <span className="font-mono">{beirutTime(telegramEngine.lastMessage.publishedAt)}</span> ·
+                    received: <span className="font-mono">{beirutTime(telegramEngine.lastMessage.receivedAt)}</span>
+                    {telegramEngine.lastMessage.publicationToIngestionMs !== null && (
+                      <span className="text-text-muted">
+                        {" "}
+                        (latency {(telegramEngine.lastMessage.publicationToIngestionMs / 1000).toFixed(2)}s)
+                      </span>
+                    )}
+                  </p>
+                  <p>
+                    Parser result:{" "}
+                    <span className={telegramEngine.lastMessage.classification === "PARSED_SIGNAL" ? "text-ok" : ""}>
+                      {telegramEngine.lastMessage.classification === "PARSED_SIGNAL" ? "ACCEPTED" : "IGNORED"}
+                    </span>
+                    {telegramEngine.lastMessage.refusalReason && (
+                      <span className="text-text-muted"> — reason: {telegramEngine.lastMessage.refusalReason}</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-text-muted font-mono break-words">
+                    &ldquo;{telegramEngine.lastMessage.textPreview}&rdquo;
+                  </p>
+                </div>
+              )}
             </div>
 
+            {/* --- 3. Configuration, read from the running engine's own
+                values (status()'s engine.rules / engine object) -- nothing
+                here is a constant re-typed into the frontend. --- */}
+            <div>
+              <h3 className="text-xs uppercase tracking-wide text-text-muted mb-2">Configuration</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Tile
+                  label="Execution mode"
+                  value={telegramEngine.engine.executionMode}
+                  tone={modeTone(telegramEngine.engine.executionMode)}
+                />
+                <Tile
+                  label="Engine enabled"
+                  value={telegramEngine.engine.engineEnabled ? "yes" : "no"}
+                  tone={telegramEngine.engine.engineEnabled ? "ok" : "neutral"}
+                />
+                <Tile label="Magic number" value={String(telegramEngine.engine.magicNumber)} />
+                <Tile label="Order size" value={`${telegramEngine.engine.rules.lotsPerTakeProfit} lot / TP`} />
+                <Tile label="Signal lifetime" value={`${telegramEngine.engine.rules.maxSignalAgeSeconds}s`} />
+                <Tile
+                  label="Max adverse move"
+                  value={`$${telegramEngine.engine.rules.maxAdverseEntryDeviationUsd.toFixed(2)}`}
+                />
+                <Tile
+                  label="Kill switch (telegram)"
+                  value={telegramEngine.engine.killSwitches.telegram ? "ACTIVE" : "off"}
+                  tone={telegramEngine.engine.killSwitches.telegram ? "down" : "ok"}
+                />
+                <Tile
+                  label="Kill switch (global)"
+                  value={telegramEngine.engine.killSwitches.global ? "ACTIVE" : "off"}
+                  tone={telegramEngine.engine.killSwitches.global ? "down" : "ok"}
+                />
+                <Tile
+                  label="Wins / losses / BE"
+                  value={`${telegramEngine.results.wins} / ${telegramEngine.results.losses} / ${telegramEngine.results.breakeven}`}
+                />
+              </div>
+            </div>
+
+            {/* --- 4. Recent signals: real trading records only. Each
+                signal shown with its own leg structure, so a 2-TP signal
+                visibly reads as two independent broker positions rather
+                than a single table row. --- */}
             <div>
               <h3 className="text-xs uppercase tracking-wide text-text-muted mb-2">Recent signals</h3>
               {telegramEngine.signals.length === 0 ? (
                 <p className="text-sm text-text-muted">No signals recorded yet.</p>
               ) : (
-                <div className="overflow-x-auto rounded-lg border border-border">
-                  <table className="w-full text-sm">
-                    <thead className="bg-surface text-text-muted text-xs uppercase">
-                      <tr>
-                        <th className="text-left px-3 py-2">Published</th>
-                        <th className="text-left px-3 py-2">Direction</th>
-                        <th className="text-left px-3 py-2">Entry / SL</th>
-                        <th className="text-left px-3 py-2">TPs</th>
-                        <th className="text-left px-3 py-2">Outcome</th>
-                        <th className="text-left px-3 py-2">Legs</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {telegramEngine.signals.slice(0, 10).map((s) => (
-                        <tr key={s.id} className="border-t border-border">
-                          <td className="px-3 py-2 font-mono text-xs">{formatDateTime(s.publishedAt)}</td>
-                          <td className="px-3 py-2">{s.direction ?? "—"}</td>
-                          <td className="px-3 py-2 font-mono text-xs">
-                            {s.sourceEntry ?? "—"} / {s.stopLoss ?? "—"}
-                          </td>
-                          <td className="px-3 py-2 font-mono text-xs">{s.takeProfits.join(", ") || "—"}</td>
-                          <td className="px-3 py-2 text-xs">{s.outcome}</td>
-                          <td className="px-3 py-2 text-xs">
-                            {s.legs.map((l) => `${l.status}${l.ticket ? ` #${l.ticket}` : ""}`).join(", ") || "—"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="space-y-3">
+                  {telegramEngine.signals.slice(0, 10).map((s) => (
+                    <div key={s.id} className="rounded-lg border border-border bg-surface p-4 space-y-2 text-sm">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <p className="font-mono">
+                          {s.direction ?? "—"} XAUUSD · entry {s.sourceEntry ?? "—"} · SL {s.stopLoss ?? "—"}
+                        </p>
+                        <p className="text-xs text-text-muted">{beirutTime(s.publishedAt)}</p>
+                      </div>
+                      <p className="text-xs text-text-muted">
+                        Outcome: <span className="text-text">{s.outcome}</span> — {s.detail}
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                        {s.legs.map((leg) => (
+                          <div key={leg.legIndex} className="rounded border border-border p-2 text-xs space-y-0.5">
+                            <p className="font-medium">
+                              Leg {leg.legIndex} · {leg.volumeLots} lot · TP {leg.takeProfit}
+                              {leg.legIndex === 1 && s.tp1 === leg.takeProfit ? " (TP1)" : ""}
+                            </p>
+                            <p>
+                              Status: <span className="font-mono">{leg.status}</span>
+                              {leg.ticket ? ` · ticket ${leg.ticket}` : ""}
+                            </p>
+                            {leg.fillPrice !== null && <p>Fill: {leg.fillPrice}</p>}
+                            {leg.realizedPl !== null && (
+                              <p className={leg.realizedPl >= 0 ? "text-ok" : "text-down"}>
+                                Realized: {leg.realizedPl >= 0 ? "+" : ""}
+                                {leg.realizedPl.toFixed(2)}
+                              </p>
+                            )}
+                            {leg.skipReason && <p className="text-text-muted">Skipped: {leg.skipReason}</p>}
+                            {leg.protectionIncident && <p className="text-down">⚠ {leg.protectionIncident}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

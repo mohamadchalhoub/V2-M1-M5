@@ -143,6 +143,13 @@ async function main(): Promise<void> {
     if (health.lastPollError) {
       logger.warn(`poll fallback is failing: ${health.lastPollError}`);
     }
+    // Persists this same snapshot so the api process — a separate container,
+    // with no access to this process's memory — can show it on the
+    // dashboard. Riding the existing heartbeat cadence rather than a new
+    // timer of its own.
+    void ingestion.persistHealthSnapshot(accountId).catch((err) => {
+      logger.warn(`could not persist ingestion health snapshot: ${(err as Error).message}`);
+    });
   }, HEARTBEAT_INTERVAL_MS);
 
   const shutdown = async (signal: string) => {

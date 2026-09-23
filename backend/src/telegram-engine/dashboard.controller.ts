@@ -55,6 +55,14 @@ export class TelegramDashboardController {
       orderBy: { receivedAt: 'desc' },
     });
 
+    // The telegram-ingest process's own push/poll liveness. Read from the
+    // database because that process is a SEPARATE container from this one —
+    // see TelegramIngestionHealth's schema comment for why a live in-memory
+    // read is not possible here.
+    const ingestionHealth = accountId
+      ? await this.prisma.telegramIngestionHealth.findUnique({ where: { accountId } })
+      : null;
+
     const recentSignals = await this.prisma.telegramSignal.findMany({
       where: accountId ? { accountId } : {},
       orderBy: { publishedAt: 'desc' },
@@ -117,6 +125,40 @@ export class TelegramDashboardController {
         lastSourceMessageId: lastIngested?.messageId ?? null,
         lastIngestionLatencyMs: lastIngested?.publicationToIngestionMs ?? null,
       },
+      // The telegram-ingest process's own reported liveness, as of its last
+      // heartbeat write. `updatedAt` is the staleness signal: a snapshot that
+      // stopped being refreshed looks, on its own, identical to one still
+      // being refreshed with nothing new to report — always show it next to
+      // the other fields here, never let the row's mere existence imply
+      // "current".
+      ingestionHealth: {
+        present: ingestionHealth !== null,
+        authorized: ingestionHealth?.authorized ?? null,
+        connected: ingestionHealth?.connected ?? null,
+        pushLastUpdateAt: ingestionHealth?.pushLastUpdateAt?.toISOString() ?? null,
+        pollLastAt: ingestionHealth?.pollLastAt?.toISOString() ?? null,
+        pollLastError: ingestionHealth?.pollLastError ?? null,
+        updatedAt: ingestionHealth?.updatedAt?.toISOString() ?? null,
+      },
+      // The single most recent message the source channel published,
+      // WHETHER OR NOT it became a trading signal — distinct from `signals`
+      // below, which lists only structured trade records. This is what lets
+      // an operator see "the channel is alive and the parser correctly
+      // ignored that" without it polluting the trading history.
+      lastMessage: lastIngested
+        ? {
+            messageId: lastIngested.messageId,
+            publishedAt: lastIngested.publishedAt.toISOString(),
+            receivedAt: lastIngested.receivedAt.toISOString(),
+            publicationToIngestionMs: lastIngested.publicationToIngestionMs,
+            classification: lastIngested.classification,
+            // The parser's own ParseRefusal code (parser.ts) — null when the
+            // message WAS a valid signal, or when it predates this column.
+            refusalReason: lastIngested.refusalReason,
+            deliveryPath: lastIngested.deliveryPath,
+            textPreview: lastIngested.textPreview,
+          }
+        : null,
       reconciliation: {
         recoveryComplete: recon?.recoveryComplete ?? false,
         lastCompletedAt: recon?.lastCompletedAt?.toISOString() ?? null,

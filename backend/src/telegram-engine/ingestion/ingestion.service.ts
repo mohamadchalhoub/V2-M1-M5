@@ -99,7 +99,12 @@ export class TelegramIngestionService {
 
     try {
       const parsed = parseTelegramSignal(message.text);
-      await this.recordIngestedMessage(message, parsed.signal ? 'PARSED_SIGNAL' : 'NOT_A_SIGNAL', false);
+      await this.recordIngestedMessage(
+        message,
+        parsed.signal ? 'PARSED_SIGNAL' : 'NOT_A_SIGNAL',
+        false,
+        parsed.signal ? null : parsed.refusal,
+      );
 
       if (!parsed.signal) {
         // Ordinary channel traffic. Recorded above for liveness and for
@@ -206,6 +211,7 @@ export class TelegramIngestionService {
     message: TelegramSourceMessage,
     classification: string,
     isEdit: boolean,
+    refusalReason: string | null = null,
   ): Promise<void> {
     const publishedAt = message.publishedAtMs === null ? new Date(message.receivedAtMs) : new Date(message.publishedAtMs);
     try {
@@ -219,6 +225,12 @@ export class TelegramIngestionService {
             message.publishedAtMs === null ? null : Math.max(0, Math.round(message.receivedAtMs - message.publishedAtMs)),
           textPreview: (message.text ?? '').slice(0, TEXT_PREVIEW_LIMIT),
           classification,
+          refusalReason,
+          // Set only on the FIRST successful insert for this message: the
+          // unique constraint below is what makes this durably "first
+          // delivery", the same mechanism that already protects the trading
+          // path from a redelivered update producing a second position.
+          deliveryPath: message.deliveryPath ?? null,
           isEdit,
         },
       });
@@ -226,6 +238,46 @@ export class TelegramIngestionService {
       // A redelivered update hits the unique key. That is the normal,
       // expected outcome of a reconnect replay and is not worth a log line:
       // the ingestion log records what arrived, once.
+    }
+  }
+
+  /**
+   * Writes a snapshot of this process's own push/poll liveness to the
+   * database, so the api process serving the dashboard — a SEPARATE
+   * container, with no access to this process's memory — can show it.
+   *
+   * Called on the same cadence as the existing heartbeat log line (see
+   * telegram-ingest.ts), deliberately not on a new timer of its own: this is
+   * observability riding the schedule that already exists, not a second
+   * monitoring system.
+   */
+  async persistHealthSnapshot(accountId: string): Promise<void> {
+    const session = summariseSession();
+    const adapter = this.adapter?.health();
+    try {
+      await this.prisma.telegramIngestionHealth.upsert({
+        where: { accountId },
+        create: {
+          accountId,
+          authorized: session.present,
+          connected: adapter?.connected ?? false,
+          pushLastUpdateAt: adapter?.lastUpdateAtMs ? new Date(adapter.lastUpdateAtMs) : null,
+          pollLastAt: adapter?.lastPollAtMs ? new Date(adapter.lastPollAtMs) : null,
+          pollLastError: adapter?.lastPollError ?? null,
+        },
+        update: {
+          authorized: session.present,
+          connected: adapter?.connected ?? false,
+          pushLastUpdateAt: adapter?.lastUpdateAtMs ? new Date(adapter.lastUpdateAtMs) : null,
+          pollLastAt: adapter?.lastPollAtMs ? new Date(adapter.lastPollAtMs) : null,
+          pollLastError: adapter?.lastPollError ?? null,
+        },
+      });
+    } catch (err) {
+      // Never fatal: a failure to WRITE observability data must not stop
+      // ingestion itself, which is the whole reason this is a best-effort
+      // snapshot rather than something the trading path depends on.
+      this.logger.warn(`could not persist ingestion health snapshot: ${(err as Error).message}`);
     }
   }
 

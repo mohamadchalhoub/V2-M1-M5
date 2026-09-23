@@ -209,7 +209,7 @@ export class GramJsIngestionAdapter implements TelegramIngestionPort {
     const message = event.message;
     if (!message) return;
     const peer = this.describePeer(event);
-    await this.processMessage(message, peer, isEdit, receivedAtMs);
+    await this.processMessage(message, peer, isEdit, receivedAtMs, 'PUSH');
   }
 
   /**
@@ -258,7 +258,7 @@ export class GramJsIngestionAdapter implements TelegramIngestionPort {
         isChannel: true,
       };
       for (const message of fresh) {
-        await this.processMessage(message, peer, false, nowMs);
+        await this.processMessage(message, peer, false, nowMs, 'POLL');
         this.lastPolledMessageId = Math.max(this.lastPolledMessageId, message.id);
       }
       this.lastPollError = null;
@@ -284,6 +284,7 @@ export class GramJsIngestionAdapter implements TelegramIngestionPort {
     peer: IncomingPeer,
     isEdit: boolean,
     receivedAtMs: number,
+    deliveryPath: 'PUSH' | 'POLL',
   ): Promise<void> {
     try {
       const check = checkSourceChannel(peer, this.config.sourceChannelId);
@@ -305,6 +306,7 @@ export class GramJsIngestionAdapter implements TelegramIngestionPort {
         text: typeof message.message === 'string' ? message.message : null,
         publishedAtMs,
         receivedAtMs,
+        deliveryPath,
       };
 
       this.lastSourceMessageAtMs = receivedAtMs;

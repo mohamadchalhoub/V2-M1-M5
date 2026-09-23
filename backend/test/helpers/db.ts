@@ -28,6 +28,10 @@ export async function resetDatabase(prisma: PrismaClient): Promise<void> {
   // the later test observes nothing and passes for the wrong reason.
   await prisma.telegramEngineNotification.deleteMany();
   await prisma.telegramIngestedMessage.deleteMany();
+  // Same reasoning: a leftover row (keyed only by accountId, overwritten in
+  // place) would make a later test see stale push/poll liveness left behind
+  // by an earlier one.
+  await prisma.telegramIngestionHealth.deleteMany();
   await prisma.telegramReconciliationState.deleteMany();
   await prisma.telegramSignalGroupLock.deleteMany();
   await prisma.telegramSignalLeg.deleteMany();

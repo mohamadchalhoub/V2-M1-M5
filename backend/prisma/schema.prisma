@@ -2528,6 +2528,25 @@ model TelegramIngestedMessage {
   // PARSED_SIGNAL / NOT_A_SIGNAL / WRONG_CHANNEL / EDIT.
   classification String
 
+  // The parser's specific ParseRefusal code (parser.ts) when classification
+  // is NOT_A_SIGNAL -- e.g. DIRECTION_MISSING, SYMBOL_NOT_GOLD. Null when
+  // classification is PARSED_SIGNAL (nothing was refused) or EDIT. Exists so
+  // the dashboard can show WHY a message was ignored, not just THAT it was --
+  // the coarse classification alone cannot distinguish "just chat" from "a
+  // trade-shaped message with one field missing", which is what an operator
+  // actually wants to see at a glance.
+  refusalReason String? @map("refusal_reason")
+
+  // Which transport edge delivered this message first. Nullable: rows
+  // written before this existed have no value, and unattributable old rows
+  // must never be guessed at. Set once, on the FIRST successful insert for
+  // this (channelId, messageId, isEdit) -- the unique constraint below is
+  // what makes "first" durable: a duplicate delivery via the other edge hits
+  // the constraint and its own value is silently discarded, exactly the
+  // same mechanism that already protects against a redelivered update
+  // producing a second trade.
+  deliveryPath String? @map("delivery_path")
+
   isEdit Boolean @default(false) @map("is_edit")
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -2535,6 +2554,47 @@ model TelegramIngestedMessage {
   @@unique([channelId, messageId, isEdit])
   @@index([receivedAt])
   @@map("telegram_ingested_messages")
+}
+
+// A periodic snapshot of Engine B's ingestion transport, written by the
+// telegram-ingest process and read by the api process serving the dashboard.
+//
+// These are TWO SEPARATE CONTAINERS. The live push/poll state
+// (GramJsIngestionAdapter's in-memory counters) exists only inside
+// telegram-ingest's own process memory; the dashboard is served by `api`,
+// which has no way to read another process's memory and no HTTP server to
+// ask telegram-ingest directly (it is a createApplicationContext() worker,
+// not a listener). This table is the bridge -- the same shape as
+// XauusdM1M5Mt5Snapshot, where the collector writes what the terminal
+// reports and the api reads it back; nothing new is being invented here.
+//
+// One row per account, overwritten in place: current state, not a history.
+// updatedAt is what makes staleness detectable -- a snapshot that stopped
+// being refreshed looks, on its own, identical to one still being refreshed
+// with nothing to report, which is exactly why the dashboard must show
+// updatedAt alongside every other field here rather than trusting the row's
+// mere existence.
+model TelegramIngestionHealth {
+  accountId String @id @map("account_id")
+
+  authorized Boolean @default(false)
+  connected  Boolean @default(false)
+
+  // PUSH liveness. Null means no push event has ever been recorded by the
+  // current process -- distinct from "push is broken", which cannot be
+  // concluded from silence alone (see gramjs-client.ts's own header on this).
+  pushLastUpdateAt DateTime? @map("push_last_update_at")
+
+  // POLL liveness. pollLastError is the one unambiguous failure signal this
+  // row carries: an error here means the fallback itself is failing, which
+  // -- unlike push silence -- is not explainable by an ordinarily quiet
+  // channel.
+  pollLastAt    DateTime? @map("poll_last_at")
+  pollLastError String?   @map("poll_last_error")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("telegram_ingestion_health")
 }
 
 enum TelegramEngineNotificationStatus {

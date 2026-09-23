@@ -38,6 +38,14 @@ export interface TelegramSourceMessage {
   readonly publishedAtMs: number | null;
   /** When this process received it, UTC ms. Never used for the lifetime. */
   readonly receivedAtMs: number;
+  /**
+   * Which transport edge delivered this instance of the message, for
+   * dashboard observability only — nothing downstream of ingestion.service.ts
+   * reads this for a trading decision. Optional: a test constructing a
+   * message by hand, or a future adapter with only one edge, need not supply
+   * it.
+   */
+  readonly deliveryPath?: 'PUSH' | 'POLL';
 }
 
 /**

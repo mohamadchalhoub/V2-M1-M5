@@ -1048,6 +1048,32 @@ export interface TelegramEngineStatus {
     lastSourceMessageId: string | null;
     lastIngestionLatencyMs: number | null;
   };
+  // Written by the telegram-ingest process (a SEPARATE container from the
+  // one serving this endpoint) and read back from the database — see
+  // TelegramIngestionHealth's schema comment. `present: false` means no
+  // snapshot has ever been written, distinct from a snapshot that says
+  // everything is fine.
+  ingestionHealth: {
+    present: boolean;
+    authorized: boolean | null;
+    connected: boolean | null;
+    pushLastUpdateAt: string | null;
+    pollLastAt: string | null;
+    pollLastError: string | null;
+    updatedAt: string | null;
+  };
+  // The single most recent message the source channel published, WHETHER OR
+  // NOT it became a trading signal. Distinct from `signals` below.
+  lastMessage: {
+    messageId: string;
+    publishedAt: string;
+    receivedAt: string;
+    publicationToIngestionMs: number | null;
+    classification: string;
+    refusalReason: string | null;
+    deliveryPath: string | null;
+    textPreview: string;
+  } | null;
   reconciliation: {
     recoveryComplete: boolean;
     lastCompletedAt: string | null;
