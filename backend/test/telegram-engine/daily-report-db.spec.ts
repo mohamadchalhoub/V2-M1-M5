@@ -71,6 +71,12 @@ describe('the daily report from recorded broker deals', () => {
     expect(report.engineAM5).toMatchObject({ wins: 0, losses: 1 });
     expect(report.engineB).toMatchObject({ wins: 1, losses: 0 });
     expect(report.total).toMatchObject({ wins: 2, losses: 1 });
+
+    // Per-order detail comes from the opening and closing deals.
+    const m1 = report.positions.find((p) => p.attribution.timeframe === 'M1')!;
+    expect(m1.side).toBe('BUY');
+    expect(m1.openPrice).toBe(4300);
+    expect(m1.closedAtMs).toBe(inDay.getTime());
   });
 
   it("sends yesterday's report, keyed by date so it goes out once per day", async () => {

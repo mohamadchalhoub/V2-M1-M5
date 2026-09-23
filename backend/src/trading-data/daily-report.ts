@@ -57,6 +57,11 @@ export interface ClosedPosition {
   readonly attribution: EngineAttribution;
   /** Profit + commission + swap across every deal of the position. */
   readonly net: number;
+  readonly side?: 'BUY' | 'SELL' | null;
+  readonly volume?: number | null;
+  readonly openPrice?: number | null;
+  readonly closePrice?: number | null;
+  readonly closedAtMs?: number | null;
 }
 
 export interface Tally {
@@ -75,6 +80,8 @@ export interface DailyReport {
   readonly engineB: Tally;
   readonly other: Tally;
   readonly total: Tally;
+  /** Every closed position, in closing order, for the per-order lines. */
+  readonly positions: readonly ClosedPosition[];
 }
 
 const empty = (): Tally => ({ wins: 0, losses: 0, zero: 0, net: 0 });
@@ -101,6 +108,7 @@ export function buildDailyReport(
     engineB: empty(),
     other: empty(),
     total: empty(),
+    positions: [...positions].sort((a, b) => (a.closedAtMs ?? 0) - (b.closedAtMs ?? 0)),
   };
   for (const p of positions) {
     const { engine, timeframe } = p.attribution;
@@ -118,24 +126,72 @@ export function buildDailyReport(
   return r;
 }
 
-export function renderDailyReport(r: DailyReport): string {
+function beirutTime(ms: number): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: REPORT_TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(ms));
+}
+
+/**
+ * One Telegram-safe text per part. A single message is capped at 4096
+ * characters by Telegram; a busy day's per-order list can exceed that, so the
+ * report is split on line boundaries rather than truncated.
+ */
+export function renderDailyReport(r: DailyReport, maxChars = 3800): string[] {
   const money = (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(2)} ${r.currency}`;
-  const line = (label: string, t: Tally) =>
-    `${label}: ${t.wins} win${t.wins === 1 ? '' : 's'}, ${t.losses} loss${t.losses === 1 ? '' : 'es'}` +
-    (t.zero > 0 ? `, ${t.zero} break-even` : '') +
-    ` — net ${money(t.net)}`;
-  const otherCount = r.other.wins + r.other.losses + r.other.zero;
-  return [
+  const price = (v: number | null | undefined) => (v === null || v === undefined ? '?' : String(v));
+
+  const orderLine = (p: ClosedPosition, i: number) => {
+    const result = p.net > 0 ? '✅ WIN' : p.net < 0 ? '❌ LOSS' : '➖ EVEN';
+    const frame = p.attribution.timeframe ? `${p.attribution.timeframe} · ` : '';
+    const closed = p.closedAtMs ? ` · closed ${beirutTime(p.closedAtMs)}` : '';
+    return (
+      `${i + 1}. ${frame}${p.side ?? '?'} ${p.volume ?? '?'} lot · ${price(p.openPrice)} → ${price(p.closePrice)}` +
+      `${closed} · ${result} ${money(p.net)}`
+    );
+  };
+
+  const section = (title: string, list: readonly ClosedPosition[]) => [
+    title,
+    ...(list.length ? list.map(orderLine) : ['No closed orders.']),
+    '',
+  ];
+
+  const engineA = r.positions.filter((p) => p.attribution.engine === 'Engine A');
+  const engineB = r.positions.filter((p) => p.attribution.engine === 'Engine B');
+  const other = r.positions.filter((p) => p.attribution.engine !== 'Engine A' && p.attribution.engine !== 'Engine B');
+
+  const winsNet = r.positions.filter((p) => p.net > 0).reduce((s, p) => s + p.net, 0);
+  const lossesNet = r.positions.filter((p) => p.net < 0).reduce((s, p) => s + p.net, 0);
+
+  const lines = [
     `📊 DAILY REPORT — ${r.date} (Beirut time)`,
     `Account: ${r.accountLabel}`,
     '',
-    line('Engine A — M1', r.engineAM1),
-    line('Engine A — M5', r.engineAM5),
-    line('Engine B — Telegram', r.engineB),
-    otherCount > 0 ? line('Other (manual / legacy)', r.other) : null,
-    '',
-    line('TOTAL', r.total),
-  ]
-    .filter((l): l is string => l !== null)
-    .join('\n');
+    ...section('🅰️ ENGINE A (RSI M1 / M5)', engineA),
+    ...section('🅱️ ENGINE B (Telegram)', engineB),
+    ...(other.length ? section('Other (manual / legacy)', other) : []),
+    'TOTAL',
+    `Winning orders: ${r.total.wins} · ${money(winsNet)}`,
+    `Losing orders: ${r.total.losses} · ${money(lossesNet)}`,
+    ...(r.total.zero > 0 ? [`Break-even orders: ${r.total.zero}`] : []),
+    `Net: ${money(r.total.net)}`,
+  ];
+
+  const parts: string[] = [];
+  let current = '';
+  for (const line of lines) {
+    const next = current ? `${current}\n${line}` : line;
+    if (next.length > maxChars && current) {
+      parts.push(current);
+      current = line;
+    } else {
+      current = next;
+    }
+  }
+  if (current) parts.push(current);
+  return parts.length > 1 ? parts.map((p, i) => `${p}\n\n(part ${i + 1}/${parts.length})`) : parts;
 }

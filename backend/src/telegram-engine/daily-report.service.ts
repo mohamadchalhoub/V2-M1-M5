@@ -44,14 +44,19 @@ export class DailyReportService {
     try {
       const date = previousDate(localDate(nowMs));
       const key = DailyReportService.dedupKey(accountId, date);
+      // Matches both a single-message report (`<key>#chat:…`) and a split one
+      // (`<key>:part1#chat:…`).
       const already = await this.prisma.telegramEngineNotification.findFirst({
-        where: { dedupKey: { startsWith: `${key}#` } },
+        where: { OR: [{ dedupKey: { startsWith: `${key}#` } }, { dedupKey: { startsWith: `${key}:part` } }] },
         select: { id: true },
       });
       if (already) return null;
 
       const report = await this.build(accountId, date);
-      await this.notifier.notify('DAILY_REPORT', key, renderDailyReport(report), 'TRADING');
+      const parts = renderDailyReport(report);
+      for (const [i, text] of parts.entries()) {
+        await this.notifier.notify('DAILY_REPORT', parts.length === 1 ? key : `${key}:part${i + 1}`, text, 'TRADING');
+      }
       this.logger.log(`daily report for ${date} sent: ${report.total.wins}W / ${report.total.losses}L`);
       return report;
     } catch (err) {
@@ -81,7 +86,19 @@ export class DailyReportService {
     const allDeals = positionIds.length
       ? await this.prisma.trade.findMany({
           where: { accountId, positionId: { in: positionIds } },
-          select: { positionId: true, dealEntry: true, profit: true, commission: true, swap: true, rawPayload: true },
+          select: {
+            positionId: true,
+            dealEntry: true,
+            side: true,
+            volume: true,
+            price: true,
+            executedAt: true,
+            profit: true,
+            commission: true,
+            swap: true,
+            rawPayload: true,
+          },
+          orderBy: { executedAt: 'asc' },
         })
       : [];
 
@@ -92,10 +109,18 @@ export class DailyReportService {
     for (const positionId of positionIds) {
       const deals = allDeals.filter((d) => d.positionId === positionId);
       const opening = deals.find((d) => d.dealEntry === 'IN');
-      const anyClose = deals.find((d) => d.dealEntry !== 'IN');
+      const closes = deals.filter((d) => d.dealEntry !== 'IN');
+      const lastClose = closes[closes.length - 1];
       positions.push({
-        attribution: attributeDeal(anyClose?.rawPayload ?? null, opening?.rawPayload ?? null),
+        attribution: attributeDeal(lastClose?.rawPayload ?? null, opening?.rawPayload ?? null),
         net: deals.reduce((s, d) => s + net(d), 0),
+        // The position's direction is the opening deal's; a closing deal is
+        // the opposite side.
+        side: opening?.side ?? (lastClose ? (lastClose.side === 'BUY' ? 'SELL' : 'BUY') : null),
+        volume: opening ? Number(opening.volume) : lastClose ? Number(lastClose.volume) : null,
+        openPrice: opening ? Number(opening.price) : null,
+        closePrice: lastClose ? Number(lastClose.price) : null,
+        closedAtMs: lastClose ? lastClose.executedAt.getTime() : null,
       });
     }
     // Closing deals with no position id cannot be grouped; count each alone.
