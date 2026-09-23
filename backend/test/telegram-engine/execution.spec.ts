@@ -21,6 +21,7 @@ import {
 import type { TelegramSourceMessage } from '../../src/telegram-engine/ingestion.port';
 import type { Mt5PermissionSnapshot } from '../../src/xauusd-m1m5/mt5-readiness';
 import { TELEGRAM_MAGIC } from '../../src/telegram-engine/safety-constants';
+import { TELEGRAM_SPEC } from '../../src/telegram-engine/spec';
 import { createTradingAccount, createUser } from '../helpers/factories';
 import { resetDatabase } from '../helpers/db';
 
@@ -49,8 +50,8 @@ class FakeBroker implements TelegramBrokerPort {
 
 /**
  * The service with a controllable clock. The leg loop reads the time again
- * before each submission, and this is what lets a test put the second leg
- * past the 60-second lifetime while the first was inside it.
+ * immediately before submission, and this is what lets a test put the
+ * submission itself past the lifetime while the signal-level check passed.
  */
 class TestService extends TelegramEngineExecutionService {
   public clock: number = NOW;
@@ -75,6 +76,9 @@ const READY_SNAPSHOT: Mt5PermissionSnapshot = {
   marginMode: 'RETAIL_HEDGING',
 };
 
+// Still called SELL_TWO_TP: the message itself publishes two targets, which
+// is exactly the case this engine now collapses to one leg, at TP1 (4329).
+// TP2 (4300) is parsed and stored but never becomes a broker order.
 const SELL_TWO_TP = ['Gold sell now 4338', 'SL 4348', 'TP 4329', 'TP 4300'].join('\n');
 
 /** Builds a multi-line message body, matching the channel's real layout. */
@@ -147,32 +151,32 @@ afterAll(async () => {
 });
 
 describe('a valid fresh signal, published inside Engine A’s 14:00–19:00 pause', () => {
-  it('submits one independent leg per take profit', async () => {
+  it('submits exactly one leg, regardless of how many targets were published', async () => {
     const broker = new FakeBroker();
     const result = await service(broker).process(message(), ctx());
 
     expect(result.outcome).toBe('SUBMITTED');
-    expect(result.legsSubmitted).toBe(2);
-    expect(broker.calls).toHaveLength(2);
+    expect(result.legsSubmitted).toBe(1);
+    expect(broker.calls).toHaveLength(1);
   });
 
-  it('sends 0.01 lot per leg, with the source stop and each leg’s own target', async () => {
+  it('sends 0.01 lot, with the source stop and TP1 (not the farther published target)', async () => {
     const broker = new FakeBroker();
     await service(broker).process(message(), ctx());
 
-    expect(broker.calls.map((c) => c.volumeLots)).toEqual([0.01, 0.01]);
-    expect(broker.calls.map((c) => c.stopLoss)).toEqual([4348, 4348]);
-    expect(broker.calls.map((c) => c.takeProfit)).toEqual([4329, 4300]);
-    expect(broker.calls.map((c) => c.direction)).toEqual(['SELL', 'SELL']);
+    expect(broker.calls.map((c) => c.volumeLots)).toEqual([0.01]);
+    expect(broker.calls.map((c) => c.stopLoss)).toEqual([4348]);
+    expect(broker.calls.map((c) => c.takeProfit)).toEqual([4329]);
+    expect(broker.calls.map((c) => c.direction)).toEqual(['SELL']);
   });
 
-  it('stamps every leg with the Telegram magic number', async () => {
+  it('stamps the leg with the Telegram magic number', async () => {
     const broker = new FakeBroker();
     await service(broker).process(message(), ctx());
-    expect(broker.calls.map((c) => c.magicNumber)).toEqual([TELEGRAM_MAGIC, TELEGRAM_MAGIC]);
+    expect(broker.calls.map((c) => c.magicNumber)).toEqual([TELEGRAM_MAGIC]);
   });
 
-  it('records both legs as one signal group', async () => {
+  it('records the single leg as one signal group, numbered 1', async () => {
     const broker = new FakeBroker();
     const result = await service(broker).process(message(), ctx());
 
@@ -180,51 +184,50 @@ describe('a valid fresh signal, published inside Engine A’s 14:00–19:00 paus
       where: { signalId: result.signalId! },
       orderBy: { legIndex: 'asc' },
     });
-    expect(legs.map((l) => l.legIndex)).toEqual([1, 2]);
+    expect(legs.map((l) => l.legIndex)).toEqual([1]);
     expect(legs.every((l) => l.orderStatus === 'PENDING')).toBe(true);
   });
 
-  it('records the age at which each leg was submitted, as evidence the lifetime was re-checked', async () => {
+  it('records the age at which the leg was submitted, as evidence the lifetime was re-checked', async () => {
     const result = await service(new FakeBroker()).process(message(), ctx());
     const legs = await prisma.telegramSignalLeg.findMany({ where: { signalId: result.signalId! } });
     expect(legs.every((l) => l.ageAtSubmissionMs !== null)).toBe(true);
   });
 });
 
-describe('the 60-second lifetime', () => {
+describe('the 1-hour lifetime', () => {
   it('refuses a signal already past its lifetime, and opens nothing', async () => {
     const broker = new FakeBroker();
-    const result = await service(broker).process(message({ publishedAtMs: NOW - 90_000 }), ctx());
+    const result = await service(broker).process(
+      message({ publishedAtMs: NOW - (TELEGRAM_SPEC.maxSignalAgeMs + 90_000) }),
+      ctx(),
+    );
 
     expect(result.outcome).toBe('TELEGRAM_SIGNAL_EXPIRED');
     expect(broker.calls).toHaveLength(0);
   });
 
-  it('submits the first leg and refuses the second when the clock crosses 60s mid-group', async () => {
+  it('refuses the leg if the clock crosses the lifetime between the signal-level check and submission', async () => {
+    // The signal-level check (step 5) uses ctx.nowMs; the per-leg check
+    // (step 9) uses this.now(), re-read immediately before the broker call.
+    // Publishing just inside the lifetime by ctx.nowMs but past it by the
+    // service's own clock reproduces a round trip that took just long
+    // enough to matter, without needing a second leg to demonstrate it.
     const broker = new FakeBroker();
     const svc = service(broker);
-    // Published 58s ago; the first leg is inside the lifetime, and the
-    // simulated round trip pushes the second past it.
-    const msg = message({ publishedAtMs: NOW - 58_000 });
-    let call = 0;
-    svc.clock = NOW;
-    const original = broker.submit.bind(broker);
-    broker.submit = async (req) => {
-      call += 1;
-      if (call === 1) svc.clock = NOW + 5_000; // now 63s old
-      return original(req);
-    };
+    const publishedAtMs = NOW - (TELEGRAM_SPEC.maxSignalAgeMs - 2_000);
+    svc.clock = NOW + 5_000; // this.now() already past the lifetime
 
-    const result = await svc.process(msg, ctx());
+    const result = await svc.process(message({ publishedAtMs }), ctx());
 
-    expect(result.legsSubmitted).toBe(1);
-    expect(broker.calls).toHaveLength(1);
+    expect(result.legsSubmitted).toBe(0);
+    expect(broker.calls).toHaveLength(0);
     const legs = await prisma.telegramSignalLeg.findMany({
       where: { signalId: result.signalId! },
       orderBy: { legIndex: 'asc' },
     });
-    expect(legs[1].orderStatus).toBe('SKIPPED');
-    expect(legs[1].skipReason).toBe('TELEGRAM_SIGNAL_EXPIRED');
+    expect(legs[0].orderStatus).toBe('SKIPPED');
+    expect(legs[0].skipReason).toBe('TELEGRAM_SIGNAL_EXPIRED');
   });
 
   it('refuses a signal whose publication time the transport could not supply', async () => {
@@ -278,7 +281,7 @@ describe('duplicates', () => {
 
     expect(first.outcome).toBe('SUBMITTED');
     expect(second.outcome).toBe('TELEGRAM_DUPLICATE_SIGNAL');
-    expect(broker.calls).toHaveLength(2); // the first signal's two legs, and no more
+    expect(broker.calls).toHaveLength(1); // the first signal's one leg, and no more
   });
 
   it('survives a restart: the guard is the database, not process memory', async () => {
@@ -290,7 +293,7 @@ describe('duplicates', () => {
     // A completely new service instance, as after a restart.
     const afterRestart = await service(broker).process(msg, ctx());
     expect(afterRestart.outcome).toBe('TELEGRAM_DUPLICATE_SIGNAL');
-    expect(broker.calls).toHaveLength(2);
+    expect(broker.calls).toHaveLength(1);
   });
 
   it('does not open a second trade for a restatement with a DIFFERENT target list', async () => {
@@ -317,7 +320,7 @@ describe('duplicates', () => {
     expect(await prisma.telegramSignalLeg.count()).toBe(1);
   });
 
-  it('does not open another two positions for a repost under a new message id', async () => {
+  it('does not open a second position for a repost under a new message id', async () => {
     const broker = new FakeBroker();
     const svc = service(broker);
     await svc.process(message({ messageId: '500' }), ctx());
@@ -326,8 +329,8 @@ describe('duplicates', () => {
     const repost = await svc.process(message({ messageId: '501', publishedAtMs: NOW - 4_000 }), ctx());
 
     expect(repost.outcome).toBe('TELEGRAM_DUPLICATE_SIGNAL');
-    expect(broker.calls).toHaveLength(2);
-    expect(await prisma.telegramSignalLeg.count()).toBe(2);
+    expect(broker.calls).toHaveLength(1);
+    expect(await prisma.telegramSignalLeg.count()).toBe(1);
   });
 });
 
@@ -343,7 +346,7 @@ describe('signal-group occupancy', () => {
 
     expect(second.outcome).toBe('TELEGRAM_OCCUPIED');
     expect(second.detail).toMatch(/not queued behind/i);
-    expect(broker.calls).toHaveLength(2);
+    expect(broker.calls).toHaveLength(1);
   });
 });
 
@@ -391,15 +394,19 @@ describe('the remaining gates', () => {
     expect(broker.calls).toHaveLength(0);
   });
 
-  it('ACCEPTS a market that has moved toward the target, which is a better entry', async () => {
+  it('REFUSES a market that has moved toward the target, even though it looks like a better entry', async () => {
+    // Changed on operator instruction: an earlier version accepted this
+    // unconditionally. The published entry is the trade now — price having
+    // moved at all off it, favourably included, is refused.
     const broker = new FakeBroker();
     const result = await service(broker).process(
       // $4 better than published, and still short of TP1 at 4329.
       message(),
       ctx({ quote: { bid: 4334.0, ask: 4334.3, tickAtMs: NOW - 500 }, maxAdverseUsd: 1.5 }),
     );
-    expect(result.outcome).toBe('SUBMITTED');
-    expect(broker.calls).toHaveLength(2);
+    expect(result.outcome).toBe('TELEGRAM_LEGS_REFUSED');
+    expect(result.detail).toMatch(/TELEGRAM_ADVERSE_ENTRY_DEVIATION/);
+    expect(broker.calls).toHaveLength(0);
   });
 
   it('cancels the whole group once price has reached the first target', async () => {
@@ -441,7 +448,7 @@ describe('the remaining gates', () => {
 
     expect(result.outcome).toBe('TELEGRAM_NOT_SUBMITTING_MODE');
     expect(broker.calls).toHaveLength(0);
-    expect(await prisma.telegramSignalLeg.count()).toBe(2);
+    expect(await prisma.telegramSignalLeg.count()).toBe(1);
     // The group is released, so a later live signal is not blocked by a
     // rehearsal that never reached the broker.
     expect(await prisma.telegramSignalGroupLock.count()).toBe(0);

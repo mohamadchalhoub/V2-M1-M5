@@ -79,8 +79,8 @@ export function activationPendingMessage(facts: ActivationFacts): string {
     'Engine: Engine B',
     'Strategy: Telegram Channel',
     `Magic: ${TELEGRAM_MAGIC}`,
-    `Volume: ${TELEGRAM_SPEC.lotsPerTakeProfit} lot per TP`,
-    `Maximum Signal Age: ${TELEGRAM_SPEC.maxSignalAgeMs / 1000} seconds`,
+    `Volume: ${TELEGRAM_SPEC.lotsPerTakeProfit} lot per signal (TP1 only)`,
+    `Maximum Signal Age: ${TELEGRAM_SPEC.maxSignalAgeMs / 60000} minutes`,
     '',
     'Engine A: UNCHANGED',
     'Engine B: ACTIVATING',
@@ -99,8 +99,8 @@ export function activationCompleteMessage(facts: ActivationFacts): string {
     `Source Channel ID: ${facts.sourceChannelId}`,
     `Account Mode: ${facts.accountMode}`,
     `Magic: ${TELEGRAM_MAGIC}`,
-    `Volume: ${TELEGRAM_SPEC.lotsPerTakeProfit} lot per TP`,
-    `Maximum Signal Age: ${TELEGRAM_SPEC.maxSignalAgeMs / 1000} seconds`,
+    `Volume: ${TELEGRAM_SPEC.lotsPerTakeProfit} lot per signal (TP1 only)`,
+    `Maximum Signal Age: ${TELEGRAM_SPEC.maxSignalAgeMs / 60000} minutes`,
     '',
     'Status: ACTIVE',
     `MT5: ${facts.mt5Ready ? 'READY' : 'NOT READY'}`,
@@ -172,15 +172,19 @@ export function signalReceivedMessage(facts: SignalFacts): string {
     `Entry: ${facts.entry}`,
     `SL: ${facts.stopLoss}`,
     '',
-    ...facts.takeProfits.map((tp, i) => `TP${i + 1}: ${tp}`),
+    ...facts.takeProfits.map((tp, i) => `TP${i + 1}: ${tp}${tp === facts.tp1 ? ' (target)' : ' (published, not traded)'}`),
     '',
     `Published: ${facts.publishedAtIso}`,
     `Received: ${facts.receivedAtIso}`,
     facts.ingestionLatencyMs === null ? null : `Ingestion latency: ${Math.round(facts.ingestionLatencyMs)}ms`,
     facts.signalAgeMs === null ? null : `Signal age: ${seconds(facts.signalAgeMs)}`,
     '',
-    `Planned orders: ${facts.takeProfits.length}`,
-    `Volume per order: ${TELEGRAM_SPEC.lotsPerTakeProfit}`,
+    // Always exactly one order now, targeting TP1, whatever the message
+    // listed — see legs.ts. Every published target is still shown above so
+    // the alert matches what the channel said; only ONE of them becomes a
+    // position.
+    `Planned orders: 1 (targets TP1)`,
+    `Volume: ${TELEGRAM_SPEC.lotsPerTakeProfit}`,
   ]);
 }
 

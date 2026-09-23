@@ -86,24 +86,31 @@ export function initialTp1State(direction: Direction, takeProfits: readonly numb
 /**
  * Direction-aware entry protection.
  *
- * The rule this replaces was a symmetric absolute deviation, and it was
- * wrong in a way worth stating plainly: for a SELL published at 4338, a
- * market at 4330 is EIGHT DOLLARS BETTER than the signal asked for — it is
- * eight dollars nearer the target, entered at a better price, with the same
- * stop. Rejecting it as "deviation" refuses the best version of the trade.
+ * Superseded rule, kept here only as history: an earlier version of this
+ * engine accepted favourable movement (price already having moved toward
+ * the target) without limit, on the reasoning that the same trade at a
+ * better price is not a different trade. The operator corrected this
+ * explicitly: the published entry is the trade, and price having already
+ * moved — in EITHER direction — means the moment described by the signal
+ * has passed.
  *
- * Only ADVERSE movement is bounded:
+ * The rule is now, for a SELL published at `entry`:
  *
- *   SELL — executing BELOW the published entry is favourable (toward TP1);
- *          executing ABOVE it is adverse and is bounded.
- *   BUY  — executing ABOVE the published entry is favourable;
- *          executing BELOW it is adverse and is bounded.
+ *   entry <= price < stopLoss  -> eligible  (price has moved adversely, but
+ *                                             not past the stop)
+ *   price <  entry             -> NOT eligible (favourable movement is now
+ *                                             refused too — the market has
+ *                                             already moved toward the
+ *                                             target, which is a different,
+ *                                             better-priced trade nobody
+ *                                             published)
  *
- * Favourable movement is still not unlimited in practice — it is bounded by
- * TP1 itself, since a market that has run all the way to the first target
- * cancels the signal outright (`reachesFirstTarget`). Those two rules
- * together are what replaces the symmetric band: one end is "not too much
- * worse than published", the other is "not already finished".
+ * BUY mirrors this: `stopLoss < price <= entry` is eligible, `price > entry`
+ * is not.
+ *
+ * The adverse side is still additionally capped at `maxAdverseUsd` (see
+ * `configuredMaxAdverseEntryDeviationUsd`), which in practice is tighter
+ * than the distance to the stop.
  */
 export interface DeviationVerdict {
   readonly acceptable: boolean;
@@ -122,17 +129,18 @@ export function evaluateEntryDeviation(
   // Positive when the market is WORSE than published, for either direction.
   const adverseUsd =
     direction === 'SELL' ? executablePrice - publishedEntry : publishedEntry - executablePrice;
-  const favourable = adverseUsd <= 0;
+  const favourable = adverseUsd < 0;
 
   if (favourable) {
     return {
-      acceptable: true,
+      acceptable: false,
       adverseUsd,
       favourable: true,
       detail:
         `The executable price ${executablePrice} is $${Math.abs(adverseUsd).toFixed(2)} BETTER than the published ` +
-        `entry ${publishedEntry} for a ${direction} — movement toward the target. Accepted: this is the same ` +
-        'trade at a better price, not a different one.',
+        `entry ${publishedEntry} for a ${direction} — price has already moved toward the target. Refused: the ` +
+        'published entry is the trade; once price has moved off it, in either direction, the moment described by ' +
+        'the signal has passed.',
     };
   }
   if (adverseUsd > maxAdverseUsd) {

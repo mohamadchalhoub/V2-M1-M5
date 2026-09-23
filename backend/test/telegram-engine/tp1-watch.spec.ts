@@ -149,7 +149,9 @@ describe('what the watcher does not do', () => {
   });
 
   it('ignores signals older than the watch window', async () => {
-    await signal('SELL', 4329, NOW - 60 * 60_000);
+    // The watch window is the 1-hour execution lifetime plus a 15-minute
+    // margin (see TP1_WATCH_WINDOW_MS), so this must be well past 75 minutes.
+    await signal('SELL', 4329, NOW - 100 * 60_000);
     await setQuote(4328.7, 4329.0);
 
     const result = await watcher.sweep(accountId, NOW);

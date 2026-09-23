@@ -112,7 +112,8 @@ describe('a spent signal opens nothing', () => {
   it('cancels on the recorded latch even when the current quote has retraced', () => {
     const plan = planLegs({
       signal: SELL,
-      // 4334 is a perfectly good entry for this signal on its own terms.
+      // Whatever this quote's own deviation verdict would be, the latch
+      // refuses it as spent first.
       quote: { bid: 4333.7, ask: 4334.0 },
       constraints: CONSTRAINTS,
       maxAdverseUsd: 1.5,
@@ -147,7 +148,12 @@ describe('a spent signal opens nothing', () => {
 });
 
 describe('the two bounds together', () => {
-  it('accepts the whole favourable range between entry and TP1, and nothing past it', () => {
+  it('accepts only the exact published entry; everything favourable is refused, and TP1 or beyond is refused as spent', () => {
+    // Changed on operator instruction: the eligible zone used to run from
+    // the entry down to (not including) TP1. Now only the published entry
+    // itself is eligible on the favourable side — any move toward the
+    // target, however small, is refused as deviation, not accepted as a
+    // better fill.
     const outcomes = [4338, 4337, 4335, 4331, 4330, 4329.01, 4329, 4328].map((bid) => ({
       bid,
       refusal: planLegs({
@@ -158,20 +164,23 @@ describe('the two bounds together', () => {
       }).refusal,
     }));
 
-    // Everything from the entry down to just above TP1 is tradable...
-    for (const o of outcomes.filter((x) => x.bid > 4329)) {
-      expect(o.refusal).toBeNull();
+    expect(outcomes.find((o) => o.bid === 4338)!.refusal).toBeNull();
+    // Everything below the entry but still above TP1 is favourable movement,
+    // and is refused as deviation now...
+    for (const o of outcomes.filter((x) => x.bid < 4338 && x.bid > 4329)) {
+      expect(o.refusal).toBe('TELEGRAM_ADVERSE_ENTRY_DEVIATION');
     }
-    // ...and at or below TP1 the signal is finished. (The ask leads the bid,
-    // so 4329.01 bid is already 4329.31 ask — past the target.)
+    // ...and at or below TP1 the signal is finished outright, which takes
+    // priority over the deviation check. (The ask leads the bid, so 4329.01
+    // bid is already 4329.31 ask — past the target.)
     expect(outcomes.find((o) => o.bid === 4328)!.refusal).toBe('TELEGRAM_TP1_ALREADY_REACHED');
   });
 });
 
 describe('the deviation verdict itself', () => {
-  it('reports favourable movement as negative adverse, not as a large deviation', () => {
+  it('reports favourable movement as negative adverse, and refuses it', () => {
     const v = evaluateEntryDeviation('SELL', 4338, 4330, 1.5);
-    expect(v.acceptable).toBe(true);
+    expect(v.acceptable).toBe(false);
     expect(v.favourable).toBe(true);
     expect(v.adverseUsd).toBeCloseTo(-8, 6);
   });

@@ -1,5 +1,5 @@
 /**
- * The 60-second lifetime and the five ways a signal can arrive twice.
+ * The 1-hour lifetime and the five ways a signal can arrive twice.
  *
  * These are Engine B's two strategy rules with teeth, and both are about
  * refusing to act rather than about acting, so the interesting assertions are
@@ -21,24 +21,24 @@ function parse(text: string): ParsedSignal {
 
 const SELL_TWO_TP = parse('Gold sell now 4338\nSL 4348\nTP 4329\nTP 4300');
 
-describe('the hard 60-second lifetime', () => {
+describe('the hard 1-hour lifetime', () => {
   it('accepts a signal submitted immediately', () => {
     expect(evaluateFreshness(PUBLISHED, PUBLISHED).verdict).toBe('FRESH');
   });
 
-  it('accepts at exactly 60 seconds — the bound is inclusive', () => {
-    expect(evaluateFreshness(PUBLISHED, PUBLISHED + 60_000).fresh).toBe(true);
+  it('accepts at exactly 1 hour — the bound is inclusive', () => {
+    expect(evaluateFreshness(PUBLISHED, PUBLISHED + TELEGRAM_SPEC.maxSignalAgeMs).fresh).toBe(true);
   });
 
-  it('refuses one millisecond past 60 seconds', () => {
-    const r = evaluateFreshness(PUBLISHED, PUBLISHED + 60_001);
+  it('refuses one millisecond past 1 hour', () => {
+    const r = evaluateFreshness(PUBLISHED, PUBLISHED + TELEGRAM_SPEC.maxSignalAgeMs + 1);
     expect(r.verdict).toBe('EXPIRED');
     expect(r.fresh).toBe(false);
   });
 
-  it('measures from publication, not from receipt — a replayed message is old', () => {
-    // Received now, published four minutes ago: the age is four minutes.
-    const receivedNow = PUBLISHED + 4 * 60_000;
+  it('measures from publication, not from receipt — a replayed message past its lifetime is old', () => {
+    // Received now, published two hours ago: the age is two hours, past the 1-hour lifetime.
+    const receivedNow = PUBLISHED + 2 * 60 * 60_000;
     expect(evaluateFreshness(PUBLISHED, receivedNow).verdict).toBe('EXPIRED');
     // Had receipt time been used, the same message would look 0s old.
     expect(evaluateFreshness(receivedNow, receivedNow).verdict).toBe('FRESH');
@@ -56,9 +56,9 @@ describe('the hard 60-second lifetime', () => {
 });
 
 describe('the lifetime is re-checked per leg, immediately before each submission', () => {
-  it('submits a leg at 58s and refuses the next one at 61s', () => {
-    expect(legMayBeSubmitted(PUBLISHED, PUBLISHED + 58_000).fresh).toBe(true);
-    expect(legMayBeSubmitted(PUBLISHED, PUBLISHED + 61_000).fresh).toBe(false);
+  it('submits a leg just inside the lifetime and refuses the next one just past it', () => {
+    expect(legMayBeSubmitted(PUBLISHED, PUBLISHED + TELEGRAM_SPEC.maxSignalAgeMs - 2_000).fresh).toBe(true);
+    expect(legMayBeSubmitted(PUBLISHED, PUBLISHED + TELEGRAM_SPEC.maxSignalAgeMs + 2_000).fresh).toBe(false);
   });
 
   it('is the same rule as the signal-level check, applied at a later instant', () => {

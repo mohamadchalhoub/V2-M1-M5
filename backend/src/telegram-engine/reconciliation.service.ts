@@ -42,10 +42,11 @@ import { positionClosedMessage, reconciliationIncidentMessage } from './notifica
  * complete snapshot showing nothing at the broker is taken as proof it was
  * never sent.
  *
- * Deliberately an order of magnitude beyond the 60-second lifetime: a leg
- * that is merely slow must never be closed out by this, and the only cost of
- * waiting longer is that Engine B stays blocked a little longer in a case
- * that needs an operator's attention anyway.
+ * Deliberately an order of magnitude beyond the execution lifetime
+ * (`TELEGRAM_SPEC.maxSignalAgeMs`): a leg that is merely slow must never be
+ * closed out by this, and the only cost of waiting longer is that Engine B
+ * stays blocked a little longer in a case that needs an operator's
+ * attention anyway.
  */
 export const ABANDONED_PENDING_LEG_MS = 10 * TELEGRAM_SPEC.maxSignalAgeMs;
 

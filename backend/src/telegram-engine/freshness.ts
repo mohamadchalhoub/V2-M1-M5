@@ -1,6 +1,7 @@
 /**
- * The 60-second lifetime, which is Engine B's ONLY strategy-level timing
- * rule.
+ * The hard publication-to-submission lifetime (`TELEGRAM_SPEC.maxSignalAgeMs`
+ * — currently 1 hour, raised by explicit operator instruction from an
+ * earlier 60 seconds), which is Engine B's ONLY strategy-level timing rule.
  *
  * Three properties make it what the specification asks for rather than an
  * approximation of it:
@@ -13,12 +14,12 @@
  * 2. **Re-evaluated per leg, immediately before that leg is submitted.** A
  *    two-leg signal is two broker round trips; the second can easily land
  *    seconds after the first. Checking once for the signal would submit a leg
- *    at 63 seconds on the strength of a check that passed at 58.
+ *    just past the deadline on the strength of a check that passed earlier.
  * 3. **Expiry is terminal.** An expired signal is consumed, never queued and
  *    never retried. There is no state in which a signal waits for something.
  *
- * Both bounds are enforced. `age <= 60s` alone accepts every negative age, so
- * a message dated in the future would pass forever; beyond a small skew
+ * Both bounds are enforced. `age <= limit` alone accepts every negative age,
+ * so a message dated in the future would pass forever; beyond a small skew
  * tolerance a negative age means a wrong clock, not a very fresh signal.
  */
 import { TELEGRAM_SPEC } from './spec';

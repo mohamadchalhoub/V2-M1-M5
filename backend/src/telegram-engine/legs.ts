@@ -1,16 +1,27 @@
 /**
- * One take-profit, one independent position.
+ * One signal, one position — always aimed at TP1.
  *
- * A two-target signal becomes two legs of 0.01 lot each, both carrying the
- * SOURCE entry and the SOURCE stop, differing only in their target. They are
- * separate broker positions rather than one position that will be partially
- * closed later: partial closes need a management loop that survives restarts,
- * and a leg that is its own position is closed by the broker at its own
- * target whether or not this application is running.
+ * A message may list several targets ("Tp 4315 / Tp 4326"), but this engine
+ * opens exactly ONE 0.01-lot position per signal, at the SOURCE entry and
+ * SOURCE stop, targeting TP1 — the nearest target in the trade's direction
+ * (see tp1.ts). The full published target list is still parsed and stored
+ * for the audit trail; only the nearest one ever becomes a broker order.
  *
- * Both legs belong to ONE signal group, which is what makes "at most once"
- * meaningful — the unit that is duplicated, occupied or consumed is the
- * group, never an individual leg.
+ * This is a strategy rule, set by the operator, not a technical limitation:
+ * an earlier version of this engine opened one position PER target. Changed
+ * because managing several simultaneous legs from one signal added
+ * complexity — partial closes, per-leg P&L, TP1-touched cancelling some legs
+ * but not others — for a benefit the operator decided was not worth it.
+ *
+ * "Leg 1" is still the term used throughout the codebase (the DB column is
+ * `legIndex`, always 1 now) rather than renaming everything to "the order" —
+ * that would touch every call site downstream for a purely cosmetic gain,
+ * and every one of them already handles "however many legs exist" generically.
+ *
+ * The signal is still called a "signal group" downstream (DB tables, dedup,
+ * occupancy) — with one leg, "group" is a group of one, and every rule that
+ * treats the group as the unit of duplication/occupancy is unaffected by how
+ * many legs happen to be in it.
  *
  * ## The brackets are the channel's, not this engine's
  *
@@ -44,8 +55,8 @@ export interface TelegramLeg {
 
 export type LegRefusal =
   /**
-   * The market is materially WORSE than the published entry. Favourable
-   * movement toward the target is never refused here - see `tp1.ts`.
+   * The market has moved off the published entry — adversely beyond the
+   * configured bound, or favourably at all. See `tp1.ts`.
    */
   | 'TELEGRAM_ADVERSE_ENTRY_DEVIATION'
   /** Price has already reached the first target; the signal is spent. */
@@ -137,8 +148,9 @@ export function planLegs(input: LegPlanInput): LegPlan {
     );
   }
 
-  // --- Entry protection, ADVERSE ONLY. Movement toward the target is the
-  // same trade at a better price and is never refused as "deviation".
+  // --- Entry protection. The published entry is the trade: price having
+  // moved off it in EITHER direction is refused now, not just adverse
+  // movement beyond the bound — see tp1.ts.
   const maxAdverse = input.maxAdverseUsd ?? configuredMaxAdverseEntryDeviationUsd();
   const deviation = evaluateEntryDeviation(signal.direction, signal.entry, executablePrice, maxAdverse);
   if (!deviation.acceptable) {
@@ -181,32 +193,40 @@ export function planLegs(input: LegPlanInput): LegPlan {
     );
   }
 
-  const legs: TelegramLeg[] = [];
-  for (const [i, rawTp] of signal.takeProfits.entries()) {
-    const takeProfit = roundToTick(rawTp, constraints.tickSize);
-    const tpDistance = Math.abs(takeProfit - executablePrice);
-    if (tpDistance < required) {
-      return refuse(
-        'TELEGRAM_BROKER_STOPS_REFUSED',
-        `Take profit ${takeProfit} (leg ${i + 1}) is ${tpDistance.toFixed(2)} from the market, inside the ` +
-          `broker's ${required.toFixed(2)} minimum. The whole signal is refused rather than opening the ` +
-          'remaining legs, which would be a different trade from the one published.',
-        executablePrice,
-        deviationUsd,
-        favourable,
-        tp1,
-      );
-    }
-    legs.push({
-      legIndex: i + 1,
+  // --- Exactly ONE leg, targeting TP1 only.
+  //
+  // A multi-target signal used to become one broker position PER target
+  // (2 TPs -> 2 legs). Changed on operator instruction: regardless of how
+  // many targets a message lists, this engine now opens a single 0.01-lot
+  // position aimed at the nearest one, TP1 -- the same level that already
+  // governs the permanent "signal is spent" latch above. Every other target
+  // the channel published is recorded (ParsedSignal.takeProfits keeps the
+  // full list, for the audit trail) but never becomes a second position.
+  const takeProfit = roundToTick(tp1, constraints.tickSize);
+  const tpDistance = Math.abs(takeProfit - executablePrice);
+  if (tpDistance < required) {
+    return refuse(
+      'TELEGRAM_BROKER_STOPS_REFUSED',
+      `Take profit ${takeProfit} is ${tpDistance.toFixed(2)} from the market, inside the broker's ` +
+        `${required.toFixed(2)} minimum. The stop is NOT widened to fit — the published level is the trade.`,
+      executablePrice,
+      deviationUsd,
+      favourable,
+      tp1,
+    );
+  }
+
+  const legs: TelegramLeg[] = [
+    {
+      legIndex: 1,
       direction: signal.direction,
       volumeLots: lots,
       sourceEntry: signal.entry,
       stopLoss,
       takeProfit,
       magicNumber: TELEGRAM_MAGIC,
-    });
-  }
+    },
+  ];
 
   return { legs, refusal: null, detail: null, executablePrice, deviationUsd, favourable, tp1 };
 }

@@ -46,12 +46,13 @@ export const TELEGRAM_SPEC = {
    * Hard publication-to-submission lifetime.
    *
    * Measured from the ORIGINAL Telegram publication timestamp to the instant
-   * each individual leg is handed to the broker — not to the instant the
-   * message was received, and not once per signal. A two-leg signal whose
-   * first leg is submitted at 58s and whose second would land at 61s submits
-   * the first and refuses the second. See `freshness.ts`.
+   * the leg is handed to the broker — not to the instant the message was
+   * received. Raised from an earlier 60-second value to 1 hour by explicit
+   * operator instruction: a signal is now still executable up to an hour
+   * after publication, subject to every other check (entry deviation, TP1
+   * latch, duplicates) still applying at execution time. See `freshness.ts`.
    */
-  maxSignalAgeMs: 60_000,
+  maxSignalAgeMs: 60 * 60_000,
 
   /**
    * Clock skew tolerance for a publication timestamp dated in the future.
@@ -63,7 +64,13 @@ export const TELEGRAM_SPEC = {
    */
   futurePublicationToleranceMs: 2_000,
 
-  /** One independent position per take-profit, at this size each. */
+  /**
+   * The size of the ONE position this engine opens per signal, targeting
+   * TP1 (see legs.ts and tp1.ts). The name is kept from an earlier version
+   * that opened one position per published target; changed by operator
+   * instruction to always exactly one position, regardless of how many
+   * targets a message lists.
+   */
   lotsPerTakeProfit: 0.01,
 
   /**
@@ -75,15 +82,16 @@ export const TELEGRAM_SPEC = {
   maxTakeProfits: 6,
 
   /**
-   * Entry protection is ADVERSE-ONLY and lives in `tp1.ts`, bounded by
+   * Entry protection lives in `tp1.ts`, bounded on the adverse side by
    * `TELEGRAM_MAX_ADVERSE_ENTRY_DEVIATION_USD` (see `controls.ts`).
    *
-   * There is deliberately no symmetric deviation constant here any more. One
-   * was tried and was wrong: for a SELL published at 4338, a market at 4330
-   * is eight dollars NEARER the target at the same stop — the best available
-   * version of the trade — and a symmetric band refused exactly that. The two
-   * bounds that replaced it are "not materially worse than published" at one
-   * end and "TP1 not already reached" at the other.
+   * The published entry is the trade: price must sit at or on the adverse
+   * side of it (up to the bound), never on the favourable side. An earlier
+   * version of this engine accepted any favourable movement unconditionally
+   * — reasoning that the same trade at a better price is not a different
+   * one — but the operator corrected that: once price has moved off the
+   * published entry in EITHER direction, the moment the signal described has
+   * passed.
    */
 
   /**

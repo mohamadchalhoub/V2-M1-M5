@@ -502,7 +502,7 @@ export default async function XauusdM1M5Page() {
                   tone={telegramEngine.engine.engineEnabled ? "ok" : "neutral"}
                 />
                 <Tile label="Magic number" value={String(telegramEngine.engine.magicNumber)} />
-                <Tile label="Order size" value={`${telegramEngine.engine.rules.lotsPerTakeProfit} lot / TP`} />
+                <Tile label="Order size" value={`${telegramEngine.engine.rules.lotsPerTakeProfit} lot / signal (TP1 only)`} />
                 <Tile label="Signal lifetime" value={`${telegramEngine.engine.rules.maxSignalAgeSeconds}s`} />
                 <Tile
                   label="Max adverse move"

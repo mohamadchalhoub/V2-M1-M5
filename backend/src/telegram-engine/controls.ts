@@ -148,14 +148,12 @@ export function configuredMaxAdverseEntryDeviationUsd(): number {
 }
 
 /**
- * The DEMO default proposed for this bound: $1.50 of adverse movement.
+ * The operator-set default for this bound: $50 of adverse movement.
  *
- * Reasoning, so it can be argued with rather than inherited: the published
- * stops on this channel sit about $10 from entry, so $1.50 adverse is roughly
- * 15% of the trade's own risk — enough to absorb ordinary slippage and the
- * few seconds between publication and submission, small enough that a copy
- * taken at the limit still has most of the reward-to-risk the message
- * described. It is deliberately NOT symmetric: there is no favourable bound,
- * because the only meaningful ceiling on favourable movement is TP1 itself.
+ * Raised from an earlier $1.50 default by explicit operator instruction.
+ * Movement on the favourable side is refused outright regardless of this
+ * bound — see `tp1.ts` — so this number governs only how far worse than
+ * published the market may have moved before the copy is refused as too
+ * stale a price to take.
  */
-export const TELEGRAM_DEFAULT_MAX_ADVERSE_ENTRY_DEVIATION_USD = 1.5;
+export const TELEGRAM_DEFAULT_MAX_ADVERSE_ENTRY_DEVIATION_USD = 50;

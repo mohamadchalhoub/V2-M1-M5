@@ -16,6 +16,7 @@ import { TelegramReconciliationService } from '../../src/telegram-engine/reconci
 import { TelegramLegQueueService } from '../../src/telegram-engine/leg-queue.service';
 import { legIdempotencyTag, legOrderComment, tagFromComment } from '../../src/telegram-engine/idempotency';
 import { TELEGRAM_MAGIC } from '../../src/telegram-engine/safety-constants';
+import { TELEGRAM_SPEC } from '../../src/telegram-engine/spec';
 import { V2_MAGIC_M1, V2_MAGIC_M5 } from '../../src/xauusd-m1m5/safety-constants';
 import { createTradingAccount, createUser } from '../helpers/factories';
 import { resetDatabase } from '../helpers/db';
@@ -256,7 +257,9 @@ describe('recoveryComplete is earned, never assumed', () => {
     // it; past its lifetime it can no longer be sent; a complete snapshot
     // shows nothing at the broker. Left unresolved it would disable Engine B
     // permanently, so reconciliation closes it out.
-    const { legs: rows } = await twoLegSignal({ legStatus: 'PENDING', publishedAtMs: NOW - 20 * 60_000 });
+    // ABANDONED_PENDING_LEG_MS is 10x the 1-hour execution lifetime, so this
+    // must be well past 10 hours.
+    const { legs: rows } = await twoLegSignal({ legStatus: 'PENDING', publishedAtMs: NOW - 11 * 60 * 60_000 });
 
     const outcome = await reconciliation.reconcile({
       accountId, nowMs: NOW, snapshotComplete: true, snapshotAtMs: NOW, positions: [], deals: [],
@@ -337,8 +340,11 @@ describe('other engines’ positions are not this engine’s business', () => {
 });
 
 describe('the leg queue is the last gate before the terminal', () => {
-  it('cancels a leg that has aged past 60 seconds while it waited', async () => {
-    const { legs: rows } = await twoLegSignal({ legStatus: 'PENDING', publishedAtMs: NOW - 90_000 });
+  it('cancels a leg that has aged past its lifetime while it waited', async () => {
+    const { legs: rows } = await twoLegSignal({
+      legStatus: 'PENDING',
+      publishedAtMs: NOW - (TELEGRAM_SPEC.maxSignalAgeMs + 90_000),
+    });
     const claimed = await legs.claimNext(accountId, NOW);
     expect(claimed).toBeNull();
 

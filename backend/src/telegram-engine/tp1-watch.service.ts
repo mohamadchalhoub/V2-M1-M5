@@ -23,9 +23,13 @@
  * submitted. A signal whose legs are all live at the broker needs no watching
  * — the broker owns those positions and closes them at their own targets.
  *
- * The window is deliberately longer than the 60-second lifetime. A signal
- * that expired is already dead, but latching its touch anyway costs nothing
- * and keeps the dashboard honest about what happened to it.
+ * The window is deliberately longer than the execution lifetime
+ * (`TELEGRAM_SPEC.maxSignalAgeMs`). A signal that is still within its
+ * lifetime must still be watched — a stale watch window that stopped short
+ * of the lifetime would let a signal trade through TP1 and back unobserved,
+ * then execute on the retraced price the latch exists to prevent. A signal
+ * whose lifetime has expired is already dead, but latching its touch anyway
+ * costs nothing and keeps the dashboard honest about what happened to it.
  */
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
@@ -33,14 +37,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { resolveQuote } from '../xauusd-m1m5/quote';
 import { readQuoteCandidates } from '../xauusd-m1m5/quote-sources';
 import { reachesFirstTarget } from './tp1';
-import type { Direction } from './spec';
+import { TELEGRAM_SPEC, type Direction } from './spec';
 
 /**
- * How far back a signal stays under observation. Well past the 60-second
- * lifetime, so a signal that expired still gets an accurate `tp1Touched`
- * recorded against it for review.
+ * How far back a signal stays under observation. Kept a fixed 15 minutes
+ * past the execution lifetime itself, so this scales automatically if that
+ * lifetime is ever changed again rather than silently falling behind it.
  */
-export const TP1_WATCH_WINDOW_MS = 15 * 60_000;
+export const TP1_WATCH_WINDOW_MS = TELEGRAM_SPEC.maxSignalAgeMs + 15 * 60_000;
 
 export interface Tp1SweepResult {
   readonly examined: number;
