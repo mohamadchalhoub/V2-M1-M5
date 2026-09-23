@@ -108,11 +108,11 @@ export interface PriorSignal {
   readonly restatementKey?: string | null;
   readonly publishedAtMs: number;
   /**
-   * Whether the earlier signal is still alive: waiting for its entry, being
-   * submitted, or holding a position that has not closed. Only a LIVE prior
-   * makes a repost a duplicate — once it was cancelled, expired, refused, or
-   * its position closed (TP or SL), the same signal published again is a new
-   * signal. Operator rule. Absent is treated as live, the safe direction.
+   * Whether the engine is currently holding the earlier signal's order (taken
+   * and still open). Only then is a repost a duplicate — not yet taken,
+   * cancelled, expired, refused, or closed at TP/SL means the same signal
+   * published again is a new signal. Operator rule. Absent is treated as
+   * live, the safe direction.
    */
   readonly live?: boolean;
 }

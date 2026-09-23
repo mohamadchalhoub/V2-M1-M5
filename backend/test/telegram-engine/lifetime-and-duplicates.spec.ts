@@ -117,20 +117,17 @@ describe('a repost is only a duplicate while the earlier order is still alive', 
 });
 
 describe('priorSignalIsLive', () => {
+  // Duplicate only while the order has been TAKEN and is still held.
   it.each([
-    ['still being evaluated', 'RECEIVED', [], true],
-    ['waiting for the entry to retrace', 'TELEGRAM_AWAITING_ENTRY_RETRACE', [], true],
-    ['submitted, leg pending', 'SUBMITTED', [{ orderStatus: 'PENDING', closureComplete: false }], true],
-    ['submitted, position open', 'SUBMITTED', [{ orderStatus: 'FILLED', closureComplete: false }], true],
-    ['submitted, outcome unknown', 'SUBMITTED', [{ orderStatus: 'UNKNOWN', closureComplete: false }], true],
-    ['submitted, position closed (TP or SL)', 'SUBMITTED', [{ orderStatus: 'FILLED', closureComplete: true }], false],
-    ['submitted, broker refused', 'SUBMITTED', [{ orderStatus: 'FAILED', closureComplete: false }], false],
-    ['TP1 reached before entry', 'TELEGRAM_TP1_ALREADY_REACHED', [], false],
-    ['expired', 'TELEGRAM_SIGNAL_EXPIRED', [], false],
-    ['refused', 'TELEGRAM_LEGS_REFUSED', [], false],
-    ['itself a duplicate', 'TELEGRAM_DUPLICATE_SIGNAL', [], false],
-  ])('%s -> live=%s', (_label, outcome, legs, expected) => {
-    expect(priorSignalIsLive(outcome as string, legs as never)).toBe(expected);
+    ['sent, not yet confirmed (may be live)', [{ orderStatus: 'PENDING', closureComplete: false }], true],
+    ['position open', [{ orderStatus: 'FILLED', closureComplete: false }], true],
+    ['broker answer lost (may be live)', [{ orderStatus: 'UNKNOWN', closureComplete: false }], true],
+    ['position closed (TP or SL)', [{ orderStatus: 'FILLED', closureComplete: true }], false],
+    ['broker refused', [{ orderStatus: 'FAILED', closureComplete: false }], false],
+    ['skipped, never sent', [{ orderStatus: 'SKIPPED', closureComplete: false }], false],
+    ['no order at all (waiting for entry, cancelled, expired, refused)', [], false],
+  ])('%s -> live=%s', (_label, legs, expected) => {
+    expect(priorSignalIsLive(legs as never)).toBe(expected);
   });
 });
 

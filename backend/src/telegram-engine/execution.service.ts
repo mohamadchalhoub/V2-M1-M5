@@ -329,7 +329,6 @@ export class TelegramEngineExecutionService {
         semanticKey: true,
         restatementKey: true,
         publishedAt: true,
-        outcome: true,
         legs: { select: { orderStatus: true, closureComplete: true } },
       },
     });
@@ -340,7 +339,7 @@ export class TelegramEngineExecutionService {
         semanticKey: p.semanticKey,
         restatementKey: p.restatementKey,
         publishedAtMs: p.publishedAt.getTime(),
-        live: priorSignalIsLive(p.outcome, p.legs),
+        live: priorSignalIsLive(p.legs),
       })),
     );
     if (dup.duplicate) return settle('TELEGRAM_DUPLICATE_SIGNAL', dup.detail!);
@@ -849,20 +848,16 @@ export class TelegramEngineExecutionService {
 }
 
 /**
- * Is an earlier signal still holding its trade? Decides whether a repost of
- * it is a duplicate (live) or a new signal (finished).
+ * Is the engine currently HOLDING the earlier signal's order? Operator rule:
+ * a repost is a duplicate only while that order has been taken and is still
+ * open. Not yet taken (e.g. waiting for its entry), cancelled, expired,
+ * refused, or closed at TP or SL: the repost is a new signal.
  *
- * Live: still being evaluated, waiting for its entry to retrace, or submitted
- * with a leg that is pending, unknown, or filled and not yet closed at the
- * broker. Everything else — expired, TP1 reached, refused, cancelled, or a
- * position that has closed at TP or SL — is finished.
+ * Judged from the legs, not the outcome, so an order mid-submission (outcome
+ * not yet updated) still counts as taken. A leg sent but unconfirmed
+ * (PENDING/UNKNOWN) counts as taken: it may already be live at the broker.
  */
-export function priorSignalIsLive(
-  outcome: string,
-  legs: readonly { orderStatus: string; closureComplete: boolean }[],
-): boolean {
-  if (outcome === 'RECEIVED' || outcome === 'TELEGRAM_AWAITING_ENTRY_RETRACE') return true;
-  if (outcome !== 'SUBMITTED') return false;
+export function priorSignalIsLive(legs: readonly { orderStatus: string; closureComplete: boolean }[]): boolean {
   return legs.some(
     (l) =>
       l.orderStatus === 'PENDING' ||

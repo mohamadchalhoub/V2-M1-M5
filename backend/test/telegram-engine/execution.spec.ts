@@ -354,6 +354,22 @@ describe('duplicates', () => {
     expect(broker.calls).toHaveLength(1);
   });
 
+  it('treats a repost as NEW while the earlier signal is only waiting for its entry (not yet taken)', async () => {
+    const broker = new FakeBroker();
+    const svc = service(broker);
+    const first = await svc.process(
+      message({ messageId: '800' }),
+      ctx({ quote: { bid: 4334.0, ask: 4334.3, tickAtMs: NOW - 500 } }),
+    );
+    expect(first.outcome).toBe('TELEGRAM_AWAITING_ENTRY_RETRACE');
+
+    // Price now at the entry: the repost is a new signal and is taken.
+    const again = await svc.process(message({ messageId: '801', publishedAtMs: NOW - 4_000 }), ctx());
+
+    expect(again.outcome).toBe('SUBMITTED');
+    expect(broker.calls).toHaveLength(1);
+  });
+
   it('does not open a second position for a repost under a new message id', async () => {
     const broker = new FakeBroker();
     const svc = service(broker);
