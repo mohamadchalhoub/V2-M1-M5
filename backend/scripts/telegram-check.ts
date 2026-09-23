@@ -28,7 +28,8 @@ import { readStoredSession, telegramSessionPath } from '../src/telegram-engine/i
 import { displayChannelId, normaliseChannelId } from '../src/telegram-engine/ingestion/channel-guard';
 import { parseTelegramSignal } from '../src/telegram-engine/parser';
 import { firstTarget } from '../src/telegram-engine/tp1';
-import { semanticKey } from '../src/telegram-engine/duplicate';
+import { TELEGRAM_SPEC } from '../src/telegram-engine/spec';
+import { evaluateDuplicate, restatementKey, semanticKey } from '../src/telegram-engine/duplicate';
 
 const HOW_MANY = Number((process.env.TELEGRAM_CHECK_MESSAGES ?? '10').trim()) || 10;
 
@@ -136,36 +137,64 @@ async function main(): Promise<void> {
     }
   }
 
-  // --- Would any of these have traded on top of each other?
+  // --- What would the engine have DONE with these, as a group?
   //
-  // A channel that restates an open position as price moves publishes
-  // several messages that each parse as a valid trade. They are not
-  // duplicates by fingerprint -- a restatement with a different target is a
-  // different fingerprint -- so this reports them explicitly rather than
-  // leaving an operator to notice the pattern by eye.
+  // Reports the outcome the duplicate rules actually produce, rather than a
+  // warning about a rule that no longer applies. An earlier version of this
+  // grouped by entry and stop and warned whenever a group had more than one
+  // message -- which fired on byte-identical reposts, called them "DIFFERENT
+  // targets", and advised that they would not be suppressed. All three were
+  // wrong, and it said so immediately before an activation decision.
   const parsedSignals = messages
-    .map((m) => ({ id: m.id, date: m.date, parsed: parseTelegramSignal(typeof m.message === 'string' ? m.message : '') }))
-    .filter((x) => x.parsed.signal !== null);
+    .map((m) => ({
+      id: m.id,
+      at: m.date ? m.date * 1000 : 0,
+      signal: parseTelegramSignal(typeof m.message === 'string' ? m.message : '').signal,
+    }))
+    .filter((x): x is { id: number; at: number; signal: NonNullable<typeof x.signal> } => x.signal !== null)
+    // Channel order is newest-first; replay in publication order so the
+    // "first of a burst wins" rule reads the way it actually runs.
+    .sort((a, b) => a.at - b.at);
 
-  if (parsedSignals.length > 1) {
+  if (parsedSignals.length > 0) {
     console.log('');
     console.log(`${parsedSignals.length} of the last ${messages.length} messages parsed as tradable signals.`);
-    const byEntry = new Map<string, number>();
+    console.log('Replayed in publication order, through the real duplicate rules:');
+    console.log('');
+
+    const seen: Array<{ sourceKey: string; semanticKey: string; restatementKey: string; publishedAtMs: number }> = [];
+    let wouldTrade = 0;
     for (const item of parsedSignals) {
-      const s = item.parsed.signal!;
-      const key = `${s.direction}@${s.entry} SL ${s.stopLoss}`;
-      byEntry.set(key, (byEntry.get(key) ?? 0) + 1);
-    }
-    for (const [key, count] of byEntry) {
-      if (count > 1) {
-        console.log('');
-        console.log(`  WARNING: ${count} separate messages describe ${key} with DIFFERENT targets.`);
-        console.log('  Each is a distinct fingerprint, so semantic duplicate detection will NOT');
-        console.log('  suppress them. Signal-group occupancy stops a second group opening while');
-        console.log('  the first is live, but once that group closes a later restatement can open');
-        console.log('  a new trade. Review the raw text above before enabling execution.');
+      const candidate = {
+        sourceKey: `${resolvedId}:${item.id}`,
+        semanticKey: semanticKey(item.signal),
+        restatementKey: restatementKey(item.signal),
+        publishedAtMs: item.at,
+      };
+      const verdict = evaluateDuplicate(candidate, seen);
+      seen.push(candidate);
+
+      const when = new Date(item.at).toISOString();
+      const s2 = item.signal;
+      const summary = `${s2.direction} ${s2.entry} SL ${s2.stopLoss} TP ${s2.takeProfits.join('/')}`;
+      if (verdict.duplicate) {
+        console.log(`  [${item.id}] ${when}  ${summary}`);
+        console.log(`        -> CONSUMED as ${verdict.kind}, no order`);
+      } else {
+        wouldTrade += 1;
+        console.log(`  [${item.id}] ${when}  ${summary}`);
+        console.log(`        -> WOULD TRADE ${s2.takeProfits.length} leg(s) of ${TELEGRAM_SPEC.lotsPerTakeProfit}`);
       }
     }
+
+    console.log('');
+    console.log(
+      `${wouldTrade} trade(s) from ${parsedSignals.length} signal message(s). The rest were reposts or ` +
+        'restatements of a trade already taken.',
+    );
+    console.log('');
+    console.log('Note: this replay applies the duplicate rules only. At runtime a signal must ALSO be within');
+    console.log('its 60-second lifetime, have an untouched first target, and pass the broker checks.');
   }
 
   console.log('');
