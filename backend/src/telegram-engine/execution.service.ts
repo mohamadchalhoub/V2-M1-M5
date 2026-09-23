@@ -324,7 +324,14 @@ export class TelegramEngineExecutionService {
         publishedAt: { gte: new Date(publishedAtMs - TELEGRAM_SPEC.semanticDuplicateWindowMs) },
         OR: [{ semanticKey: keys.semanticKey }, { restatementKey: keys.restatementKey }],
       },
-      select: { sourceKey: true, semanticKey: true, restatementKey: true, publishedAt: true },
+      select: {
+        sourceKey: true,
+        semanticKey: true,
+        restatementKey: true,
+        publishedAt: true,
+        outcome: true,
+        legs: { select: { orderStatus: true, closureComplete: true } },
+      },
     });
     const dup = evaluateDuplicate(
       keys,
@@ -333,6 +340,7 @@ export class TelegramEngineExecutionService {
         semanticKey: p.semanticKey,
         restatementKey: p.restatementKey,
         publishedAtMs: p.publishedAt.getTime(),
+        live: priorSignalIsLive(p.outcome, p.legs),
       })),
     );
     if (dup.duplicate) return settle('TELEGRAM_DUPLICATE_SIGNAL', dup.detail!);
@@ -838,6 +846,29 @@ export class TelegramEngineExecutionService {
   private async releaseGroup(accountId: string): Promise<void> {
     await this.prisma.telegramSignalGroupLock.deleteMany({ where: { accountId } });
   }
+}
+
+/**
+ * Is an earlier signal still holding its trade? Decides whether a repost of
+ * it is a duplicate (live) or a new signal (finished).
+ *
+ * Live: still being evaluated, waiting for its entry to retrace, or submitted
+ * with a leg that is pending, unknown, or filled and not yet closed at the
+ * broker. Everything else — expired, TP1 reached, refused, cancelled, or a
+ * position that has closed at TP or SL — is finished.
+ */
+export function priorSignalIsLive(
+  outcome: string,
+  legs: readonly { orderStatus: string; closureComplete: boolean }[],
+): boolean {
+  if (outcome === 'RECEIVED' || outcome === 'TELEGRAM_AWAITING_ENTRY_RETRACE') return true;
+  if (outcome !== 'SUBMITTED') return false;
+  return legs.some(
+    (l) =>
+      l.orderStatus === 'PENDING' ||
+      l.orderStatus === 'UNKNOWN' ||
+      (l.orderStatus === 'FILLED' && !l.closureComplete),
+  );
 }
 
 function fmt(value: number): string {

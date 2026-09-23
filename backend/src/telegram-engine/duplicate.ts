@@ -107,6 +107,14 @@ export interface PriorSignal {
   /** Absent on rows written before restatement detection existed. */
   readonly restatementKey?: string | null;
   readonly publishedAtMs: number;
+  /**
+   * Whether the earlier signal is still alive: waiting for its entry, being
+   * submitted, or holding a position that has not closed. Only a LIVE prior
+   * makes a repost a duplicate — once it was cancelled, expired, refused, or
+   * its position closed (TP or SL), the same signal published again is a new
+   * signal. Operator rule. Absent is treated as live, the safe direction.
+   */
+  readonly live?: boolean;
 }
 
 /**
@@ -131,7 +139,13 @@ export function evaluateDuplicate(
     };
   }
 
-  const repost = priors.find(
+  // Content-based matches only count against a prior that is still alive.
+  // The exact-message check above deliberately does NOT get this relaxation:
+  // the same message id arriving again is a replay of that message, never
+  // the channel sending the signal again.
+  const livePriors = priors.filter((p) => p.live !== false);
+
+  const repost = livePriors.find(
     (p) =>
       p.semanticKey === candidate.semanticKey &&
       Math.abs(candidate.publishedAtMs - p.publishedAtMs) <= TELEGRAM_SPEC.semanticDuplicateWindowMs,
@@ -143,15 +157,15 @@ export function evaluateDuplicate(
       kind: 'SEMANTIC_REPOST',
       detail:
         `The same effective trade was published ${minutes} minute(s) ago under message ${repost.sourceKey}, ` +
-        `within the ${TELEGRAM_SPEC.semanticDuplicateWindowMs / 60_000}-minute repost window. The signal is ` +
-        'recorded and consumed; no additional positions are opened.',
+        `within the ${TELEGRAM_SPEC.semanticDuplicateWindowMs / 60_000}-minute repost window, and that order is ` +
+        'still active. The signal is recorded and consumed; no additional positions are opened.',
     };
   }
 
   // --- The same trade restated with a different target list. Checked after
   // the exact-content test so a genuine repost still reports as one.
   if (candidate.restatementKey) {
-    const restated = priors.find(
+    const restated = livePriors.find(
       (p) =>
         p.restatementKey != null &&
         p.restatementKey === candidate.restatementKey &&

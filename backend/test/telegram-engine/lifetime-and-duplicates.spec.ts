@@ -10,6 +10,7 @@ import { evaluateFreshness, legMayBeSubmitted } from '../../src/telegram-engine/
 import { evaluateDuplicate, semanticKey, sourceKey } from '../../src/telegram-engine/duplicate';
 import { parseTelegramSignal, type ParsedSignal } from '../../src/telegram-engine/parser';
 import { TELEGRAM_SPEC } from '../../src/telegram-engine/spec';
+import { priorSignalIsLive } from '../../src/telegram-engine/execution.service';
 
 const PUBLISHED = Date.UTC(2026, 8, 23, 16, 0, 0);
 
@@ -84,6 +85,52 @@ describe('exact message identity', () => {
   it('is independent of content: an edited repost of the same message id is still that message', () => {
     const edited = { ...key, semanticKey: semanticKey(parse('Gold sell now 4339\nSL 4349\nTP 4330')) };
     expect(evaluateDuplicate(edited, prior).kind).toBe('EXACT_MESSAGE');
+  });
+});
+
+describe('a repost is only a duplicate while the earlier order is still alive', () => {
+  const first = {
+    sourceKey: sourceKey('-100123', '77'),
+    semanticKey: semanticKey(SELL_TWO_TP),
+    publishedAtMs: PUBLISHED,
+  };
+  const repost = {
+    sourceKey: sourceKey('-100123', '78'),
+    semanticKey: semanticKey(SELL_TWO_TP),
+    publishedAtMs: PUBLISHED + 90_000,
+  };
+
+  it('is a duplicate while the earlier order is still live', () => {
+    expect(evaluateDuplicate(repost, [{ ...first, live: true }]).duplicate).toBe(true);
+  });
+
+  it('is a NEW signal once the earlier order has finished (cancelled, expired, or closed at TP/SL)', () => {
+    expect(evaluateDuplicate(repost, [{ ...first, live: false }]).duplicate).toBe(false);
+  });
+
+  it('never relaxes the exact-message check: the same message id is a replay, not a new sending', () => {
+    const replay = { ...first };
+    const v = evaluateDuplicate(replay, [{ ...first, live: false }]);
+    expect(v.duplicate).toBe(true);
+    expect(v.kind).toBe('EXACT_MESSAGE');
+  });
+});
+
+describe('priorSignalIsLive', () => {
+  it.each([
+    ['still being evaluated', 'RECEIVED', [], true],
+    ['waiting for the entry to retrace', 'TELEGRAM_AWAITING_ENTRY_RETRACE', [], true],
+    ['submitted, leg pending', 'SUBMITTED', [{ orderStatus: 'PENDING', closureComplete: false }], true],
+    ['submitted, position open', 'SUBMITTED', [{ orderStatus: 'FILLED', closureComplete: false }], true],
+    ['submitted, outcome unknown', 'SUBMITTED', [{ orderStatus: 'UNKNOWN', closureComplete: false }], true],
+    ['submitted, position closed (TP or SL)', 'SUBMITTED', [{ orderStatus: 'FILLED', closureComplete: true }], false],
+    ['submitted, broker refused', 'SUBMITTED', [{ orderStatus: 'FAILED', closureComplete: false }], false],
+    ['TP1 reached before entry', 'TELEGRAM_TP1_ALREADY_REACHED', [], false],
+    ['expired', 'TELEGRAM_SIGNAL_EXPIRED', [], false],
+    ['refused', 'TELEGRAM_LEGS_REFUSED', [], false],
+    ['itself a duplicate', 'TELEGRAM_DUPLICATE_SIGNAL', [], false],
+  ])('%s -> live=%s', (_label, outcome, legs, expected) => {
+    expect(priorSignalIsLive(outcome as string, legs as never)).toBe(expected);
   });
 });
 

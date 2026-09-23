@@ -320,6 +320,40 @@ describe('duplicates', () => {
     expect(await prisma.telegramSignalLeg.count()).toBe(1);
   });
 
+  it('treats the same signal as NEW once the earlier position has closed (TP or SL)', async () => {
+    const broker = new FakeBroker();
+    const svc = service(broker);
+    const first = await svc.process(message({ messageId: '600' }), ctx());
+    expect(first.outcome).toBe('SUBMITTED');
+    // The earlier position filled and then closed at the broker.
+    await prisma.telegramSignalLeg.updateMany({
+      where: { signalId: first.signalId! },
+      data: { orderStatus: 'FILLED', closureComplete: true, closedAt: new Date(NOW) },
+    });
+    await prisma.telegramSignalGroupLock.deleteMany();
+
+    const again = await svc.process(message({ messageId: '601', publishedAtMs: NOW - 4_000 }), ctx());
+
+    expect(again.outcome).toBe('SUBMITTED');
+    expect(broker.calls).toHaveLength(2);
+  });
+
+  it('treats the same signal as NEW once the earlier one was cancelled without trading', async () => {
+    const broker = new FakeBroker();
+    const svc = service(broker);
+    // First one arrives with TP1 already reached: cancelled, never traded.
+    const first = await svc.process(
+      message({ messageId: '700' }),
+      ctx({ quote: { bid: 4328.7, ask: 4329.0, tickAtMs: NOW - 500 } }),
+    );
+    expect(first.outcome).toBe('TELEGRAM_TP1_ALREADY_REACHED');
+
+    const again = await svc.process(message({ messageId: '701', publishedAtMs: NOW - 4_000 }), ctx());
+
+    expect(again.outcome).toBe('SUBMITTED');
+    expect(broker.calls).toHaveLength(1);
+  });
+
   it('does not open a second position for a repost under a new message id', async () => {
     const broker = new FakeBroker();
     const svc = service(broker);
