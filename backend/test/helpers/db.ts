@@ -22,6 +22,13 @@ export async function resetDatabase(prisma: PrismaClient): Promise<void> {
   // group lock and the legs both reference a signal, and a leftover group
   // lock would make a later test see the account as permanently occupied by
   // a signal group that no longer exists.
+  // Engine B's alert log. No FK to anything, which is exactly why it is easy
+  // to forget -- and a leftover row here is not inert: the unique dedupKey
+  // makes an earlier test's alert silently suppress a later test's send, so
+  // the later test observes nothing and passes for the wrong reason.
+  await prisma.telegramEngineNotification.deleteMany();
+  await prisma.telegramIngestedMessage.deleteMany();
+  await prisma.telegramReconciliationState.deleteMany();
   await prisma.telegramSignalGroupLock.deleteMany();
   await prisma.telegramSignalLeg.deleteMany();
   await prisma.telegramSignal.deleteMany();

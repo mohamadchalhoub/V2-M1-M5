@@ -33,7 +33,7 @@
  * return a time-of-day block. A valid fresh signal at 16:00 Beirut, or at
  * 00:30, is executed.
  */
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { BrokerStopConstraints } from '../xauusd-m1m5/brackets';
@@ -47,6 +47,13 @@ import { groupMarginRequired, planLegs, type TelegramLeg } from './legs';
 import { legIdempotencyTag } from './idempotency';
 import { firstTarget } from './tp1';
 import { parseTelegramSignal, TELEGRAM_PARSER_VERSION } from './parser';
+import { TelegramEngineNotificationService } from './notifications/notification.service';
+import {
+  signalReceivedMessage,
+  signalSkippedMessage,
+  tradeExecutedMessage,
+  uncertainExecutionMessage,
+} from './notifications/messages';
 import { TELEGRAM_SPEC, TELEGRAM_ENGINE_VERSION } from './spec';
 
 export type TelegramOutcome =
@@ -140,7 +147,24 @@ export class TelegramEngineExecutionService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaClient,
     @Inject('TELEGRAM_BROKER_PORT') private readonly broker: TelegramBrokerPort,
+    // Optional so the execution service stays constructible with `new` in
+    // tests and in the scheduler, exactly as Engine A's is. A missing
+    // notifier must never stop a trade being recorded or sent: alerting is
+    // downstream of the decision, never a gate on it.
+    @Optional() private readonly notifier?: TelegramEngineNotificationService,
   ) {}
+
+  /**
+   * Fire-and-forget alerting.
+   *
+   * Never awaited into the decision path and never allowed to throw: the
+   * outcome is already durable by the time this is called, and a Telegram
+   * outage must not roll back something that has already happened at the
+   * broker.
+   */
+  private announce(eventType: string, dedupKey: string, text: string, audience: 'TRADING' | 'OPS' = 'TRADING'): void {
+    void this.notifier?.notify(eventType, dedupKey, text, audience).catch(() => undefined);
+  }
 
   async process(message: TelegramSourceMessage, ctx: TelegramExecutionContext): Promise<TelegramResult> {
     const none = (outcome: TelegramOutcome, detail: string): TelegramResult => ({
@@ -239,8 +263,40 @@ export class TelegramEngineExecutionService {
       throw err;
     }
 
+    // The signal is durable now, so it is safe to talk about. Sent before the
+    // gates run, so the operator sees what arrived even when it is then
+    // refused -- and can compare the two.
+    this.announce(
+      'SIGNAL_RECEIVED',
+      `telegram:signal:${row.id}`,
+      signalReceivedMessage({
+        messageId: message.messageId,
+        direction: signal.direction,
+        entry: signal.entry,
+        stopLoss: signal.stopLoss,
+        takeProfits: [...signal.takeProfits],
+        tp1: firstTarget(signal.direction, signal.takeProfits),
+        publishedAtIso: new Date(publishedAtMs).toISOString(),
+        receivedAtIso: new Date(message.receivedAtMs).toISOString(),
+        ingestionLatencyMs: message.receivedAtMs - publishedAtMs,
+        signalAgeMs: ctx.nowMs - publishedAtMs,
+      }),
+    );
+
     const settle = async (outcome: TelegramOutcome, detail: string, extra: Prisma.TelegramSignalUpdateInput = {}) => {
       await this.prisma.telegramSignal.update({ where: { id: row.id }, data: { outcome, detail, ...extra } });
+      // Every refusal is announced, not just the successes. A signal that
+      // did NOT trade is exactly what an operator watching the channel will
+      // ask about, and silence is the answer that sends them to the logs.
+      this.announce(
+        outcome,
+        `telegram:skip:${row.id}:${outcome}`,
+        signalSkippedMessage(outcome, detail, {
+          messageId: message.messageId,
+          direction: signal.direction,
+          entry: signal.entry,
+        }),
+      );
       return { outcome, signalId: row.id, detail, legsSubmitted: 0 };
     };
 
@@ -433,6 +489,22 @@ export class TelegramEngineExecutionService {
       // the collector's poll selects on.
       if (response.status === 'QUEUED') continue;
 
+      if (response.status === 'UNKNOWN') {
+        // Loud, and its own alert: this leg may be a live position nobody has
+        // confirmed, which is the one state an operator must not learn about
+        // from a summary line later.
+        this.announce(
+          'EXECUTION_UNKNOWN',
+          `telegram:unknown:${legRow.id}`,
+          uncertainExecutionMessage({
+            messageId: message.messageId,
+            legIndex: leg.legIndex,
+            detail: response.error ?? 'The broker response was lost or ambiguous.',
+          }),
+          'OPS',
+        );
+      }
+
       const ackMs = this.now();
       await this.prisma.telegramSignalLeg.update({
         where: { id: legRow.id },
@@ -479,6 +551,34 @@ export class TelegramEngineExecutionService {
         tp1: plan.tp1,
       },
     });
+    if (submitted > 0) {
+      const finalLegs = await this.prisma.telegramSignalLeg.findMany({
+        where: { signalId: row.id },
+        orderBy: { legIndex: 'asc' },
+      });
+      this.announce(
+        'TRADE_SUBMITTED',
+        `telegram:executed:${row.id}`,
+        tradeExecutedMessage({
+          messageId: message.messageId,
+          direction: signal.direction,
+          sourceEntry: signal.entry,
+          stopLoss: signal.stopLoss,
+          legs: finalLegs.map((l) => ({
+            legIndex: l.legIndex,
+            legCount: finalLegs.length,
+            volumeLots: Number(l.volumeLots),
+            takeProfit: Number(l.takeProfit),
+            fillPrice: l.fillPrice === null ? null : Number(l.fillPrice),
+            ticket: l.ticket === null ? null : String(l.ticket),
+            status: l.orderStatus,
+          })),
+          signalAgeAtExecutionMs: this.now() - publishedAtMs,
+          mode: getTelegramExecutionMode(),
+        }),
+      );
+    }
+
     return {
       outcome: submitted > 0 ? 'SUBMITTED' : 'TELEGRAM_SIGNAL_EXPIRED',
       signalId: row.id,

@@ -2529,3 +2529,46 @@ model TelegramIngestedMessage {
   @@index([receivedAt])
   @@map("telegram_ingested_messages")
 }
+
+enum TelegramEngineNotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  ABANDONED
+}
+
+// Engine B's outgoing alerts.
+//
+// Its OWN table, not Engine A's, for the reason Engine A's own header gives
+// for not sharing one: a shared dedup key space lets one engine's event
+// silently suppress the other's alert about an entirely different position.
+// The two engines trade the same symbol on the same account, so that
+// collision is not hypothetical.
+//
+// The bot credentials and recipients ARE shared by default - the operator
+// wants both engines' alerts in the same place - but the state that decides
+// "have we already sent this" is not.
+model TelegramEngineNotification {
+  id String @id @default(uuid())
+
+  dedupKey       String  @unique @map("dedup_key")
+  chatId         String  @map("chat_id")
+  recipientLabel String? @map("recipient_label")
+  eventType      String  @map("event_type")
+
+  status    TelegramEngineNotificationStatus @default(PENDING)
+  messageId Int?                             @map("message_id")
+  // Redacted before storage: Telegram echoes the bot token back inside the
+  // request URL on some errors, and this row is read by humans.
+  lastError String?                          @map("last_error")
+  text      String
+
+  attempts      Int       @default(0)
+  lastAttemptAt DateTime? @map("last_attempt_at")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  sentAt    DateTime? @map("sent_at")
+
+  @@index([status, createdAt])
+  @@map("telegram_engine_notifications")
+}

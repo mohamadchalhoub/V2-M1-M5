@@ -28,12 +28,14 @@
  * unattributable position is the one case where guessing could make this
  * engine manage a position it did not open.
  */
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { tagFromComment } from './idempotency';
 import { isOwnedByTelegramEngine } from './ownership';
 import { TELEGRAM_SPEC } from './spec';
+import { TelegramEngineNotificationService } from './notifications/notification.service';
+import { positionClosedMessage, reconciliationIncidentMessage } from './notifications/messages';
 
 /**
  * How long a leg may sit PENDING, measured from publication, before a
@@ -96,7 +98,15 @@ export interface ReconciliationOutcome {
 export class TelegramReconciliationService {
   private readonly logger = new Logger(TelegramReconciliationService.name);
 
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaClient,
+    @Optional() private readonly notifier?: TelegramEngineNotificationService,
+  ) {}
+
+  /** Fire-and-forget: alerting is downstream of the record, never a gate. */
+  private announce(eventType: string, dedupKey: string, text: string, audience: 'TRADING' | 'OPS' = 'TRADING'): void {
+    void this.notifier?.notify(eventType, dedupKey, text, audience).catch(() => undefined);
+  }
 
   async reconcile(input: ReconciliationInput): Promise<ReconciliationOutcome> {
     const { accountId, nowMs } = input;
@@ -118,7 +128,7 @@ export class TelegramReconciliationService {
     // or FAILED leg provably opened nothing and needs no reconciling.
     const legs = await this.prisma.telegramSignalLeg.findMany({
       where: { signal: { accountId }, orderStatus: { in: ['PENDING', 'UNKNOWN', 'FILLED'] } },
-      include: { signal: { select: { accountId: true, publishedAt: true } } },
+      include: { signal: { select: { accountId: true, publishedAt: true, messageId: true } } },
     });
 
     let resolvedUnknown = 0;
@@ -190,6 +200,26 @@ export class TelegramReconciliationService {
           },
         });
         closedLegs += 1;
+        // The realised figure comes from the broker's own deal, never from
+        // the published prices. A closure alert carrying a theoretical P/L is
+        // a number someone will later reconcile against and find wrong.
+        this.announce(
+          'POSITION_CLOSED',
+          `telegram:closed:${leg.id}`,
+          positionClosedMessage({
+            messageId: leg.signal.messageId,
+            legIndex: leg.legIndex,
+            legCount: await this.legCount(leg.signalId),
+            direction: leg.direction,
+            volumeLots: Number(leg.volumeLots),
+            entryFill: leg.fillPrice === null ? null : Number(leg.fillPrice),
+            exitPrice: null,
+            stopLoss: Number(leg.stopLoss),
+            takeProfit: Number(leg.takeProfit),
+            realizedPl: deal.profit,
+            ticket: leg.ticket === null ? null : String(leg.ticket),
+          }),
+        );
         continue;
       }
 
@@ -318,6 +348,18 @@ export class TelegramReconciliationService {
 
     if (!recoveryComplete) {
       this.logger.warn(`telegram recovery NOT complete: ${detail}`);
+      // Only when something is genuinely wrong, not merely in flight: a leg
+      // still on its way to the broker is normal and must not page anyone.
+      if (foreign.length > 0 || !input.snapshotComplete) {
+        this.announce(
+          'RECONCILIATION_INCIDENT',
+          // Keyed by the day and the shape of the problem, so a persistent
+          // fault reports once rather than on every pass.
+          `telegram:recon:${accountId}:${new Date(nowMs).toISOString().slice(0, 13)}:${foreign.length}:${input.snapshotComplete}`,
+          reconciliationIncidentMessage(detail),
+          'OPS',
+        );
+      }
     }
 
     return {
@@ -339,6 +381,10 @@ export class TelegramReconciliationService {
    * is guessed at from timing, which would happily match another engine's
    * deal that happened to land in the same second.
    */
+  private async legCount(signalId: string): Promise<number> {
+    return this.prisma.telegramSignalLeg.count({ where: { signalId } });
+  }
+
   private findDeal(deals: readonly BrokerDeal[], tag: string, ticket: string | null): BrokerDeal | null {
     if (ticket) {
       const byPosition = deals.find((d) => d.positionId === ticket);

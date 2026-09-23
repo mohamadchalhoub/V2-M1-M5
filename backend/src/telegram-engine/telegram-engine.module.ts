@@ -44,6 +44,7 @@ import { TelegramLegQueueService } from './leg-queue.service';
 import { assertEngineSeparation } from './ownership';
 import { TelegramQueueingBrokerPort } from './queue-broker.port';
 import { TelegramReconciliationService } from './reconciliation.service';
+import { TelegramEngineNotificationService } from './notifications/notification.service';
 import { TelegramTp1WatchService } from './tp1-watch.service';
 
 @Module({
@@ -51,6 +52,10 @@ import { TelegramTp1WatchService } from './tp1-watch.service';
   controllers: [TelegramExecutionController, TelegramDashboardController],
   providers: [
     TelegramEngineExecutionService,
+    // Engine B's own alert sender. Shares the bot and the recipients with
+    // Engine A by default; shares none of its dedup state, so neither engine
+    // can suppress the other's alert about a different position.
+    TelegramEngineNotificationService,
     TelegramLegQueueService,
     TelegramReconciliationService,
     TelegramTp1WatchService,
@@ -66,6 +71,7 @@ import { TelegramTp1WatchService } from './tp1-watch.service';
   ],
   exports: [
     TelegramEngineExecutionService,
+    TelegramEngineNotificationService,
     TelegramLegQueueService,
     TelegramReconciliationService,
     TelegramTp1WatchService,

@@ -26,13 +26,15 @@
  * than skipping it — a skipped leg would sit at PENDING and be offered again
  * on the next poll, getting older each time.
  */
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { telegramEngineEnabled, telegramEntriesBlockedByControls } from './controls';
 import { evaluateFreshness } from './freshness';
 import { legOrderComment } from './idempotency';
 import { TELEGRAM_SPEC } from './spec';
+import { TelegramEngineNotificationService } from './notifications/notification.service';
+import { protectionIncidentMessage, uncertainExecutionMessage } from './notifications/messages';
 
 export interface ClaimableLeg {
   readonly legId: string;
@@ -73,7 +75,15 @@ export interface LegResultInput {
 export class TelegramLegQueueService {
   private readonly logger = new Logger(TelegramLegQueueService.name);
 
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaClient) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaClient,
+    @Optional() private readonly notifier?: TelegramEngineNotificationService,
+  ) {}
+
+  /** Fire-and-forget: alerting is downstream of the record, never a gate. */
+  private announce(eventType: string, dedupKey: string, text: string, audience: 'TRADING' | 'OPS' = 'TRADING'): void {
+    void this.notifier?.notify(eventType, dedupKey, text, audience).catch(() => undefined);
+  }
 
   /**
    * Claims the oldest sendable leg for this account, or returns null.
@@ -202,10 +212,37 @@ export class TelegramLegQueueService {
 
     if (status === 'FILLED') {
       this.logger.log(`telegram leg ${leg.legIndex} of ${leg.signalId} FILLED, ticket ${input.ticket}`);
+      // A fill whose protection could not be verified is an incident, and is
+      // announced as one rather than folded into the execution summary where
+      // it would read as an ordinary successful trade.
+      const fields = this.protectionFields(status, leg, input) as { protectionIncident?: string | null };
+      if (fields.protectionIncident) {
+        this.announce(
+          'PROTECTION_INCIDENT',
+          `telegram:protection:${leg.id}`,
+          protectionIncidentMessage({
+            messageId: leg.signal.messageId,
+            legIndex: leg.legIndex,
+            ticket: input.ticket,
+            detail: fields.protectionIncident,
+          }),
+          'OPS',
+        );
+      }
     } else if (status === 'UNKNOWN') {
       this.logger.error(
         `telegram leg ${leg.legIndex} of ${leg.signalId} is UNKNOWN: the broker may hold this position. ` +
           'Reconciliation must resolve it; the signal group stays held until it does.',
+      );
+      this.announce(
+        'EXECUTION_UNKNOWN',
+        `telegram:unknown:${leg.id}`,
+        uncertainExecutionMessage({
+          messageId: leg.signal.messageId,
+          legIndex: leg.legIndex,
+          detail: input.errorMessage ?? 'The broker response was lost or ambiguous.',
+        }),
+        'OPS',
       );
     }
 

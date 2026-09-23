@@ -25,6 +25,7 @@ import { TelegramIngestionService } from '../src/telegram-engine/ingestion/inges
 import { TelegramTp1WatchService, TP1_WATCH_WINDOW_MS } from '../src/telegram-engine/tp1-watch.service';
 import { getTelegramExecutionMode, telegramEngineEnabled } from '../src/telegram-engine/controls';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { TelegramEngineNotificationService } from '../src/telegram-engine/notifications/notification.service';
 
 /**
  * How often price is sampled for the TP1 latch.
@@ -36,6 +37,8 @@ import { PrismaService } from '../src/prisma/prisma.service';
  */
 const TP1_SWEEP_INTERVAL_MS = 1_000;
 const HEARTBEAT_INTERVAL_MS = 60_000;
+/** Slow: a retry storm against a revoked token helps nobody. */
+const ALERT_RETRY_INTERVAL_MS = 60_000;
 
 async function main(): Promise<void> {
   const logger = new Logger('telegram-ingest');
@@ -90,6 +93,7 @@ async function main(): Promise<void> {
   const ingestion = app.get(TelegramIngestionService);
   const tp1 = app.get(TelegramTp1WatchService);
   const prisma = app.get(PrismaService);
+  const notifier = app.get(TelegramEngineNotificationService);
 
   logger.log(
     `Engine B ingestion starting. mode=${getTelegramExecutionMode()} enabled=${telegramEngineEnabled()} ` +
@@ -114,6 +118,15 @@ async function main(): Promise<void> {
     });
   }, TP1_SWEEP_INTERVAL_MS);
 
+  // Retries alerts that failed to send earlier. Without this, one transient
+  // network blip permanently loses a trade alert -- the row would sit FAILED
+  // and nothing would ever look at it again.
+  const alertRetry = setInterval(() => {
+    void notifier.retryPending().catch((err) => {
+      logger.warn(`alert retry failed: ${(err as Error).message}`);
+    });
+  }, ALERT_RETRY_INTERVAL_MS);
+
   const heartbeat = setInterval(() => {
     const health = ingestion.health();
     logger.log(
@@ -127,6 +140,7 @@ async function main(): Promise<void> {
     logger.log(`${signal} received; stopping ingestion.`);
     clearInterval(sweep);
     clearInterval(heartbeat);
+    clearInterval(alertRetry);
     await ingestion.stop();
     await prisma.$disconnect().catch(() => undefined);
     await app.close();

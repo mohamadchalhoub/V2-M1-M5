@@ -212,33 +212,49 @@ case "${1:-}" in
       "${COMPOSE[@]}" run --rm -T telegram-ingest node dist/scripts/telegram-check.js
       ;;
   telegram-status)
-      echo "=== Engine B: ingestion + reconciliation ==="
-      "${COMPOSE[@]}" exec -T api sh -c \
-          'wget -qO- --header="Authorization: Bearer $DASHBOARD_TOKEN" \
-           http://localhost:3000/xauusd-m1m5/telegram-engine/status | head -80' \
-          || echo "api not reachable, or DASHBOARD_TOKEN not set in the api container"
-      echo
-      echo "=== execution switches (read from the ingestion container) ==="
-      "${COMPOSE[@]}" exec -T telegram-ingest sh -c \
-          'echo "TELEGRAM_ENGINE_ENABLED=$TELEGRAM_ENGINE_ENABLED"; echo "TELEGRAM_ENGINE_EXECUTION_MODE=$TELEGRAM_ENGINE_EXECUTION_MODE"' \
-          2>/dev/null || echo "telegram-ingest not running"
+      # Reads the runtime directly - no HTTP, no dashboard token.
+      #
+      # The previous version wget-ed an authenticated endpoint on the api
+      # container and failed with "Connection refused". Three things were
+      # wrong with it: DASHBOARD_TOKEN is not set anywhere in this deployment,
+      # so the request could only ever have been rejected; the api container
+      # is the wrong place to ask about the INGEST container's state; and a
+      # network round trip makes a transient HTTP failure indistinguishable
+      # from "not ready". A readiness check that can fail for reasons
+      # unrelated to readiness trains you to ignore it.
+      "${COMPOSE[@]}" run --rm -T telegram-ingest node dist/scripts/telegram-ready.js
       ;;
   telegram-logs)
       "${COMPOSE[@]}" logs --tail 200 -f telegram-ingest
       ;;
   telegram-enable)
-      # Deliberately two-step and deliberately verbose. Turning this on is the
-      # single action that lets someone else's Telegram message place an order
-      # on this account, so it asks, and it says what it is about to do.
-      echo "This will enable TELEGRAM DEMO EXECUTION."
+      # Deliberately multi-step. Turning this on is the single action that
+      # lets someone else's Telegram message place an order on this account,
+      # so it verifies first, announces before it changes anything, and
+      # refuses to claim success it has not checked.
+      echo "This will enable TELEGRAM DEMO EXECUTION (Engine B)."
       echo
       echo "After this, a valid fresh signal from @SFxauusd1 will place real"
       echo "DEMO orders: 0.01 lot per take profit, at the published SL and TP."
-      echo "The RSI engine is unaffected."
+      echo "Engine A is unaffected."
       echo
-      echo "Confirm the checks first with: bash deploy/m1m5.sh telegram-ready"
+
+      echo "--- verifying readiness before changing anything ---"
+      if ! "${COMPOSE[@]}" run --rm -T telegram-ingest node dist/scripts/telegram-ready.js; then
+        echo
+        echo "REFUSING to enable: readiness failed. Nothing was changed."
+        exit 1
+      fi
+      echo
+
       read -r -p "Type ENABLE to continue: " answer
-      [ "$answer" = "ENABLE" ] || { echo "Not enabled."; exit 1; }
+      [ "$answer" = "ENABLE" ] || { echo "Not enabled. Nothing was changed."; exit 1; }
+
+      echo "--- sending the pre-activation alert ---"
+      "${COMPOSE[@]}" run --rm -T telegram-ingest node dist/scripts/telegram-announce.js pending \
+        || echo "WARNING: the pre-activation alert did not send. Continuing; check the notification config."
+
+      echo "--- updating backend/.env.production ---"
       python3 - <<'PY' || { echo "could not update backend/.env.production"; exit 1; }
 import io, re
 p = "backend/.env.production"
@@ -251,12 +267,33 @@ for key, value in (("TELEGRAM_ENGINE_ENABLED", "true"), ("TELEGRAM_ENGINE_EXECUT
 io.open(p, "w", encoding="utf-8").write(s)
 print("backend/.env.production updated")
 PY
-      sed -i 's/^TELEGRAM_ENGINE_EXECUTION_ENABLED=.*/TELEGRAM_ENGINE_EXECUTION_ENABLED=true/' collector/.env.production 2>/dev/null \
-        || echo "TELEGRAM_ENGINE_EXECUTION_ENABLED=true" >> collector/.env.production
-      echo "Recreating the affected containers so they re-read their env files..."
-      "${COMPOSE[@]}" up -d telegram-ingest api m1m5-mt5-collector
+
+      echo "--- updating collector/.env.production ---"
+      if grep -q "^TELEGRAM_ENGINE_EXECUTION_ENABLED=" collector/.env.production 2>/dev/null; then
+        sed -i 's/^TELEGRAM_ENGINE_EXECUTION_ENABLED=.*/TELEGRAM_ENGINE_EXECUTION_ENABLED=true/' collector/.env.production
+      else
+        echo "TELEGRAM_ENGINE_EXECUTION_ENABLED=true" >> collector/.env.production
+      fi
+
+      echo "--- recreating ONLY the services that read these files ---"
+      # NOT m1m5-scheduler and NOT api: neither reads an Engine B variable,
+      # and restarting the scheduler would interrupt Engine A's observation
+      # loop for a change that has nothing to do with it.
+      "${COMPOSE[@]}" up -d telegram-ingest m1m5-mt5-collector
+
       echo
-      echo "Telegram DEMO execution is ON. Verify with: bash deploy/m1m5.sh telegram-status"
+      echo "--- verifying the RUNNING containers, not the files ---"
+      "${COMPOSE[@]}" exec -T telegram-ingest sh -c \
+        'echo "telegram-ingest: TELEGRAM_ENGINE_ENABLED=$TELEGRAM_ENGINE_ENABLED TELEGRAM_ENGINE_EXECUTION_MODE=$TELEGRAM_ENGINE_EXECUTION_MODE"'
+      "${COMPOSE[@]}" exec -T m1m5-mt5-collector bash -lc \
+        'echo "collector: TELEGRAM_ENGINE_EXECUTION_ENABLED=$TELEGRAM_ENGINE_EXECUTION_ENABLED"'
+
+      echo
+      echo "--- sending the post-activation alert (refuses if the runtime disagrees) ---"
+      "${COMPOSE[@]}" run --rm -T telegram-ingest node dist/scripts/telegram-announce.js active
+
+      echo
+      echo "Engine B is enabled. Watch it with: bash deploy/m1m5.sh telegram-logs"
       ;;
   telegram-disable)
       python3 - <<'PY'
@@ -269,7 +306,8 @@ io.open(p, "w", encoding="utf-8").write(s)
 print("backend/.env.production updated")
 PY
       sed -i 's/^TELEGRAM_ENGINE_EXECUTION_ENABLED=.*/TELEGRAM_ENGINE_EXECUTION_ENABLED=false/' collector/.env.production 2>/dev/null || true
-      "${COMPOSE[@]}" up -d telegram-ingest api m1m5-mt5-collector
+      "${COMPOSE[@]}" up -d telegram-ingest m1m5-mt5-collector
+      "${COMPOSE[@]}" run --rm -T telegram-ingest node dist/scripts/telegram-announce.js disabled "${2:-disabled by operator}" || true
       echo "Telegram execution is OFF. Existing Telegram positions are still reconciled and managed."
       ;;
   telegram-kill)
@@ -294,20 +332,23 @@ PY
       esac
       ;;
   telegram-ready)
-      echo "=== 1. Telegram session and source channel ==="
-      "${COMPOSE[@]}" exec -T telegram-ingest sh -c \
-        'test -f "$TELEGRAM_INGEST_SESSION_PATH" && echo "session: present" || echo "session: MISSING - run telegram-auth"'
-      "${COMPOSE[@]}" exec -T telegram-ingest sh -c \
-        'ls -l "$TELEGRAM_INGEST_SESSION_PATH" 2>/dev/null | cut -d" " -f1,3,4 || true'
+      echo "=== 1. session file, inside the container that holds it ==="
+      "${COMPOSE[@]}" run --rm -T telegram-ingest sh -c \
+        'test -f "$TELEGRAM_INGEST_SESSION_PATH" && ls -l "$TELEGRAM_INGEST_SESSION_PATH" || echo "session: MISSING - run telegram-auth"'
       echo
-      echo "=== 2. ingestion + reconciliation state ==="
-      bash "$0" telegram-status
+      echo "=== 2. runtime readiness ==="
+      "${COMPOSE[@]}" run --rm -T telegram-ingest node dist/scripts/telegram-ready.js
+      READY_RC=$?
       echo
-      echo "Telegram DEMO execution requires ALL of:"
-      echo "  - session present and source channel resolved"
-      echo "  - ingestion connected, with recent source messages"
-      echo "  - reconciliation recoveryComplete = true"
-      echo "  - MT5 ready (bash deploy/m1m5.sh mt5-verify)"
+      echo "=== 3. is the account actually SUBSCRIBED to the channel? ==="
+      "${COMPOSE[@]}" run --rm -T telegram-ingest node dist/scripts/telegram-check.js || true
+      echo
+      if [ "$READY_RC" -eq 0 ]; then
+        echo "All blocking gates passed. You may run: bash deploy/m1m5.sh telegram-enable"
+      else
+        echo "NOT READY. Do not enable Engine B until the failing gates above pass."
+      fi
+      exit "$READY_RC"
       ;;
   ""|-h|--help|help) usage ;;
   *) echo "unknown command: $1"; echo; usage; exit 1 ;;
