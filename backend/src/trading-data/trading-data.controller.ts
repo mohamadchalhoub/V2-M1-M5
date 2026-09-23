@@ -3,6 +3,7 @@ import { AccountsService } from '../accounts/accounts.service';
 import { DashboardTokenGuard } from '../auth/dashboard-token.guard';
 import { parsePagination } from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
+import { attributeDeal } from './engine-attribution';
 
 // Read-only, for the dashboard (Phase 9). Every route validates the account
 // exists first (getOrThrow → 404) rather than silently returning an empty
@@ -54,6 +55,22 @@ export class TradingDataController {
       }),
       this.prisma.trade.count({ where: { accountId } }),
     ]);
-    return { trades, total, limit: take, offset: skip };
+
+    // Engine and timeframe per row, from the magic of the deal that OPENED
+    // each position (a closing deal can carry magic 0).
+    const positionIds = [...new Set(trades.map((t) => t.positionId).filter((p): p is string => p !== null))];
+    const openings = positionIds.length
+      ? await this.prisma.trade.findMany({
+          where: { accountId, positionId: { in: positionIds }, dealEntry: 'IN' },
+          select: { positionId: true, rawPayload: true },
+        })
+      : [];
+    const openingByPosition = new Map(openings.map((o) => [o.positionId, o.rawPayload]));
+
+    const withAttribution = trades.map(({ rawPayload, ...t }) => {
+      const a = attributeDeal(rawPayload, t.positionId ? openingByPosition.get(t.positionId) : null);
+      return { ...t, engine: a.engine, timeframe: a.timeframe };
+    });
+    return { trades: withAttribution, total, limit: take, offset: skip };
   }
 }

@@ -92,6 +92,10 @@ export interface Trade {
   executedAt: string;
   comment: string | null;
   platform: 'MT5' | 'XTB';
+  /** Derived from the MT5 magic number of the order that opened the position. */
+  engine?: 'Engine A' | 'Engine B' | 'Legacy' | 'Manual / other';
+  /** M1 / M5 for Engine A; null where the engine has no timeframe. */
+  timeframe?: 'M1' | 'M5' | null;
 }
 
 export interface Paginated {

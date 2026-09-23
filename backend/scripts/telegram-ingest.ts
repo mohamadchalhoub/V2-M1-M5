@@ -24,6 +24,7 @@ import { TelegramEngineModule } from '../src/telegram-engine/telegram-engine.mod
 import { TelegramIngestionService } from '../src/telegram-engine/ingestion/ingestion.service';
 import { TelegramTp1WatchService, TP1_WATCH_WINDOW_MS } from '../src/telegram-engine/tp1-watch.service';
 import { TelegramEntryRetraceWatchService } from '../src/telegram-engine/entry-retrace-watch.service';
+import { DailyReportService } from '../src/telegram-engine/daily-report.service';
 import { getTelegramExecutionMode, telegramEngineEnabled } from '../src/telegram-engine/controls';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { TelegramEngineNotificationService } from '../src/telegram-engine/notifications/notification.service';
@@ -43,6 +44,8 @@ const TP1_SWEEP_INTERVAL_MS = 1_000;
  * touches the account snapshot, quote and margin, not just a boolean latch.
  */
 const ENTRY_RETRACE_SWEEP_INTERVAL_MS = 2_000;
+/** The daily report goes out on the first check after midnight Beirut time. */
+const DAILY_REPORT_CHECK_INTERVAL_MS = 60_000;
 const HEARTBEAT_INTERVAL_MS = 60_000;
 /** Slow: a retry storm against a revoked token helps nobody. */
 const ALERT_RETRY_INTERVAL_MS = 60_000;
@@ -100,6 +103,7 @@ async function main(): Promise<void> {
   const ingestion = app.get(TelegramIngestionService);
   const tp1 = app.get(TelegramTp1WatchService);
   const entryRetrace = app.get(TelegramEntryRetraceWatchService);
+  const dailyReport = app.get(DailyReportService);
   const prisma = app.get(PrismaService);
   const notifier = app.get(TelegramEngineNotificationService);
 
@@ -133,6 +137,10 @@ async function main(): Promise<void> {
       logger.warn(`entry-retrace sweep failed: ${(err as Error).message}`);
     });
   }, ENTRY_RETRACE_SWEEP_INTERVAL_MS);
+
+  const dailyReportCheck = setInterval(() => {
+    void dailyReport.runOnce(accountId, Date.now());
+  }, DAILY_REPORT_CHECK_INTERVAL_MS);
 
   // Retries alerts that failed to send earlier. Without this, one transient
   // network blip permanently loses a trade alert -- the row would sit FAILED
@@ -172,6 +180,7 @@ async function main(): Promise<void> {
     logger.log(`${signal} received; stopping ingestion.`);
     clearInterval(sweep);
     clearInterval(entryRetraceSweep);
+    clearInterval(dailyReportCheck);
     clearInterval(heartbeat);
     clearInterval(alertRetry);
     await ingestion.stop();

@@ -39,6 +39,8 @@ export default async function HistoryPage({
             <thead className="text-left text-xs uppercase tracking-wide text-text-muted border-b border-border">
               <tr>
                 <th className="px-4 py-2.5">Executed</th>
+                <th className="px-4 py-2.5">Engine</th>
+                <th className="px-4 py-2.5">Frame</th>
                 <th className="px-4 py-2.5">Symbol</th>
                 <th className="px-4 py-2.5">Side</th>
                 <th className="px-4 py-2.5">Leg</th>
@@ -52,6 +54,8 @@ export default async function HistoryPage({
               {page.trades.map((trade) => (
                 <tr key={trade.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-2.5 text-text-muted whitespace-nowrap">{formatDateTime(trade.executedAt)}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap">{trade.engine ?? "—"}</td>
+                  <td className="px-4 py-2.5 font-mono">{trade.timeframe ?? "—"}</td>
                   <td className="px-4 py-2.5 font-medium">{trade.symbol}</td>
                   <td className="px-4 py-2.5">{trade.side}</td>
                   <td className="px-4 py-2.5 text-text-muted">{trade.dealEntry}</td>
