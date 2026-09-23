@@ -28,6 +28,7 @@ import { readStoredSession, telegramSessionPath } from '../src/telegram-engine/i
 import { displayChannelId, normaliseChannelId } from '../src/telegram-engine/ingestion/channel-guard';
 import { parseTelegramSignal } from '../src/telegram-engine/parser';
 import { firstTarget } from '../src/telegram-engine/tp1';
+import { semanticKey } from '../src/telegram-engine/duplicate';
 
 const HOW_MANY = Number((process.env.TELEGRAM_CHECK_MESSAGES ?? '10').trim()) || 10;
 
@@ -116,11 +117,53 @@ async function main(): Promise<void> {
       if (parsed.signal) {
         const s = parsed.signal;
         console.log(`  [${message.id}] ${when}`);
+        // The RAW TEXT, always, for anything that parsed as a trade.
+        //
+        // Printing only the extracted values was a genuine diagnostic gap: it
+        // showed WHAT the parser concluded while hiding WHAT IT READ, so a
+        // misparse of ordinary commentary was indistinguishable from a real
+        // signal. The whole purpose of this listing is to let a human check
+        // the parser's work before trusting it with an account.
         console.log(`      SIGNAL: ${s.direction} entry ${s.entry} SL ${s.stopLoss} TP ${s.takeProfits.join('/')}`);
         console.log(`      TP1 ${firstTarget(s.direction, s.takeProfits)} -> ${s.takeProfits.length} leg(s) of 0.01`);
+        console.log(`      fingerprint: ${semanticKey(s)}`);
+        console.log('      raw text:');
+        for (const line of text.split(/\r?\n/)) console.log(`        | ${line}`);
       } else {
         console.log(`  [${message.id}] ${when}`);
         console.log(`      ignored (${parsed.refusal}): "${oneLine}"`);
+      }
+    }
+  }
+
+  // --- Would any of these have traded on top of each other?
+  //
+  // A channel that restates an open position as price moves publishes
+  // several messages that each parse as a valid trade. They are not
+  // duplicates by fingerprint -- a restatement with a different target is a
+  // different fingerprint -- so this reports them explicitly rather than
+  // leaving an operator to notice the pattern by eye.
+  const parsedSignals = messages
+    .map((m) => ({ id: m.id, date: m.date, parsed: parseTelegramSignal(typeof m.message === 'string' ? m.message : '') }))
+    .filter((x) => x.parsed.signal !== null);
+
+  if (parsedSignals.length > 1) {
+    console.log('');
+    console.log(`${parsedSignals.length} of the last ${messages.length} messages parsed as tradable signals.`);
+    const byEntry = new Map<string, number>();
+    for (const item of parsedSignals) {
+      const s = item.parsed.signal!;
+      const key = `${s.direction}@${s.entry} SL ${s.stopLoss}`;
+      byEntry.set(key, (byEntry.get(key) ?? 0) + 1);
+    }
+    for (const [key, count] of byEntry) {
+      if (count > 1) {
+        console.log('');
+        console.log(`  WARNING: ${count} separate messages describe ${key} with DIFFERENT targets.`);
+        console.log('  Each is a distinct fingerprint, so semantic duplicate detection will NOT');
+        console.log('  suppress them. Signal-group occupancy stops a second group opening while');
+        console.log('  the first is live, but once that group closes a later restatement can open');
+        console.log('  a new trade. Review the raw text above before enabling execution.');
       }
     }
   }

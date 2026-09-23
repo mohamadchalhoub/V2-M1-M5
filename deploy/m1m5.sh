@@ -59,6 +59,9 @@ xauusd-m1-m5-rsi-threshold-v2 operations
   telegram-auth      ONE-TIME interactive Telegram sign-in. Prompts for phone,
                      login code and (if set) 2FA password. Writes a session
                      that survives restarts and redeploys.
+  telegram-scan <n>  Run the parser over the last <n> channel messages and
+                     print the RAW TEXT of everything it read as a trade.
+                     Read this before enabling execution.
   telegram-check     Is the account SUBSCRIBED, and what has the channel
                      published? Distinguishes "quiet channel" from "not
                      receiving". Runs the real parser over recent messages.
@@ -203,6 +206,13 @@ case "${1:-}" in
       echo "restart, redeploy and reboot. You will not be asked again."
       echo
       "${COMPOSE[@]}" run --rm -it telegram-ingest node dist/scripts/telegram-auth.js
+      ;;
+  telegram-scan)
+      # Deeper history than telegram-check's default, for judging the
+      # channel's actual message format before trusting the parser with an
+      # account. Read-only: it writes nothing and places nothing.
+      COUNT="${2:-50}"
+      "${COMPOSE[@]}" run --rm -T -e TELEGRAM_CHECK_MESSAGES="$COUNT" telegram-ingest           node dist/scripts/telegram-check.js
       ;;
   telegram-check)
       # Answers the one question a heartbeat cannot: whether this account is
