@@ -152,7 +152,7 @@ export function planLegs(input: LegPlanInput): LegPlan {
   // moved off it in EITHER direction is refused now, not just adverse
   // movement beyond the bound — see tp1.ts.
   const maxAdverse = input.maxAdverseUsd ?? configuredMaxAdverseEntryDeviationUsd();
-  const deviation = evaluateEntryDeviation(signal.direction, signal.entry, executablePrice, maxAdverse);
+  const deviation = evaluateEntryDeviation(signal.direction, signal.entry, signal.stopLoss, executablePrice, maxAdverse);
   if (!deviation.acceptable) {
     return refuse(
       'TELEGRAM_ADVERSE_ENTRY_DEVIATION',

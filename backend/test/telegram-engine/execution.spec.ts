@@ -580,6 +580,25 @@ describe('resuming a signal that is awaiting its entry to retrace', () => {
     expect(broker.calls).toHaveLength(0);
   });
 
+  it('ends the wait — cancelled, not left watching — once price swings past the published stop', async () => {
+    // SELL 4338, SL 4348 (a $10 stop). Parked at $4 favourable (4334), then
+    // price reverses hard past the stop instead of retracing to the entry.
+    const broker = new FakeBroker();
+    const { svc, signalId } = await park(broker);
+
+    const result = await svc.retryAwaitingEntry(
+      signalId,
+      ctx({ quote: { bid: 4349.0, ask: 4349.3, tickAtMs: NOW - 500 } }),
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.outcome).toBe('TELEGRAM_LEGS_REFUSED');
+    expect(result!.detail).toMatch(/at or past the published stop/);
+    expect(broker.calls).toHaveLength(0);
+    const row = await prisma.telegramSignal.findUnique({ where: { id: signalId } });
+    expect(row!.outcome).toBe('TELEGRAM_LEGS_REFUSED');
+  });
+
   it('leaves an already-resolved signal alone — returns null rather than acting twice', async () => {
     const broker = new FakeBroker();
     const submitted = await service(broker).process(message(), ctx());

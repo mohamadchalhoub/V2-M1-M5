@@ -757,10 +757,23 @@ export class TelegramEngineExecutionService {
           tp1TouchPrice: plan.executablePrice,
         });
       }
-      // Still favourable (has not retraced yet), or adverse beyond the
-      // configured bound, or a broker-stop refusal at the current market:
-      // none of these end the wait. Only a retrace into the eligible zone
-      // or TP1 being reached does.
+      if (plan.refusal === 'TELEGRAM_ADVERSE_ENTRY_DEVIATION' && plan.favourable === false) {
+        // Price swung all the way through to the adverse side and past its
+        // own bound (the stop itself, or the configured cap, whichever is
+        // tighter) while this was waiting for a favourable retrace. That is
+        // not "still waiting" — the trade the message described is no
+        // longer available at any price this engine will take, so the wait
+        // ends here rather than continuing to watch a stopped-out level.
+        return settle('TELEGRAM_LEGS_REFUSED', `${plan.refusal}: ${plan.detail}`, {
+          executablePrice: plan.executablePrice,
+          deviationUsd: plan.deviationUsd,
+          favourableEntry: plan.favourable,
+          tp1: plan.tp1,
+        });
+      }
+      // Still favourable (has not retraced yet), or a broker-stop refusal at
+      // the current market: neither ends the wait. Only a retrace into the
+      // eligible zone or TP1 being reached does.
       return null;
     }
 

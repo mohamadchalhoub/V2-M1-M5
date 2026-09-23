@@ -178,21 +178,46 @@ describe('the two bounds together', () => {
 });
 
 describe('the deviation verdict itself', () => {
+  // SELL 4338, published stop 4348: the stop sits $10 away.
   it('reports favourable movement as negative adverse, and refuses it', () => {
-    const v = evaluateEntryDeviation('SELL', 4338, 4330, 1.5);
+    const v = evaluateEntryDeviation('SELL', 4338, 4348, 4330, 1.5);
     expect(v.acceptable).toBe(false);
     expect(v.favourable).toBe(true);
     expect(v.adverseUsd).toBeCloseTo(-8, 6);
   });
 
   it('explains a refusal in terms an operator can act on', () => {
-    const v = evaluateEntryDeviation('SELL', 4338, 4342, 1.5);
+    const v = evaluateEntryDeviation('SELL', 4338, 4348, 4342, 1.5);
     expect(v.acceptable).toBe(false);
     expect(v.detail).toMatch(/WORSE/);
   });
 
-  it('treats the bound as inclusive', () => {
-    expect(evaluateEntryDeviation('SELL', 4338, 4339.5, 1.5).acceptable).toBe(true);
-    expect(evaluateEntryDeviation('SELL', 4338, 4339.51, 1.5).acceptable).toBe(false);
+  it('treats the configured bound as inclusive', () => {
+    expect(evaluateEntryDeviation('SELL', 4338, 4348, 4339.5, 1.5).acceptable).toBe(true);
+    expect(evaluateEntryDeviation('SELL', 4338, 4348, 4339.51, 1.5).acceptable).toBe(false);
+  });
+
+  // Operator correction, worked example: BUY 4306, SL 4295 (a $11 stop). A
+  // configured bound of $50 must not override a stop that sits closer than
+  // it — price already at or past the stop is never taken, however small the
+  // configured $ figure would otherwise allow.
+  it('never accepts a price at or past the published stop, even inside a wide configured bound', () => {
+    // $11 adverse for a BUY 4306 with SL 4295 is exactly AT the stop.
+    const atStop = evaluateEntryDeviation('BUY', 4306, 4295, 4295, 50);
+    expect(atStop.acceptable).toBe(false);
+    expect(atStop.detail).toMatch(/at or past the published stop/);
+
+    // $16 adverse is past the $11 stop, well inside the $50 configured bound.
+    const pastStop = evaluateEntryDeviation('BUY', 4306, 4295, 4290, 50);
+    expect(pastStop.acceptable).toBe(false);
+    expect(pastStop.detail).toMatch(/at or past the published stop/);
+  });
+
+  it('still accepts adverse movement short of a stop that is tighter than the configured bound', () => {
+    // $2 adverse for a BUY 4306 with SL 4295: comfortably short of the $11
+    // stop, so the $50 configured bound never comes into it.
+    const v = evaluateEntryDeviation('BUY', 4306, 4295, 4304, 50);
+    expect(v.acceptable).toBe(true);
+    expect(v.adverseUsd).toBeCloseTo(2, 6);
   });
 });

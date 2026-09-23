@@ -108,9 +108,13 @@ export function initialTp1State(direction: Direction, takeProfits: readonly numb
  * BUY mirrors this: `stopLoss < price <= entry` is eligible, `price > entry`
  * is not.
  *
- * The adverse side is still additionally capped at `maxAdverseUsd` (see
- * `configuredMaxAdverseEntryDeviationUsd`), which in practice is tighter
- * than the distance to the stop.
+ * The adverse side is capped at the LESSER of `maxAdverseUsd` (see
+ * `configuredMaxAdverseEntryDeviationUsd`) and the distance from the entry to
+ * the published stop. The stop is the harder of the two limits whenever it
+ * sits closer than the configured bound — a signal whose stop is only $11
+ * away must never be taken (or kept waiting on) at a price $16 adverse, even
+ * though $16 is inside a $50 bound: a price already through its own stop is
+ * not a late entry, it is evidence the trade already happened without it.
  */
 export interface DeviationVerdict {
   readonly acceptable: boolean;
@@ -123,6 +127,7 @@ export interface DeviationVerdict {
 export function evaluateEntryDeviation(
   direction: Direction,
   publishedEntry: number,
+  stopLoss: number,
   executablePrice: number,
   maxAdverseUsd: number,
 ): DeviationVerdict {
@@ -143,15 +148,33 @@ export function evaluateEntryDeviation(
         'the signal has passed.',
     };
   }
-  if (adverseUsd > maxAdverseUsd) {
+  // Never further than the stop itself, whichever bound is tighter. A price
+  // already at or past the stop is not a late fill: it is the trade already
+  // having stopped out before it was ever entered.
+  const stopDistance = Math.abs(stopLoss - publishedEntry);
+  const effectiveCap = Math.min(maxAdverseUsd, stopDistance);
+  if (adverseUsd >= stopDistance) {
     return {
       acceptable: false,
       adverseUsd,
       favourable: false,
       detail:
         `The executable price ${executablePrice} is $${adverseUsd.toFixed(2)} WORSE than the published entry ` +
-        `${publishedEntry} for a ${direction}, beyond the $${maxAdverseUsd.toFixed(2)} adverse limit. The entry ` +
-        'is not chased: a copy taken materially worse than published carries more risk to the same stop.',
+        `${publishedEntry} for a ${direction} — at or past the published stop ${stopLoss}. This is not a late ` +
+        'entry, it is evidence the trade already happened without it, and it is never taken.',
+    };
+  }
+  if (adverseUsd > effectiveCap) {
+    return {
+      acceptable: false,
+      adverseUsd,
+      favourable: false,
+      detail:
+        `The executable price ${executablePrice} is $${adverseUsd.toFixed(2)} WORSE than the published entry ` +
+        `${publishedEntry} for a ${direction}, beyond the $${effectiveCap.toFixed(2)} adverse limit ` +
+        `(min of the $${maxAdverseUsd.toFixed(2)} configured bound and the $${stopDistance.toFixed(2)} distance ` +
+        `to the published stop ${stopLoss}). The entry is not chased: a copy taken materially worse than ` +
+        'published carries more risk to the same stop.',
     };
   }
   return {
