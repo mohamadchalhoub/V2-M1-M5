@@ -143,18 +143,30 @@ async function main(): Promise<void> {
     if (entity instanceof Api.Channel) {
       channelId = normaliseChannelId(String(entity.id));
       channelTitle = entity.title;
-      // Reading one message is the only proof that matters. An entity can be
-      // resolved for a channel the account cannot actually read.
-      const recent = await client.getMessages(entity, { limit: 1 });
-      accessible = recent.length >= 0;
       console.log(`Resolved: "${channelTitle}" -> ${displayChannelId(channelId)}`);
+
+      const recent = await client.getMessages(entity, { limit: 1 });
       if (recent.length > 0 && recent[0]) {
         const when = recent[0].date ? new Date(recent[0].date * 1000).toISOString() : 'unknown time';
         console.log(`Most recent message in the channel is from ${when}.`);
-      } else {
-        console.log('The channel resolved but returned no messages.');
-        console.log(`ACTION REQUIRED: open Telegram as this account and JOIN @${channelUsername}, then re-run this command.`);
-        accessible = false;
+      }
+
+      // MEMBERSHIP, not readability.
+      //
+      // This distinction was got wrong once and is worth stating plainly: a
+      // PUBLIC channel can be resolved and read by an account that has not
+      // joined it, so "we fetched a message" proves nothing about whether
+      // updates will arrive. Telegram pushes real-time channel updates only
+      // to subscribers. Reporting READY on readability alone leaves the
+      // engine connected, healthy-looking and permanently silent.
+      const joined = entity.left === false;
+      console.log(`Subscribed to the channel: ${joined ? 'yes' : 'NO'}`);
+      accessible = joined;
+      if (!joined) {
+        console.log('');
+        console.log(`ACTION REQUIRED: open Telegram as this account, go to @${channelUsername}, and press JOIN.`);
+        console.log('Until then this session receives no messages from it, however healthy it looks.');
+        console.log('Then re-run this command, or verify with: bash deploy/m1m5.sh telegram-check');
       }
     } else {
       console.error(`@${channelUsername} resolved to something that is not a broadcast channel. Refusing to continue.`);

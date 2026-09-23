@@ -59,6 +59,9 @@ xauusd-m1-m5-rsi-threshold-v2 operations
   telegram-auth      ONE-TIME interactive Telegram sign-in. Prompts for phone,
                      login code and (if set) 2FA password. Writes a session
                      that survives restarts and redeploys.
+  telegram-check     Is the account SUBSCRIBED, and what has the channel
+                     published? Distinguishes "quiet channel" from "not
+                     receiving". Runs the real parser over recent messages.
   telegram-ready     Pre-flight checks before enabling execution
   telegram-status    Ingestion health, source channel, reconciliation state
   telegram-logs      Follow the Telegram ingestion container's logs
@@ -200,6 +203,13 @@ case "${1:-}" in
       echo "restart, redeploy and reboot. You will not be asked again."
       echo
       "${COMPOSE[@]}" run --rm -it telegram-ingest node dist/scripts/telegram-auth.js
+      ;;
+  telegram-check)
+      # Answers the one question a heartbeat cannot: whether this account is
+      # actually a SUBSCRIBER. A public channel is readable without joining,
+      # and Telegram pushes updates only to subscribers - so "connected, no
+      # messages" is ambiguous until this is run.
+      "${COMPOSE[@]}" run --rm -T telegram-ingest node dist/scripts/telegram-check.js
       ;;
   telegram-status)
       echo "=== Engine B: ingestion + reconciliation ==="
