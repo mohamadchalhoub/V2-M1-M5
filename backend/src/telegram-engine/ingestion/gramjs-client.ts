@@ -56,6 +56,18 @@ export interface GramJsConfig {
   readonly sourceChannelUsername: string;
 }
 
+/**
+ * How often the poll fallback checks for messages the push connection may
+ * have missed.
+ *
+ * 8 seconds leaves ample margin inside the 60-second signal lifetime even
+ * accounting for the parse -> decision -> submission chain that follows, and
+ * matches the observed burst cadence (several messages inside one minute) --
+ * a slower poll could still miss the WINDOW for the earliest message in a
+ * burst even once it found the message itself.
+ */
+const POLL_INTERVAL_MS = 8_000;
+
 /** An edit of a message already seen, kept distinct from a new publication. */
 export interface TelegramEditEvent {
   readonly message: TelegramSourceMessage;
@@ -73,6 +85,18 @@ export class GramJsIngestionAdapter implements TelegramIngestionPort {
   private lastSourceMessageId: string | null = null;
   private lastIngestionLatencyMs: number | null = null;
   private connected = false;
+
+  // --- Polling fallback. See the header note above the pollOnce() method:
+  // this exists because GramJS's push delivery for a channel can silently
+  // stall (observed in production -- see git history for the incident),
+  // and a trading system cannot rely on "usually delivers, eventually
+  // reconnects" for something that decides whether a real signal is acted
+  // on within its 60-second lifetime.
+  private entity: Api.Channel | null = null;
+  private lastPolledMessageId = 0;
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private lastPollAtMs: number | null = null;
+  private lastPollError: string | null = null;
 
   constructor(private readonly config: GramJsConfig) {}
 
@@ -116,6 +140,29 @@ export class GramJsIngestionAdapter implements TelegramIngestionPort {
       );
     }
 
+    this.client = client;
+    this.connected = true;
+
+    // Resolve the entity once and seed the poll cursor at the channel's
+    // CURRENT newest message, so the poll never replays history on startup
+    // -- it only catches messages that arrive after this point, exactly the
+    // same as the push path's coverage.
+    try {
+      const entity = await client.getEntity(`@${this.config.sourceChannelUsername}`);
+      if (entity instanceof Api.Channel) {
+        this.entity = entity;
+        const newest = await client.getMessages(entity, { limit: 1 });
+        this.lastPolledMessageId = newest[0]?.id ?? 0;
+      } else {
+        this.logger.error(
+          `@${this.config.sourceChannelUsername} did not resolve to a channel; the polling fallback is disabled ` +
+            'and this session depends entirely on push delivery, which is known to be unreliable.',
+        );
+      }
+    } catch (err) {
+      this.logger.error(`could not resolve the source channel for polling: ${(err as Error).message}`);
+    }
+
     client.addEventHandler((event: NewMessageEvent) => {
       void this.dispatch(event, false);
     }, new NewMessage({}));
@@ -124,24 +171,32 @@ export class GramJsIngestionAdapter implements TelegramIngestionPort {
       void this.dispatch(event, true);
     }, new EditedMessage({}));
 
-    this.client = client;
-    this.connected = true;
+    this.pollTimer = setInterval(() => {
+      void this.pollOnce();
+    }, POLL_INTERVAL_MS);
+
     this.logger.log(
       `Telegram ingestion connected; watching channel ${this.config.sourceChannelId ?? '(unresolved)'} ` +
-        `(@${this.config.sourceChannelUsername}).`,
+        `(@${this.config.sourceChannelUsername}). Push events and a ${POLL_INTERVAL_MS / 1000}s poll fallback ` +
+        'are both active.',
     );
   }
 
   async stop(): Promise<void> {
     this.connected = false;
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
     const client = this.client;
     this.client = null;
     if (client) await client.disconnect().catch(() => undefined);
   }
 
   /**
-   * The edge. Every update lands here, the receipt instant is taken FIRST,
-   * and the channel guard runs before anything else looks at the text.
+   * The push edge. Every update lands here, the receipt instant is taken
+   * FIRST, and the channel guard runs before anything else looks at the
+   * text.
    */
   private async dispatch(event: NewMessageEvent | EditedMessageEvent, isEdit: boolean): Promise<void> {
     // Taken before any async work, including the peer lookup below: this is
@@ -151,11 +206,86 @@ export class GramJsIngestionAdapter implements TelegramIngestionPort {
     const receivedAtMs = Date.now();
     this.lastUpdateAtMs = receivedAtMs;
 
-    try {
-      const message = event.message;
-      if (!message) return;
+    const message = event.message;
+    if (!message) return;
+    const peer = this.describePeer(event);
+    await this.processMessage(message, peer, isEdit, receivedAtMs);
+  }
 
-      const peer = this.describePeer(event);
+  /**
+   * The poll edge -- the fallback for when push delivery has silently
+   * stalled.
+   *
+   * ## Why this exists
+   *
+   * On 2026-09-23 the push connection reported connected: true for over an
+   * hour, with GramJS's own event handlers never firing once, while the
+   * source channel published a live burst of real signals. lastUpdateAtMs --
+   * set unconditionally at the top of dispatch(), before any filtering --
+   * never advanced, which proves the gap was in GramJS's delivery, not in
+   * this engine's filtering. That is a known failure mode for a freshly
+   * joined channel: the client's per-channel update sequence can get stuck
+   * without an error, and nothing here can detect a silence that never
+   * generates an event to observe.
+   *
+   * A polling fallback does not depend on diagnosing that internal state. It
+   * asks the channel directly, on a short interval, which is reliable
+   * regardless of whatever is wrong with the push side.
+   *
+   * ## Why this is safe to run alongside push
+   *
+   * A message delivered by both paths reaches onMessage twice with the same
+   * (channelId, messageId), which is exactly the case the execution
+   * service's durable duplicate key exists for (TELEGRAM_DUPLICATE_SIGNAL)
+   * -- the second delivery is consumed harmlessly. This method's own
+   * lastPolledMessageId cursor additionally stops it from re-processing a
+   * message it has already forwarded itself.
+   */
+  private async pollOnce(): Promise<void> {
+    if (!this.client || !this.entity) return;
+    const nowMs = Date.now();
+    this.lastPollAtMs = nowMs;
+    try {
+      const recent = await this.client.getMessages(this.entity, { limit: 20 });
+      const fresh = recent.filter((m) => m.id > this.lastPolledMessageId).sort((a, b) => a.id - b.id);
+      if (fresh.length === 0) {
+        this.lastPollError = null;
+        return;
+      }
+      const peer: IncomingPeer = {
+        channelId: normaliseChannelId(String(this.entity.id)),
+        username: this.entity.username ?? null,
+        isChannel: true,
+      };
+      for (const message of fresh) {
+        await this.processMessage(message, peer, false, nowMs);
+        this.lastPolledMessageId = Math.max(this.lastPolledMessageId, message.id);
+      }
+      this.lastPollError = null;
+    } catch (err) {
+      this.lastPollError = (err as Error).message;
+      this.logger.warn(`poll fallback failed, will retry: ${this.lastPollError}`);
+    }
+  }
+
+  /**
+   * Shared by both edges: verifies the source, builds the
+   * TelegramSourceMessage and hands it to the registered handler.
+   *
+   * receivedAtMs is supplied by the caller rather than read here, because
+   * the two edges mean different things by it -- the push edge's is the
+   * instant the event arrived; the poll edge's is the instant the poll asked,
+   * which is later than the message's real arrival by up to one poll
+   * interval. Both are honest about what they measured; neither pretends to
+   * be the other.
+   */
+  private async processMessage(
+    message: Api.Message,
+    peer: IncomingPeer,
+    isEdit: boolean,
+    receivedAtMs: number,
+  ): Promise<void> {
+    try {
       const check = checkSourceChannel(peer, this.config.sourceChannelId);
       if (!check.accepted) {
         // Deliberately debug, not warn: this account sees every chat it is in,
@@ -182,8 +312,7 @@ export class GramJsIngestionAdapter implements TelegramIngestionPort {
       this.lastIngestionLatencyMs = publishedAtMs === null ? null : Math.max(0, receivedAtMs - publishedAtMs);
 
       if (isEdit) {
-        const editedAtMs =
-          typeof (message as Api.Message).editDate === 'number' ? (message as Api.Message).editDate! * 1000 : null;
+        const editedAtMs = typeof message.editDate === 'number' ? message.editDate * 1000 : null;
         await this.editHandler?.({ message: source, editedAtMs });
         return;
       }
@@ -193,7 +322,7 @@ export class GramJsIngestionAdapter implements TelegramIngestionPort {
       // malformed update is not a reason to stop receiving the next one, and
       // a crashed ingestion process would be indistinguishable from a quiet
       // channel until someone noticed.
-      this.logger.error(`ingestion dispatch failed: ${(err as Error).message}`);
+      this.logger.error(`ingestion processing failed: ${(err as Error).message}`);
     }
   }
 
@@ -228,6 +357,8 @@ export class GramJsIngestionAdapter implements TelegramIngestionPort {
     lastSourceMessageAtMs: number | null;
     lastSourceMessageId: string | null;
     ingestionLatencyMs: number | null;
+    lastPollAtMs: number | null;
+    lastPollError: string | null;
   } {
     return {
       connected: this.connected && (this.client?.connected ?? false),
@@ -235,6 +366,8 @@ export class GramJsIngestionAdapter implements TelegramIngestionPort {
       lastSourceMessageAtMs: this.lastSourceMessageAtMs,
       lastSourceMessageId: this.lastSourceMessageId,
       ingestionLatencyMs: this.lastIngestionLatencyMs,
+      lastPollAtMs: this.lastPollAtMs,
+      lastPollError: this.lastPollError,
     };
   }
 }

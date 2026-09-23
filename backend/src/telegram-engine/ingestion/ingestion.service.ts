@@ -1,6 +1,6 @@
 /**
  * The runtime path: a message published on `@SFxauusd1` becomes an execution
- * decision, in one pass, with no polling anywhere.
+ * decision, in one pass.
  *
  *   Telegram update
  *     -> receipt instant captured at the edge (gramjs-client.ts)
@@ -10,13 +10,17 @@
  *     -> duplicate / freshness / availability / TP1 / legs (execution.service)
  *     -> MT5
  *
- * ## Event-driven, deliberately
+ * ## Event-driven, with a short poll as a safety net
  *
- * Nothing here runs on a schedule. GramJS delivers updates as Telegram pushes
- * them, and this handler runs on that delivery. A polling loop would add half
- * its own interval to every signal's age on average, against a 60-second
- * budget that also has to cover the broker round trip — a 30-second poll
- * would spend a quarter of the budget doing nothing.
+ * GramJS delivers updates as Telegram pushes them, and this handler runs
+ * primarily on that delivery — a genuinely event-driven path costs nothing
+ * of the 60-second budget waiting. But push delivery for a channel has been
+ * observed, in production, to silently stall (connected: true, zero events,
+ * indefinitely) — see gramjs-client.ts's pollOnce() for the incident this
+ * traces back to. So the adapter also polls the channel every few seconds as
+ * a fallback; a message delivered by both paths is consumed once, via the
+ * durable duplicate key. This handler itself does not know or care which
+ * path a message arrived by — both call the same `handleMessage`.
  *
  * ## Why every accepted message is recorded, not just the signals
  *
@@ -251,6 +255,11 @@ export class TelegramIngestionService {
         : null,
       lastSourceMessageId: adapter?.lastSourceMessageId ?? null,
       ingestionLatencyMs: adapter?.ingestionLatencyMs ?? null,
+      // The poll fallback's own liveness, reported separately from the push
+      // fields above -- see gramjs-client.ts pollOnce() for why this exists:
+      // push delivery can silently stall while reporting connected: true.
+      lastPollAt: adapter?.lastPollAtMs ? new Date(adapter.lastPollAtMs).toISOString() : null,
+      lastPollError: adapter?.lastPollError ?? null,
       lastError: this.lastError,
     };
   }

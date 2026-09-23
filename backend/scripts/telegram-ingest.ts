@@ -131,9 +131,18 @@ async function main(): Promise<void> {
     const health = ingestion.health();
     logger.log(
       `ingestion heartbeat: connected=${health.telegramConnected} ` +
-        `lastUpdate=${health.lastUpdateAt ?? 'none'} lastSourceMessage=${health.lastSourceMessageAt ?? 'none'} ` +
+        `lastUpdate=${health.lastUpdateAt ?? 'none'} lastPoll=${health.lastPollAt ?? 'none'} ` +
+        `lastSourceMessage=${health.lastSourceMessageAt ?? 'none'} ` +
         `latencyMs=${health.ingestionLatencyMs ?? 'n/a'} tp1WatchWindowMs=${TP1_WATCH_WINDOW_MS}`,
     );
+    // `lastUpdate` is the PUSH path only (see gramjs-client.ts). If it never
+    // advances while `lastPoll` keeps ticking every few seconds, push
+    // delivery has stalled exactly as it did on 2026-09-23 -- the poll
+    // fallback is still finding messages, so nothing is lost, but this is
+    // worth a loud line so it does not go unnoticed a second time.
+    if (health.lastPollError) {
+      logger.warn(`poll fallback is failing: ${health.lastPollError}`);
+    }
   }, HEARTBEAT_INTERVAL_MS);
 
   const shutdown = async (signal: string) => {
