@@ -27,6 +27,10 @@ class _FakeConfig:
     history_sync_overlap_minutes: int = 5
     candle_symbols: tuple[str, ...] = ()
     candle_timeframes: tuple[str, ...] = ("M5",)
+    # These tests are specifically about tick sync's own due/backoff/thread
+    # logic, so it is opted in here regardless of the real Config's off-by-
+    # default posture (see Config.tick_sync_enabled).
+    tick_sync_enabled: bool = True
     candle_sync_interval_seconds: int = 300
     candle_initial_sync_days: int = 730
     autonomous_execution_enabled: bool = False
@@ -42,6 +46,17 @@ def _app(config: _FakeConfig) -> tuple[CollectorApp, MagicMock, MagicMock]:
 
 def test_tick_sync_never_due_when_no_symbols_configured():
     app, _, _ = _app(_FakeConfig(candle_symbols=()))
+    assert app._tick_sync_due() is False
+
+
+def test_tick_sync_never_due_when_disabled_even_with_symbols_configured():
+    """Real incident, 2026-09-24: fetching a multi-minute raw-tick window
+    through the Wine/MT5 IPC boundary held the shared MT5 lock for 10+
+    minutes straight, starving xauusd-sar-v1's order execution entirely.
+    Tick sync (an optional historical-data side project) must be
+    independently disableable without touching candle syncing, which live
+    strategies actually depend on."""
+    app, _, _ = _app(_FakeConfig(candle_symbols=("XAUUSD",), tick_sync_enabled=False))
     assert app._tick_sync_due() is False
 
 

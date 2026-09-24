@@ -2434,6 +2434,8 @@ class CollectorApp:
         self._last_symbol_metadata_sync_at = datetime.now(tz=timezone.utc)
 
     def _tick_sync_due(self) -> bool:
+        if not getattr(self._config, "tick_sync_enabled", False):
+            return False  # off by default, and independent of candle_symbols -- see Config.tick_sync_enabled
         if not self._config.candle_symbols:
             return False  # off by default — same posture as _candle_sync_due
         if self._tick_sync_thread is not None and self._tick_sync_thread.is_alive():

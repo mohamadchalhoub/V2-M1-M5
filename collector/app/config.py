@@ -133,6 +133,19 @@ class Config:
     candle_sync_interval_seconds: int
     candle_initial_sync_days: int
 
+    # Ongoing RAW TICK sync (a separate, optional gold historical-data-
+    # collection project -- distinct from the OHLC candle sync above, which
+    # every live strategy's technical analysis actually depends on).
+    # Confirmed live, 2026-09-24: fetching a multi-minute window of raw
+    # XAUUSD ticks through the Wine/MT5 IPC boundary can take long enough
+    # that it starved the shared MT5 lock for 10+ minutes straight, blocking
+    # xauusd-sar-v1's order execution entirely while this ran. Previously
+    # implicitly enabled whenever CANDLE_SYMBOLS was set, which is exactly
+    # the coupling that let an optional side-project block live trading.
+    # Off by default; an operator must opt in explicitly, independently of
+    # candle syncing.
+    tick_sync_enabled: bool
+
     # Autonomous demo trading (v2), Phase 6 — off by default, same posture
     # as CANDLE_SYMBOLS above and this codebase's TypeScript side's
     # AI_ENABLED/MARKET_EVENTS_ENABLED: an existing, already-running
@@ -301,6 +314,7 @@ class Config:
             candle_timeframes_by_symbol[symbol] = override
         candle_sync_interval = _read_positive_int(e, "CANDLE_SYNC_INTERVAL_SECONDS", default=300)
         candle_initial_sync_days = _read_positive_int(e, "CANDLE_INITIAL_SYNC_DAYS", default=730)
+        tick_sync_enabled = e.get("TICK_SYNC_ENABLED", "").strip().lower() == "true"
 
         autonomous_execution_enabled = e.get("AUTONOMOUS_EXECUTION_ENABLED", "false").strip().lower() == "true"
         gold_execution_enabled = e.get("GOLD_EXECUTION_ENABLED", "false").strip().lower() == "true"
@@ -371,6 +385,7 @@ class Config:
             candle_timeframes=candle_timeframes,
             candle_sync_interval_seconds=candle_sync_interval,
             candle_initial_sync_days=candle_initial_sync_days,
+            tick_sync_enabled=tick_sync_enabled,
             autonomous_execution_enabled=autonomous_execution_enabled,
             candle_timeframes_by_symbol=candle_timeframes_by_symbol,
             gold_execution_enabled=gold_execution_enabled,
