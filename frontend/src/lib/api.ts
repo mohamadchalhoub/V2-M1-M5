@@ -410,6 +410,14 @@ export const api = {
       body: JSON.stringify(input),
     }),
   telegramEngineStatus: () => apiFetch<TelegramEngineStatus>('/xauusd-m1m5/telegram-engine/status'),
+  // Engine A replacement — xauusd-sar-v1.
+  xauusdSarStatus: () => apiFetch<XauusdSarStatus>('/xauusd-sar/status'),
+  setXauusdSarVolume: (input: { volumeLots: number; note?: string }) =>
+    apiFetch<{ ok: boolean; volumeLots?: number; error?: string }>('/xauusd-sar/volume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    }),
   xauusdRsiStatus: () => apiFetch<XauusdRsiStatus>('/research/xauusd-rsi-status'),
   xauusdRsiControls: () => apiFetch<XauusdRsiControls>('/research/xauusd-rsi-controls'),
   setXauusdRsiVolume: (volumeLots: number, note?: string) =>
@@ -1016,6 +1024,46 @@ export interface XauusdM1M5Volume {
     changedBy: string;
     changedAt: string;
     provenance: string;
+  }[];
+}
+
+// Engine A REPLACEMENT — xauusd-sar-v1, the $0.50 continuous trailing
+// stop-and-reverse strategy. Its own endpoint, its own type: XauusdM1M5Dashboard
+// above now describes the FROZEN, historical RSI M1/M5 strategy only.
+export interface XauusdSarStatus {
+  strategyVersion: string;
+  magic: number;
+  accountConfigured: boolean;
+  enabled: boolean;
+  executionMode: "OFF" | "SHADOW" | "DEMO";
+  killSwitch: { active: boolean; source: string | null };
+  reversalDistanceUsd: number;
+  sessionStart: string;
+  dailyClose: string;
+  volumeLots: number | null;
+  session: {
+    sessionDate: string;
+    state: "WAIT_MARKET_OPEN" | "WAIT_INITIAL_DIRECTION" | "ACTIVE_BUY" | "ACTIVE_SELL" | "REVERSAL_UNKNOWN" | "DAILY_CLOSED";
+    sessionReference: number | null;
+    buyTrigger: number | null;
+    sellTrigger: number | null;
+    direction: "BUY" | "SELL" | null;
+    entryFillPrice: number | null;
+    extremeSinceEntry: number | null;
+    reversalLevel: number | null;
+    brokerTicket: string | null;
+    unknownSince: string | null;
+  } | null;
+  recentCycles: {
+    cycleId: string;
+    direction: "BUY" | "SELL";
+    entryTicket: string;
+    entryFillPrice: number;
+    entryAt: string;
+    exitTicket: string | null;
+    exitFillPrice: number | null;
+    exitAt: string | null;
+    exitReason: string | null;
   }[];
 }
 

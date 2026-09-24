@@ -102,8 +102,14 @@ export default async function XauusdM1M5Page() {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-lg border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
+        <strong>Frozen strategy.</strong> Engine A is now{" "}
+        <a href="/xauusd-sar" className="underline">xauusd-sar-v1 (Stop &amp; Reverse)</a>. This RSI M1/M5 strategy's
+        entry wiring is disabled in code; the page below shows historical state and any residual position still
+        under reconciliation and protective management only.
+      </div>
       <PageHeader
-        title="XAUUSD M1/M5 RSI threshold"
+        title="XAUUSD M1/M5 RSI threshold (historical)"
         right={
           <span className="text-xs font-mono text-text-muted">
             {view.strategyVersion} · spec {view.specHash}

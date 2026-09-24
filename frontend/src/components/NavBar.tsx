@@ -51,12 +51,20 @@ export function NavBar() {
             );
           })}
           <Link
+            href="/xauusd-sar"
+            className={`px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
+              pathname.startsWith("/xauusd-sar") ? "bg-accent-soft text-accent font-medium" : "text-text-muted hover:text-text"
+            }`}
+          >
+            Engine A — Stop &amp; Reverse
+          </Link>
+          <Link
             href="/xauusd-m1m5"
             className={`px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
               pathname.startsWith("/xauusd-m1m5") ? "bg-accent-soft text-accent font-medium" : "text-text-muted hover:text-text"
             }`}
           >
-            XAUUSD M1/M5 (live)
+            XAUUSD M1/M5 (frozen, historical)
           </Link>
           <Link
             href="/xauusd-rsi"
