@@ -4,11 +4,28 @@
 // tests for /collector/candles.
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { PrismaClient } from '@prisma/client';
+import type { Queue } from 'bullmq';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp } from '../helpers/app';
 import { resetDatabase } from '../helpers/db';
 import { setupAccountWithToken } from '../helpers/factories';
 import { request } from '../helpers/http';
+import { HISTORICAL_TICK_QUEUE } from '../../src/jobs/jobs.constants';
+
+// Phase 1 CPU-isolation change (2026-09-24): POST /collector/ticks now only
+// enqueues a job onto HISTORICAL_TICK_QUEUE -- the actual dedup + insert
+// runs in a worker_thread (historical-tick.processor.ts /
+// historical-tick-worker-thread.ts), which requires the COMPILED dist/
+// output to spawn (worker_threads.Worker loads a plain .js file via Node's
+// own loader, bypassing Vitest's TS transform), so it does not run inside
+// this Vitest process. These tests therefore assert the new contract at
+// the layer that actually runs here: the HTTP response shape, and that the
+// correct job is placed on the real queue. The dedup/insert SQL itself is
+// tested against a real database in
+// test/market-data/historical-tick-dedup.spec.ts, and the full pipeline
+// (worker_thread included) is proven end-to-end by the manual stress test
+// at test/market-data/stress/historical-tick-stress.js (run against the
+// built dist/ output; see that file's own docstring).
 
 function ticksPayload(overrides: Record<string, unknown> = {}) {
   return {
@@ -26,10 +43,12 @@ function ticksPayload(overrides: Record<string, unknown> = {}) {
 describe('historical tick ingestion (/collector/ticks)', () => {
   let app: NestFastifyApplication;
   let prisma: PrismaClient;
+  let queue: Queue;
 
   beforeAll(async () => {
     app = await createTestApp();
     prisma = new PrismaClient();
+    queue = app.get(HISTORICAL_TICK_QUEUE);
   });
   afterAll(async () => {
     await prisma.$disconnect();
@@ -37,96 +56,32 @@ describe('historical tick ingestion (/collector/ticks)', () => {
   });
   beforeEach(async () => {
     await resetDatabase(prisma);
+    await queue.drain(true);
   });
 
-  it('accepts a valid push and persists every tick', async () => {
-    const { token } = await setupAccountWithToken(prisma);
-    const res = await request(app, {
-      method: 'POST',
-      url: '/collector/ticks',
-      headers: { authorization: `Bearer ${token}` },
-      payload: ticksPayload(),
-    });
-    expect(res.statusCode).toBe(201);
-    expect(res.body).toMatchObject({ ok: true, inserted: 2 });
-
-    const rows = await prisma.historicalTick.findMany({ orderBy: { timestamp: 'asc' } });
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatchObject({ symbol: 'XAUUSD', brokerSymbol: 'XAUUSD.a', server: 'MetaQuotes-Demo', flags: 6 });
-    expect(Number(rows[0].bid)).toBe(2400.1);
-  });
-
-  it('deduplicates two identical rows within the SAME payload — 1 inserted, not 2', async () => {
-    const { token } = await setupAccountWithToken(prisma);
-    const res = await request(app, {
-      method: 'POST',
-      url: '/collector/ticks',
-      headers: { authorization: `Bearer ${token}` },
-      payload: ticksPayload({
-        ticks: [
-          { timestamp: '2026-01-01T00:00:00.000Z', bid: 2400.1, ask: 2400.3, flags: 6, batchSeq: 0 },
-          // Identical in every identity-bearing field; only batchSeq differs
-          // (batchSeq is explicitly NOT part of identity — see the schema
-          // comment on HistoricalTick).
-          { timestamp: '2026-01-01T00:00:00.000Z', bid: 2400.1, ask: 2400.3, flags: 6, batchSeq: 1 },
-        ],
-      }),
-    });
-    expect(res.statusCode).toBe(201);
-    expect(res.body).toMatchObject({ ok: true, inserted: 1 });
-
-    const rows = await prisma.historicalTick.findMany();
-    expect(rows).toHaveLength(1);
-  });
-
-  it('is idempotent across calls — re-posting the exact same payload inserts 0 the second time, no DB error', async () => {
+  it('accepts a valid push and enqueues it, unchanged, onto the historical-tick queue', async () => {
     const { token } = await setupAccountWithToken(prisma);
     const payload = ticksPayload();
-
-    const first = await request(app, {
-      method: 'POST',
-      url: '/collector/ticks',
-      headers: { authorization: `Bearer ${token}` },
-      payload,
-    });
-    expect(first.statusCode).toBe(201);
-    expect(first.body.inserted).toBe(2);
-
-    const second = await request(app, {
-      method: 'POST',
-      url: '/collector/ticks',
-      headers: { authorization: `Bearer ${token}` },
-      payload,
-    });
-    expect(second.statusCode).toBe(201);
-    expect(second.body.inserted).toBe(0);
-
-    const rows = await prisma.historicalTick.findMany();
-    expect(rows).toHaveLength(2);
-  });
-
-  it('treats a null vs. a present optional field (last/volume/volumeReal) as genuinely distinct identity', async () => {
-    const { token } = await setupAccountWithToken(prisma);
-    await request(app, {
-      method: 'POST',
-      url: '/collector/ticks',
-      headers: { authorization: `Bearer ${token}` },
-      payload: ticksPayload({
-        ticks: [{ timestamp: '2026-01-01T00:00:00.000Z', bid: 2400.1, ask: 2400.3, flags: 6, batchSeq: 0 }],
-      }),
-    });
     const res = await request(app, {
       method: 'POST',
       url: '/collector/ticks',
       headers: { authorization: `Bearer ${token}` },
-      payload: ticksPayload({
-        ticks: [{ timestamp: '2026-01-01T00:00:00.000Z', bid: 2400.1, ask: 2400.3, last: 2400.2, flags: 6, batchSeq: 0 }],
-      }),
+      payload,
     });
-    expect(res.body.inserted).toBe(1); // genuinely a different tick — `last` is present this time
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toEqual({ ok: true, queued: true });
 
-    const rows = await prisma.historicalTick.findMany();
-    expect(rows).toHaveLength(2);
+    // Dedup/insert now happens in the worker_thread (see this file's own
+    // top comment) -- what this layer owns is getting the right job onto
+    // the queue, unchanged, not re-doing its insert-count arithmetic.
+    const jobs = await queue.getJobs(['waiting']);
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].data).toMatchObject({
+      symbol: 'XAUUSD',
+      brokerSymbol: 'XAUUSD.a',
+      server: 'MetaQuotes-Demo',
+      ticks: payload.ticks,
+    });
   });
 
   it('rejects an empty ticks array', async () => {
@@ -159,17 +114,17 @@ describe('historical tick ingestion (/collector/ticks)', () => {
 
     it('returns count/earliest/latest after ingestion, scoped by symbol', async () => {
       const { token } = await setupAccountWithToken(prisma);
-      await request(app, {
-        method: 'POST',
-        url: '/collector/ticks',
-        headers: { authorization: `Bearer ${token}` },
-        payload: ticksPayload(),
-      });
-      await request(app, {
-        method: 'POST',
-        url: '/collector/ticks',
-        headers: { authorization: `Bearer ${token}` },
-        payload: ticksPayload({ symbol: 'EURUSD', ticks: [{ timestamp: '2026-01-01T00:00:00.000Z', bid: 1.1, ask: 1.1002, flags: 6, batchSeq: 0 }] }),
+      // Coverage reads directly from historical_ticks and is unchanged by
+      // Phase 1 (only the POST write path moved off this thread) -- seed
+      // rows directly rather than via POST, since insertion now happens in
+      // a worker_thread this Vitest process cannot spawn (see this file's
+      // own top comment).
+      await prisma.historicalTick.createMany({
+        data: [
+          { symbol: 'XAUUSD', brokerSymbol: 'XAUUSD.a', server: 'MetaQuotes-Demo', timestamp: new Date('2026-01-01T00:00:00.000Z'), bid: 2400.1, ask: 2400.3, flags: 6, batchSeq: 0, source: 'MT5' },
+          { symbol: 'XAUUSD', brokerSymbol: 'XAUUSD.a', server: 'MetaQuotes-Demo', timestamp: new Date('2026-01-01T00:00:01.000Z'), bid: 2400.2, ask: 2400.4, flags: 6, batchSeq: 1, source: 'MT5' },
+          { symbol: 'EURUSD', brokerSymbol: 'EURUSD.a', server: 'MetaQuotes-Demo', timestamp: new Date('2026-01-01T00:00:00.000Z'), bid: 1.1, ask: 1.1002, flags: 6, batchSeq: 0, source: 'MT5' },
+        ],
       });
 
       const res = await request(app, {

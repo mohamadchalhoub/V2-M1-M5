@@ -17,6 +17,8 @@ import {
   FINNHUB_NEWS_QUEUE_NAME,
   HEARTBEAT_DIGEST_QUEUE,
   HEARTBEAT_DIGEST_QUEUE_NAME,
+  HISTORICAL_TICK_QUEUE,
+  HISTORICAL_TICK_QUEUE_NAME,
   MARKET_EVENT_QUEUE,
   MARKET_EVENT_QUEUE_NAME,
   MARKET_NEWS_QUEUE,
@@ -45,6 +47,7 @@ class QueueLifecycle implements OnModuleDestroy {
     @Inject(DAILY_MARKET_ANALYSIS_QUEUE) private readonly dailyMarketAnalysisQueue: Queue,
     @Inject(HEARTBEAT_DIGEST_QUEUE) private readonly heartbeatDigestQueue: Queue,
     @Inject(FINNHUB_NEWS_QUEUE) private readonly finnhubNewsQueue: Queue,
+    @Inject(HISTORICAL_TICK_QUEUE) private readonly historicalTickQueue: Queue,
   ) {}
 
   async onModuleDestroy() {
@@ -59,6 +62,7 @@ class QueueLifecycle implements OnModuleDestroy {
       this.dailyMarketAnalysisQueue.close(),
       this.heartbeatDigestQueue.close(),
       this.finnhubNewsQueue.close(),
+      this.historicalTickQueue.close(),
     ]);
   }
 }
@@ -264,6 +268,29 @@ function readPositiveInt(config: ConfigService, key: string, fallback: number): 
       },
       inject: [ConfigService],
     },
+    {
+      provide: HISTORICAL_TICK_QUEUE,
+      // No retries (attempts: 1) and Worker-side maxStalledCount: 0 (set in
+      // historical-tick.processor.ts) -- a lost/stalled batch during a
+      // Postgres outage must never turn into a retry storm on top of an
+      // already-degraded backlog. Idempotent (ON CONFLICT DO NOTHING) means
+      // a genuinely-lost batch is simply gone, never silently reprocessed.
+      // Small retention: this queue's volume is far higher than any other
+      // queue in this module, so 24h-style retention (TELEGRAM_DELIVERY_QUEUE)
+      // would itself become a memory concern.
+      useFactory: (config: ConfigService) => {
+        const connection = createRedisConnection(config);
+        return new Queue(HISTORICAL_TICK_QUEUE_NAME, {
+          connection,
+          defaultJobOptions: {
+            attempts: 1,
+            removeOnComplete: { age: 3600, count: 1000 },
+            removeOnFail: { age: 86_400, count: 500 },
+          },
+        });
+      },
+      inject: [ConfigService],
+    },
     QueueLifecycle,
   ],
   exports: [
@@ -277,6 +304,7 @@ function readPositiveInt(config: ConfigService, key: string, fallback: number): 
     DAILY_MARKET_ANALYSIS_QUEUE,
     HEARTBEAT_DIGEST_QUEUE,
     FINNHUB_NEWS_QUEUE,
+    HISTORICAL_TICK_QUEUE,
   ],
 })
 export class JobsModule {}

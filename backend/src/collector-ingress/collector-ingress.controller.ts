@@ -1,6 +1,8 @@
-import { BadRequestException, Body, Controller, Get, Logger, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Inject, Logger, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { BackfillDataType, BackfillIntervalStatus, CandleTimeframe } from '@prisma/client';
+import { Queue } from 'bullmq';
 import { CollectorTokenGuard } from '../auth/collector-token.guard';
+import { HISTORICAL_TICK_MAX_BACKLOG, HISTORICAL_TICK_QUEUE } from '../jobs/jobs.constants';
 import { AccountsService } from '../accounts/accounts.service';
 import { RuleEngineService } from '../alerts/rule-engine.service';
 import { HistoricalCandleService } from '../market-data/historical-candle.service';
@@ -69,7 +71,12 @@ export class CollectorIngressController {
     private readonly prisma: PrismaService,
     private readonly goldClosures: GoldClosureReconciliationService,
     private readonly goldProtection: GoldProtectionMonitorService,
+    @Inject(HISTORICAL_TICK_QUEUE) private readonly historicalTickQueue: Queue,
   ) {}
+
+  /** In-memory only (Phase 1 scope) -- observable via a future health/metrics endpoint. Reset on process restart, which is fine: it's a rate signal, not an audit trail. */
+  private droppedTickBatches = 0;
+  private lastDropWarningAt = 0;
 
   @Post('snapshot')
   async postSnapshot(@Body() dto: SnapshotDto) {
@@ -201,17 +208,53 @@ export class CollectorIngressController {
 
   // Gold historical-collection phase — ticks carry no accountId, same "no
   // accountId" posture as candles/symbol-metadata above.
+  //
+  // Phase 1 CPU-isolation fix (2026-09-24): this used to call
+  // HistoricalTickService.upsertTicks() directly, synchronously, on this
+  // same request -- CPU-bound dedup + a bulk insert against a 1.5M-row
+  // table, on the same Node event loop that serves every xauusd-sar-v1
+  // execution-critical route. Confirmed live as the dominant cause of
+  // 12-32s SAR order pickup delays. This now does only a cheap bounded-
+  // backlog check and an enqueue; every byte of actual ingestion work runs
+  // in a worker_thread (historical-tick.processor.ts /
+  // historical-tick-worker-thread.ts), never on this thread.
+  //
+  // Bounded backlog: P0 trading always wins over P2 historical
+  // completeness (see HISTORICAL_TICK_MAX_BACKLOG's own sizing comment).
+  // A batch dropped for this reason is NEVER silently lost without
+  // visibility -- counted, and rate-limited-logged -- but it IS dropped,
+  // deliberately, rather than allowed to grow the queue (and Redis memory,
+  // which has no configured cap on this VPS) without bound.
   @Post('ticks')
   async postTicks(@Body() dto: TicksPushDto) {
-    const result = await this.historicalTicks.upsertTicks(
-      dto.symbol,
-      dto.brokerSymbol ?? null,
-      dto.server ?? null,
-      dto.feedId ?? null,
-      dto.ticks,
-    );
-    this.logger.log(`ticks accepted symbol=${dto.symbol} received=${dto.ticks.length} inserted=${result.inserted}`);
-    return { ok: true, ...result };
+    const waiting = await this.historicalTickQueue.getWaitingCount();
+    if (waiting >= HISTORICAL_TICK_MAX_BACKLOG) {
+      this.droppedTickBatches += 1;
+      const now = Date.now();
+      if (now - this.lastDropWarningAt > 60_000) {
+        this.lastDropWarningAt = now;
+        this.logger.warn(
+          `historical-tick backlog at bound (${waiting}/${HISTORICAL_TICK_MAX_BACKLOG}); dropping this batch (received=${dto.ticks.length}). ` +
+            `Total dropped since last restart: ${this.droppedTickBatches}. SAR execution is unaffected.`,
+        );
+      }
+      // Reported as accepted, deliberately: the collector's own retry
+      // behavior for this endpoint is "try again next push cycle", and a
+      // batch that arrives again a second later is fine (idempotent), but
+      // an error response here would just make the collector retry sooner
+      // against an already-saturated backlog for no benefit.
+      return { ok: true, inserted: 0, dropped: true };
+    }
+
+    await this.historicalTickQueue.add('ingest', {
+      symbol: dto.symbol,
+      brokerSymbol: dto.brokerSymbol ?? null,
+      server: dto.server ?? null,
+      feedId: dto.feedId ?? null,
+      ticks: dto.ticks,
+    });
+    this.logger.log(`ticks queued symbol=${dto.symbol} received=${dto.ticks.length}`);
+    return { ok: true, queued: true };
   }
 
   @Get('ticks/coverage')

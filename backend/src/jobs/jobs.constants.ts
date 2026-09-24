@@ -136,3 +136,40 @@ export const FINNHUB_NEWS_QUEUE_NAME = 'finnhub-news-ingestion';
 export const FINNHUB_NEWS_QUEUE = Symbol('FINNHUB_NEWS_QUEUE');
 
 export const FINNHUB_NEWS_JOB_ID = 'finnhub-news-ingestion-tick';
+
+// Historical gold tick ingestion — an ELEVENTH, independent queue.
+// Deliberately separate from every queue above for a reason none of them
+// share: this one exists specifically to get CPU-heavy, per-tick work
+// (dedup + bulk insert against a 1.5M-row table) OFF the same Node event
+// loop that serves xauusd-sar-v1's execution-critical routes
+// (/xauusd-sar/pending-order, /watchdog-check, /reconcile) — confirmed
+// live, 2026-09-24, as the dominant cause of 12-32s SAR order pickup
+// delays. `attempts: 1` and `maxStalledCount: 0` (set on the Worker, see
+// historical-tick.processor.ts) deliberately mean ZERO retries, ever, even
+// if the job stalls because its worker thread died mid-job -- historical
+// ticks are P2 and idempotent (ON CONFLICT DO NOTHING), so a lost batch is
+// simply gone, never silently reprocessed in a way that could compound a
+// backlog during a Postgres outage.
+export const HISTORICAL_TICK_QUEUE_NAME = 'historical-tick-ingestion';
+
+export const HISTORICAL_TICK_QUEUE = Symbol('HISTORICAL_TICK_QUEUE');
+
+/**
+ * Bounded backlog, historical-tick queue ONLY -- no other queue in this
+ * file is touched. P0 trading must always win over P2 historical
+ * completeness, and this VPS hosts live trading infrastructure with no
+ * Redis maxmemory cap configured (verified 2026-09-24), so an unbounded
+ * queue here is a real, if indirect, risk to everything else Redis backs.
+ *
+ * Sizing: production batches observed between 80 and ~2000 ticks (the
+ * collector's own RSI_OBSERVATION_TICK_COUNT hard cap), pushed as often as
+ * once per second under a busy market (confirmed live: ~795 ticks/sec
+ * sustained in one earlier incident this same day). At roughly 300 bytes
+ * of serialized JSON per tick, a 2000-tick job is ~600KB; 300 such jobs is
+ * ~180MB worst case (typically far less, since observed average batch
+ * size is closer to ~350 ticks). At a worst-case 1 job/second arrival
+ * rate, 300 jobs is ~5 minutes of backlog -- generous enough to absorb a
+ * brief worker respawn or a short Postgres blip, small enough that a
+ * prolonged failure cannot grow unbounded.
+ */
+export const HISTORICAL_TICK_MAX_BACKLOG = 300;

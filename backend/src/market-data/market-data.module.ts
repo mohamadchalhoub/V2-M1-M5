@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { JobsModule } from '../jobs/jobs.module';
 import { HistoricalCandleService } from './historical-candle.service';
 import { HistoricalTickService } from './historical-tick.service';
+import { HistoricalTickProcessor } from './historical-tick.processor';
 import { BackfillIntervalService } from './backfill-interval.service';
 import { MarketDataController } from './market-data.controller';
 
@@ -21,11 +23,17 @@ import { MarketDataController } from './market-data.controller';
  * separate from the collector's write-only `/collector/*` surface. Imports
  * `AuthModule` for that guard, same as `AccountsModule` does for its own
  * `DashboardTokenGuard`-protected controller.
+ *
+ * Phase 1 CPU-isolation fix (2026-09-24) — imports `JobsModule` for
+ * `HISTORICAL_TICK_QUEUE`, the same pattern `TelegramModule` already uses
+ * for its own BullMQ-backed `TelegramDeliveryProcessor`, rather than
+ * requiring every consumer of `MarketDataModule` to import `JobsModule`
+ * separately.
  */
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, JobsModule],
   controllers: [MarketDataController],
-  providers: [HistoricalCandleService, HistoricalTickService, BackfillIntervalService],
+  providers: [HistoricalCandleService, HistoricalTickService, HistoricalTickProcessor, BackfillIntervalService],
   exports: [HistoricalCandleService, HistoricalTickService, BackfillIntervalService],
 })
 export class MarketDataModule {}
