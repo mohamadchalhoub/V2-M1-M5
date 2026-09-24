@@ -140,6 +140,9 @@ M1M5_SESSION_TICK_MAX_AGE_SECONDS = 120
 # is picked up by the next pass.
 M1M5_EXECUTION_LOCK_TIMEOUT_SECONDS = 0.25
 
+# Same reasoning as M1M5's, applied to xauusd-sar-v1's fast pass.
+SAR_EXECUTION_LOCK_TIMEOUT_SECONDS = 0.25
+
 # Trend-breakout's canonical instrument identifiers — must match the
 # backend's own `TREND_BREAKOUT_INSTRUMENTS` (instrument-config.ts) exactly;
 # this is the internal identity used in the URL path segment, never the raw
@@ -692,8 +695,18 @@ class CollectorApp:
         fresh price it got was the live tick riding on the account snapshot,
         every ~10 seconds -- so an RSI move that crossed a threshold and came
         back inside those ten seconds was never seen.
+
+        xauusd-sar-v1 needs it for the same reason M1M5 does: its trailing
+        reversal must be evaluated on every fresh tick, not once per
+        MAIN-loop cycle, which tick-sync/candle-sync work can stall for well
+        over a minute -- the confirmed cause of a live incident where a
+        reversal sat queued for 112 seconds before the collector got to it.
         """
-        return bool(self._config.rsi_execution_enabled or self._config.m1m5_execution_enabled)
+        return bool(
+            self._config.rsi_execution_enabled
+            or self._config.m1m5_execution_enabled
+            or getattr(self._config, "sar_execution_enabled", False)
+        )
 
     def _start_rsi_observation_loop(self) -> None:
         """Launches the one-second XAUUSD observation thread."""
@@ -728,6 +741,11 @@ class CollectorApp:
                     self._m1m5_fast_execution_pass()
                 except Exception as exc:  # noqa: BLE001 - never let this thread die
                     logger.warning("xauusd-m1m5 execution pass failed, continuing", extra={"error": str(exc)})
+            if getattr(self._config, "sar_execution_enabled", False):
+                try:
+                    self._sar_fast_execution_pass()
+                except Exception as exc:  # noqa: BLE001 - never let this thread die
+                    logger.warning("xauusd-sar execution pass failed, continuing", extra={"error": str(exc)})
             delay = next_at - time.monotonic()
             if delay <= 0:
                 # Fell behind: resynchronise instead of trying to catch up with
@@ -933,6 +951,28 @@ class CollectorApp:
             return
         try:
             self._poll_and_execute_pending_m1m5_order()
+        finally:
+            self._mt5_call_lock.release()
+
+    def _sar_fast_execution_pass(self) -> None:
+        """One xauusd-sar-v1 execution evaluation, run every second by the
+        observation loop -- the SAME fix M1M5 got, applied to the strategy
+        that was shipped without it.
+
+        Before this, a queued SAR order (a triggered reversal included) was
+        only picked up once per MAIN-loop cycle, which tick-sync/candle-sync
+        work can stall well past a minute. A live incident measured one
+        reversal sitting queued for 112 seconds before this ran -- price had
+        room to move far more than the strategy's own $0.50 reversal
+        distance in that window, which is the actual cause of losses larger
+        than the strategy's design should allow. This does not change how
+        much the position can lose once reversed; it only removes the
+        collector's own avoidable delay in getting there.
+        """
+        if not self._mt5_call_lock.acquire(timeout=SAR_EXECUTION_LOCK_TIMEOUT_SECONDS):
+            return
+        try:
+            self._poll_and_execute_pending_sar_order()
         finally:
             self._mt5_call_lock.release()
 
@@ -1167,6 +1207,7 @@ class CollectorApp:
         # result. A full success is NOT affected by this — only reported as
         # uncertain when the open itself does not cleanly succeed.
         reversal_in_progress = False
+        close_fill_price: float | None = None
 
         if closing_ticket:
             close_side = "SELL" if side == "BUY" else "BUY"  # the side the EXISTING position is on
@@ -1191,6 +1232,7 @@ class CollectorApp:
                 )
                 return
             reversal_in_progress = True  # from here on, any open failure leaves the account FLAT, not in the old state.
+            close_fill_price = close_result.price
 
         logger.info("xauusd-sar opening position", extra={
             "tag": tag, "kind": order["kind"], "side": side, "volume": volume, "magic": magic,
@@ -1213,22 +1255,26 @@ class CollectorApp:
         ambiguous_open = (not result.ok) and result.ticket is None and result.retcode is None
         uncertain = ambiguous_open or (reversal_in_progress and not result.ok)
         logger.info("xauusd-sar order execution result", extra={
-            "tag": tag, "ok": result.ok, "ticket": result.ticket, "retcode": result.retcode, "uncertain": uncertain,
+            "tag": tag, "ok": result.ok, "ticket": result.ticket, "price": result.price,
+            "close_fill_price": close_fill_price, "retcode": result.retcode, "uncertain": uncertain,
         })
         self._report_sar_execution_result(
             tag, ok=result.ok, ticket=result.ticket, filled_price=result.price,
-            error_message=result.error_message, uncertain=uncertain,
+            close_fill_price=close_fill_price, error_message=result.error_message, uncertain=uncertain,
         )
 
     def _report_sar_execution_result(
         self, idempotency_tag: str, *, ok: bool, ticket: int | None = None,
-        filled_price: float | None = None, error_message: str | None = None, uncertain: bool = False,
+        filled_price: float | None = None, close_fill_price: float | None = None,
+        error_message: str | None = None, uncertain: bool = False,
     ) -> None:
         payload: dict[str, Any] = {"ok": ok, "uncertain": uncertain}
         if ticket is not None:
             payload["ticket"] = int(ticket)
         if filled_price is not None:
             payload["filledPrice"] = float(filled_price)
+        if close_fill_price is not None:
+            payload["closeFillPrice"] = float(close_fill_price)
         if error_message:
             payload["errorMessage"] = error_message
         try:

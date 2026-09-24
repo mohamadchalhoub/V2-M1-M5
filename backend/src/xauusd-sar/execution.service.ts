@@ -76,6 +76,8 @@ export interface SarSubmitResponse {
   readonly status: 'FILLED' | 'FAILED' | 'UNKNOWN' | 'QUEUED';
   readonly ticket?: string;
   readonly fillPrice?: number;
+  /** For a REVERSAL: the actual fill price of the closed leg, as reported by the broker's close deal. */
+  readonly closeFillPrice?: number;
   readonly error?: string;
 }
 
@@ -240,7 +242,11 @@ export class SarExecutionService {
         data: { extremeSinceEntry: update.extremeSinceEntry, reversalLevel: update.reversalLevel },
       });
       if (!update.reversalTriggered) return { action: 'NONE', detail: 'trailing updated, no reversal.' };
-      if (blocked) return { action: 'BLOCKED', detail: blocked };
+      // A REVERSAL is the strategy's own exit mechanism, not a new entry --
+      // it must never be held back by the same gate that stops fresh
+      // exposure. Blocking it here would leave a position open and
+      // unmanaged, which is strictly worse than the reversal it is trying
+      // to prevent.
       const newDirection: SarDirection = current.state === 'ACTIVE_BUY' ? 'SELL' : 'BUY';
       return this.submitAndResolve(
         accountId,
@@ -359,9 +365,13 @@ export class SarExecutionService {
         data: { accountId, cycleId, direction, entryTicket: response.ticket, entryFillPrice: response.fillPrice, entryAt: new Date(nowMs) },
       });
       if (closingTicket) {
+        // The real close price, when the collector reported it; the
+        // trailing extreme is only ever a fallback for older attempts that
+        // predate this field, never a substitute for the actual fill.
+        const exitFillPrice = response.closeFillPrice ?? session.extremeSinceEntry ?? null;
         await this.prisma.xauusdSarCycle.updateMany({
           where: { accountId, entryTicket: closingTicket, exitAt: null },
-          data: { exitTicket: closingTicket, exitFillPrice: session.extremeSinceEntry ?? null, exitAt: new Date(nowMs), exitReason: 'REVERSAL' },
+          data: { exitTicket: closingTicket, exitFillPrice, exitAt: new Date(nowMs), exitReason: 'REVERSAL' },
         });
         this.announce(
           sarReversalMessage({ from: session.direction!, to: direction, fillPrice: response.fillPrice, volume }),

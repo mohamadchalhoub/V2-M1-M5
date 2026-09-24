@@ -27,6 +27,8 @@ export class SarExecutionResultDto {
   @IsBoolean() ok!: boolean;
   @IsOptional() @IsInt() ticket?: number;
   @IsOptional() @IsNumber() filledPrice?: number;
+  /** For a REVERSAL: the actual price the closed position filled at, as reported by the broker's close deal -- distinct from the new position's `filledPrice`. */
+  @IsOptional() @IsNumber() closeFillPrice?: number;
   @IsOptional() @IsString() errorMessage?: string;
   /** "We do not know" is a real outcome — see xauusd-m1m5's identical DTO field for why it is never folded into `ok: false`. */
   @IsOptional() @IsBoolean() uncertain?: boolean;
@@ -102,7 +104,7 @@ export class SarExecutionController {
     const response = dto.uncertain
       ? { status: 'UNKNOWN' as const, error: dto.errorMessage }
       : dto.ok && dto.ticket !== undefined && dto.filledPrice !== undefined
-        ? { status: 'FILLED' as const, ticket: String(dto.ticket), fillPrice: dto.filledPrice }
+        ? { status: 'FILLED' as const, ticket: String(dto.ticket), fillPrice: dto.filledPrice, closeFillPrice: dto.closeFillPrice }
         : { status: 'FAILED' as const, error: dto.errorMessage };
 
     const result = await this.execution.resolveOrderAttempt(idempotencyTag, response, Date.now());
