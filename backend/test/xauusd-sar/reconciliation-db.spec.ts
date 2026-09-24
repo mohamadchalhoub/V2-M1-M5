@@ -128,6 +128,127 @@ describe('case A: old position still open', () => {
   });
 });
 
+describe('case A minimum-age grace period (2026-09-24 live incident)', () => {
+  // Real incident: reconciliation runs from the collector on roughly the
+  // same one-second cadence as that SAME collector's own execution-poll,
+  // immediately before it in the same cycle. Without a grace period,
+  // reconciliation could see "old ticket still open" and revert the
+  // session the INSTANT a reversal was claimed -- before the collector's
+  // own poll ever got a chance to attempt the close. Confirmed live: an
+  // attempt resolved as Case A in 148ms, producing a rapid ACTIVE_* <->
+  // REVERSAL_UNKNOWN ping-pong and a cluster of FAILED attempts the
+  // collector's own logs never showed, because reconciliation killed them
+  // before the collector ever claimed them.
+
+  it('A: does not mark FAILED and does not restore ACTIVE when the attempt is younger than the minimum age, even though the old ticket is confirmed still open', async () => {
+    await seedStuckReversal({ requestedAtMs: NOW - 2000 }); // 2s old -- well under SAR_RECONCILE_MIN_AGE_SECONDS (10s)
+    const outcome = await service().reconcile(freshInput({
+      positions: [pos('58606170943', SAR_MAGIC)],
+    }));
+
+    expect(outcome.resolved).toBe(false);
+    expect(outcome.detail).toMatch(/too soon|too young|fair chance/i);
+
+    const row = await prisma.xauusdSarSession.findUnique({ where: { accountId } });
+    expect(row!.state).toBe('REVERSAL_UNKNOWN'); // NOT reverted to ACTIVE_SELL
+    expect(row!.brokerTicket).toBe('58606170943'); // ticket/direction unchanged
+
+    const attempt = await prisma.xauusdSarOrderAttempt.findUnique({ where: { idempotencyTag: 'SARtest0000001' } });
+    expect(attempt!.status).toBe('SENT'); // NOT marked FAILED -- still pending for the collector
+    expect(attempt!.resolvedAt).toBeNull();
+  });
+
+  it('B: once the collector executes that same attempt, the reversal succeeds exactly once (via the existing Case B path)', async () => {
+    await seedStuckReversal({ requestedAtMs: NOW - 2000 });
+
+    // First reconcile call: too young, does nothing (case A above).
+    const first = await service().reconcile(freshInput({ positions: [pos('58606170943', SAR_MAGIC)] }));
+    expect(first.resolved).toBe(false);
+
+    // The collector's OWN execution poll (a separate code path entirely --
+    // not reconciliation) then actually closes the old ticket and opens
+    // the new one, and the NEXT broker snapshot reflects that.
+    const second = await service().reconcile(freshInput({
+      nowMs: NOW + 500,
+      snapshotAtMs: NOW + 400,
+      positions: [pos('58606999999', SAR_MAGIC)],
+      deals: [
+        deal('99000001', '58606170943', SAR_MAGIC, 'OUT', 4283.3, 'sar-SARtest0000001'),
+        deal('99000002', '58606999999', SAR_MAGIC, 'IN', 4283.28, 'sar-SARtest0000001'),
+      ],
+    }));
+
+    expect(second.resolved).toBe(true);
+    const row = await prisma.xauusdSarSession.findUnique({ where: { accountId } });
+    expect(row!.state).toBe('ACTIVE_BUY');
+    expect(row!.brokerTicket).toBe('58606999999');
+
+    const attempt = await prisma.xauusdSarOrderAttempt.findUnique({ where: { idempotencyTag: 'SARtest0000001' } });
+    expect(attempt!.status).toBe('FILLED'); // resolved exactly once, via Case B -- never touched by Case A first
+
+    const cycles = await prisma.xauusdSarCycle.count({ where: { accountId } });
+    expect(cycles).toBe(2); // the pre-seeded old cycle + exactly one new cycle -- no duplicate
+  });
+
+  it('C: once the minimum age has elapsed, the existing Case A resolution still fires as designed', async () => {
+    await seedStuckReversal({ requestedAtMs: NOW - 11_000 }); // 11s old -- past the 10s gate
+    const outcome = await service().reconcile(freshInput({
+      positions: [pos('58606170943', SAR_MAGIC)],
+    }));
+
+    expect(outcome.resolved).toBe(true);
+    const row = await prisma.xauusdSarSession.findUnique({ where: { accountId } });
+    expect(row!.state).toBe('ACTIVE_SELL');
+    const attempt = await prisma.xauusdSarOrderAttempt.findUnique({ where: { idempotencyTag: 'SARtest0000001' } });
+    expect(attempt!.status).toBe('FAILED');
+  });
+
+  it('D: surviving even when reconciliation runs immediately after the atomic claim (age ~0s), before any execution poll', async () => {
+    await seedStuckReversal({ requestedAtMs: NOW }); // claimed this very instant
+    const outcome = await service().reconcile(freshInput({
+      nowMs: NOW,
+      snapshotAtMs: NOW - 100,
+      positions: [pos('58606170943', SAR_MAGIC)],
+    }));
+
+    expect(outcome.resolved).toBe(false);
+    const row = await prisma.xauusdSarSession.findUnique({ where: { accountId } });
+    expect(row!.state).toBe('REVERSAL_UNKNOWN');
+    const attempt = await prisma.xauusdSarOrderAttempt.findUnique({ where: { idempotencyTag: 'SARtest0000001' } });
+    expect(attempt!.status).toBe('SENT');
+  });
+
+  it('E: reconciliation and the execution poll overlapping in time never produces a duplicate order or a lost valid attempt', async () => {
+    await seedStuckReversal({ requestedAtMs: NOW - 500 });
+
+    // Several rapid reconciliation passes land while the attempt is still
+    // young (simulating the collector's ~1s reconcile-then-poll cadence
+    // running several times before the close/open actually completes).
+    const passes = [
+      await service().reconcile(freshInput({ nowMs: NOW + 300, snapshotAtMs: NOW + 200, positions: [pos('58606170943', SAR_MAGIC)] })),
+      await service().reconcile(freshInput({ nowMs: NOW + 900, snapshotAtMs: NOW + 800, positions: [pos('58606170943', SAR_MAGIC)] })),
+    ];
+    expect(passes.every((p) => p.resolved === false)).toBe(true); // still too young both times -- untouched
+
+    // The execution poll finally completes.
+    const final = await service().reconcile(freshInput({
+      nowMs: NOW + 1200,
+      snapshotAtMs: NOW + 1100,
+      positions: [pos('58606999999', SAR_MAGIC)],
+      deals: [
+        deal('99000001', '58606170943', SAR_MAGIC, 'OUT', 4283.3, 'sar-SARtest0000001'),
+        deal('99000002', '58606999999', SAR_MAGIC, 'IN', 4283.28, 'sar-SARtest0000001'),
+      ],
+    }));
+    expect(final.resolved).toBe(true);
+
+    const attempts = await prisma.xauusdSarOrderAttempt.count({ where: { accountId, idempotencyTag: 'SARtest0000001' } });
+    expect(attempts).toBe(1); // exactly one attempt row throughout -- no duplicate created by the repeated passes
+    const cycles = await prisma.xauusdSarCycle.count({ where: { accountId } });
+    expect(cycles).toBe(2); // no duplicate cycle either
+  });
+});
+
 describe('case B: opposite position exists (broker succeeded, our ack was lost)', () => {
   it('adopts the broker-confirmed new position and closes the old cycle from its own exit deal', async () => {
     await seedStuckReversal();

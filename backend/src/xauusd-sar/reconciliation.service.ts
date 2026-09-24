@@ -235,10 +235,36 @@ export class SarReconciliationService {
       return { resolved: true, detail: `resolved FILLED via reconciled deal, new ticket ${newTicket}`, foreignSarMagicPositions: foreign.map((p) => p.ticket) };
     }
 
+    // How long this attempt has actually had to be processed. Shared by
+    // Case A below and the absence-conclusion further down -- one age, one
+    // meaning, everywhere reconciliation uses it.
+    const requestAgeSeconds = (input.nowMs - pending.requestedAt.getTime()) / 1000;
+
     // Case A: this was a REVERSAL, its own new fill was not found, but the
     // ticket it was trying to close is confirmed STILL open. The close (and
-    // therefore the whole reversal) never completed — resume managing the
+    // therefore the whole reversal) never completed -- resume managing the
     // existing position exactly as before the attempt, unchanged.
+    //
+    // Gated on the SAME minimum age the absence-conclusion below already
+    // requires, and for the identical reason: reconciliation runs from the
+    // collector on roughly the same one-second cadence as that collector's
+    // OWN execution-poll, immediately before it in the same cycle. Without
+    // this gate, reconciliation could observe "still open" and revert the
+    // session the instant a reversal was claimed -- before the collector's
+    // own poll ever had a chance to attempt the close at all. Confirmed
+    // live, 2026-09-24: attempts resolved as Case A in as little as 148ms,
+    // far too fast for any real broker round-trip, producing a rapid
+    // ACTIVE_* <-> REVERSAL_UNKNOWN ping-pong and a cluster of FAILED
+    // attempts the collector's own logs never even show, because
+    // reconciliation killed them before the collector ever claimed them.
+    if (oldStillOpen && requestAgeSeconds < SAR_RECONCILE_MIN_AGE_SECONDS) {
+      return {
+        resolved: false,
+        detail: `${closingTicket} still open; attempt is only ${requestAgeSeconds.toFixed(1)}s old -- giving the collector's own execution poll a fair chance before concluding anything.`,
+        foreignSarMagicPositions: foreign.map((p) => p.ticket),
+      };
+    }
+
     if (oldStillOpen) {
       await this.prisma.$transaction([
         this.prisma.xauusdSarSession.update({
@@ -258,7 +284,6 @@ export class SarReconciliationService {
     // (for a REVERSAL) the old ticket is confirmed gone. Absence is only
     // conclusive once the attempt is old enough that a same-second
     // registration race is not a plausible explanation.
-    const requestAgeSeconds = (input.nowMs - pending.requestedAt.getTime()) / 1000;
     if (requestAgeSeconds < SAR_RECONCILE_MIN_AGE_SECONDS) {
       return { resolved: false, detail: `attempt is only ${requestAgeSeconds.toFixed(1)}s old; too soon to conclude absence.`, foreignSarMagicPositions: foreign.map((p) => p.ticket) };
     }
