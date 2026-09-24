@@ -22,6 +22,8 @@ import { CollectorTokenGuard } from '../auth/collector-token.guard';
 import { SarExecutionService } from './execution.service';
 import { SarReconciliationService } from './reconciliation.service';
 import { SAR_CATASTROPHIC_STOP_USD, SAR_EXPECTED_GOLD_POINT_SIZE, SAR_MAGIC, SAR_SYMBOL, sarOrderComment } from './safety-constants';
+import { readQuoteCandidates } from '../xauusd-m1m5/quote-sources';
+import { resolveQuote } from '../xauusd-m1m5/quote';
 
 export class SarExecutionResultDto {
   @IsBoolean() ok!: boolean;
@@ -122,6 +124,33 @@ export class SarExecutionController {
 
     const result = await this.execution.resolveOrderAttempt(idempotencyTag, response, Date.now());
     return { ok: true, outcome: result?.action ?? 'ALREADY_RESOLVED' };
+  }
+
+  /**
+   * Defense-in-depth against the normal scheduler process itself stalling
+   * or crashing -- a genuinely SEPARATE process/container from this API,
+   * per docker-compose. The collector polls this every second from its own
+   * independent fast pass, so this stays reachable even if the scheduler
+   * container's own event loop hangs. See SarExecutionService.watchdogCheck
+   * for why this can never produce a second broker attempt alongside the
+   * normal path.
+   *
+   * Resolves its own fresh quote from the same source
+   * (readQuoteCandidates/resolveQuote) the normal scheduler uses, rather
+   * than trusting a bid/ask the collector would otherwise have to carry --
+   * one quote-freshness definition, not two that could quietly disagree.
+   */
+  @Get('watchdog-check')
+  async watchdogCheck(@Param('accountId', ParseUUIDPipe) accountId: string) {
+    await this.accounts.getOrThrow(accountId);
+    const nowMs = Date.now();
+    const candidates = await readQuoteCandidates(this.prisma);
+    const resolved = resolveQuote(candidates, nowMs);
+    const quote = resolved.quote
+      ? { bid: resolved.quote.bid, ask: resolved.quote.ask, ageSeconds: resolved.quote.ageSeconds, fresh: resolved.quote.fresh }
+      : { bid: 0, ask: 0, ageSeconds: Infinity, fresh: false };
+    const result = await this.execution.watchdogCheck(accountId, quote, nowMs);
+    return { ok: true, action: result.action, detail: result.detail, watchdogActed: result.watchdogActed };
   }
 
   /** Broker truth in, recovery/UNKNOWN-resolution out — see reconciliation.service.ts. */

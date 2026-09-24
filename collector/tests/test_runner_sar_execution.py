@@ -487,3 +487,35 @@ def test_fast_execution_pass_pushes_reconciliation_before_polling_the_order():
 
     api.post_sar_reconcile.assert_called_once()
     api.get_pending_sar_order.assert_called_once()
+
+
+# --- the SAR execution watchdog poll ---------------------------------------
+#
+# Defense-in-depth against the normal scheduler PROCESS itself stalling or
+# crashing -- a separate container from this collector and from the API.
+# This poll touches no MT5 state at all; the backend decides everything.
+
+
+def test_watchdog_poll_logs_when_the_watchdog_actually_acted():
+    app, _client, api, _executor = _app_with_client()
+    api.get_sar_watchdog_check.return_value = {"ok": True, "action": "REVERSAL_SUBMITTED", "detail": "...", "watchdogActed": True}
+
+    app._poll_sar_watchdog()  # must not raise
+
+    api.get_sar_watchdog_check.assert_called_once()
+
+
+def test_watchdog_poll_is_quiet_when_the_watchdog_stood_down():
+    app, _client, api, _executor = _app_with_client()
+    api.get_sar_watchdog_check.return_value = {"ok": True, "action": "NONE", "detail": "normal evaluator is fresh", "watchdogActed": False}
+
+    app._poll_sar_watchdog()  # must not raise
+
+
+def test_a_watchdog_poll_failure_is_logged_and_never_crashes_the_loop():
+    from app.api_client import ApiClientError
+
+    app, _client, api, _executor = _app_with_client()
+    api.get_sar_watchdog_check.side_effect = ApiClientError("network down")
+
+    app._poll_sar_watchdog()  # must not raise

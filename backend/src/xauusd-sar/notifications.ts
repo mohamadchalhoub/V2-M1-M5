@@ -80,3 +80,41 @@ export function sarDailyClosedMessage(f: { sessionDate: string }): string {
 export function sarReconciliationIncidentMessage(f: { detail: string }): string {
   return compact([`🚨 ${HEADER}`, '', 'RECONCILIATION INCIDENT', f.detail]);
 }
+
+/**
+ * A $10 catastrophic backstop closure is never a normal SAR trade — its
+ * existence means the real $0.50 reversal pipeline failed to act for as
+ * long as it took price to travel the full $10. High severity, deliberately
+ * distinguishable from every other message here.
+ */
+export function sarCatastrophicBackstopMessage(f: {
+  readonly ticket: string;
+  readonly cycleId: string;
+  readonly direction: SarDirection;
+  readonly entryFillPrice: number;
+  readonly exitFillPrice: number;
+  readonly adverseDistanceUsd: number;
+  readonly lastKnownExtreme: number | null;
+  readonly lastKnownReversalLevel: number | null;
+  readonly lastEvaluatedAt: string | null;
+  readonly thresholdWasPreviouslyCrossed: boolean;
+  readonly volumeLots: number | null;
+}): string {
+  return compact([
+    `🆘 ${HEADER}`,
+    '',
+    'ENGINE A — CATASTROPHIC BACKSTOP ACTIVATED',
+    'This is a strategy execution failure, not an ordinary SAR trade.',
+    '',
+    `Ticket: ${f.ticket}  Cycle: ${f.cycleId}`,
+    `Direction: ${f.direction}  Volume: ${f.volumeLots ?? 'unknown'}`,
+    `Entry: ${f.entryFillPrice}   Catastrophic exit: ${f.exitFillPrice}`,
+    `Adverse distance: $${f.adverseDistanceUsd.toFixed(2)}`,
+    `Last known extreme: ${f.lastKnownExtreme ?? 'unknown'}`,
+    `Last known $0.50 reversal level: ${f.lastKnownReversalLevel ?? 'unknown'}`,
+    `Last normal evaluation: ${f.lastEvaluatedAt ?? 'never recorded'}`,
+    f.thresholdWasPreviouslyCrossed
+      ? 'The $0.50 threshold HAD already been crossed before this backstop fired -- the reversal pipeline was stale, not merely gapped past.'
+      : 'The $0.50 threshold had NOT been crossed by the last known reversal level -- consistent with a genuine price gap straight past both levels, not a stalled pipeline.',
+  ]);
+}

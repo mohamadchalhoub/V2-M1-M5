@@ -23,7 +23,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { isSarSubmissionEnabled, sarEntriesBlockedByControls, getSarExecutionMode } from './controls';
-import { SAR_MAGIC } from './safety-constants';
+import { SAR_MAGIC, SAR_WATCHDOG_STALE_THRESHOLD_MS } from './safety-constants';
 import {
   SPEC,
   SPEC_HASH,
@@ -239,7 +239,7 @@ export class SarExecutionService {
       const update = current.state === 'ACTIVE_BUY' ? updateBuyTrailing(current, quote) : updateSellTrailing(current, quote);
       await this.prisma.xauusdSarSession.updateMany({
         where: { accountId, state: current.state },
-        data: { extremeSinceEntry: update.extremeSinceEntry, reversalLevel: update.reversalLevel },
+        data: { extremeSinceEntry: update.extremeSinceEntry, reversalLevel: update.reversalLevel, lastEvaluatedAt: new Date(nowMs) },
       });
       if (!update.reversalTriggered) return { action: 'NONE', detail: 'trailing updated, no reversal.' };
       // A REVERSAL is the strategy's own exit mechanism, not a new entry --
@@ -259,6 +259,58 @@ export class SarExecutionService {
     }
 
     return { action: 'NONE', detail: `no action for state ${current.state}.` };
+  }
+
+  /**
+   * Defense-in-depth, not a second engine: this calls the exact same
+   * `evaluateTick` that the normal scheduler loop calls, and does so ONLY
+   * when that normal path has gone quiet for longer than a healthy cadence
+   * ever should (`SAR_WATCHDOG_STALE_THRESHOLD_MS`). It computes nothing of
+   * its own about direction, price or ownership -- there is no separate
+   * trailing/reversal logic here to drift from the real one.
+   *
+   * The "at most one broker reversal attempt" invariant falls out of
+   * `submitAndResolve`'s existing atomic claim (`updateMany` guarded on the
+   * session's CURRENT state) for free: whichever caller -- the normal
+   * scheduler tick or this watchdog -- reaches that claim first moves the
+   * session out of ACTIVE_BUY/ACTIVE_SELL, and the other's claim then
+   * affects zero rows and returns 'lost the claim race for this tick.' This
+   * method adds no new claim mechanism, and therefore cannot race around
+   * the existing one.
+   */
+  async watchdogCheck(accountId: string, quote: SarQuoteInput, nowMs: number): Promise<SarTickResult & { readonly watchdogActed: boolean }> {
+    const row = await this.prisma.xauusdSarSession.findUnique({ where: { accountId } });
+    if (!row) return { action: 'NONE', detail: 'no session row.', watchdogActed: false };
+    if (row.state !== 'ACTIVE_BUY' && row.state !== 'ACTIVE_SELL') {
+      // Nothing to watch: WAIT_* has no position yet, DAILY_CLOSED is flat
+      // by design, and REVERSAL_UNKNOWN already belongs to reconciliation --
+      // the watchdog must never compete with that separate, already-atomic
+      // recovery path.
+      return { action: 'NONE', detail: `nothing to watch in state ${row.state}.`, watchdogActed: false };
+    }
+
+    const lastEvaluatedMs = row.lastEvaluatedAt?.getTime() ?? null;
+    const staleForMs = lastEvaluatedMs === null ? Infinity : nowMs - lastEvaluatedMs;
+    if (staleForMs < SAR_WATCHDOG_STALE_THRESHOLD_MS) {
+      // The normal path is healthy -- it may simply have nothing to do
+      // because price hasn't moved. Standing down here, not merely
+      // returning NONE from a check, is the hard requirement: the watchdog
+      // must not evaluate at all while the normal path is fresh.
+      return { action: 'NONE', detail: `normal evaluator is fresh (${(staleForMs / 1000).toFixed(1)}s); watchdog stands down.`, watchdogActed: false };
+    }
+
+    if (!quote.fresh) {
+      // A stale quote is not evidence of anything the watchdog can act on
+      // safely -- it would be reasoning from the same stale information the
+      // normal path already had, not independent confirmation.
+      return { action: 'NONE', detail: `quote is stale (${quote.ageSeconds.toFixed(1)}s); watchdog will not guess.`, watchdogActed: false };
+    }
+
+    this.logger.warn(
+      `xauusd-sar watchdog: normal evaluator stale for ${(staleForMs / 1000).toFixed(1)}s (threshold ${SAR_WATCHDOG_STALE_THRESHOLD_MS / 1000}s); evaluating directly.`,
+    );
+    const result = await this.evaluateTick(accountId, quote, nowMs);
+    return { ...result, watchdogActed: true };
   }
 
   private async submitAndResolve(

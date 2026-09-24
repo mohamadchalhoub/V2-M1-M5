@@ -309,6 +309,68 @@ describe('idempotency', () => {
   });
 });
 
+describe('catastrophic-backstop incident detection', () => {
+  it('records a high-severity incident when the exit deal is a broker auto-close, not our own reversal', async () => {
+    await seedStuckReversal({ requestedAtMs: NOW - 15000 });
+    // SELL entry 4282.78, reversal level 4283.28 (SELL: entry + 0.50).
+    // A "[sl ...]" comment -- never our own "sar-" prefix -- landing well
+    // past that level is the catastrophic backstop, not a normal reversal.
+    const outcome = await service().reconcile(freshInput({
+      positions: [],
+      deals: [deal('99000001', '58606170943', SAR_MAGIC, 'OUT', 4292.78, '[sl 4292.78]')],
+    }));
+    expect(outcome.resolved).toBe(true);
+
+    const incidents = await prisma.xauusdSarCatastrophicIncident.findMany({ where: { accountId } });
+    expect(incidents).toHaveLength(1);
+    expect(incidents[0].direction).toBe('SELL');
+    expect(incidents[0].entryTicket).toBe('58606170943');
+    expect(Number(incidents[0].entryFillPrice)).toBeCloseTo(4282.78, 6);
+    expect(Number(incidents[0].exitFillPrice)).toBeCloseTo(4292.78, 6);
+    expect(Number(incidents[0].adverseDistanceUsd)).toBeCloseTo(10.0, 6);
+    expect(incidents[0].thresholdWasPreviouslyCrossed).toBe(true); // 4292.78 >= 4283.28
+  });
+
+  it('marks the threshold as NOT previously crossed when the exit is on the friendly side of the last known reversal level', async () => {
+    await seedStuckReversal({ requestedAtMs: NOW - 15000 });
+    // A pathological/contrived case for this specific check: the backstop
+    // fired, but the recorded exit price never actually reached the
+    // (still-open) $0.50 level -- a straight gap past the entry side,
+    // not evidence of a stalled reversal pipeline.
+    const outcome = await service().reconcile(freshInput({
+      positions: [],
+      deals: [deal('99000001', '58606170943', SAR_MAGIC, 'OUT', 4280.0, '[sl 4280.00]')],
+    }));
+    expect(outcome.resolved).toBe(true);
+
+    const incidents = await prisma.xauusdSarCatastrophicIncident.findMany({ where: { accountId } });
+    expect(incidents).toHaveLength(1);
+    expect(incidents[0].thresholdWasPreviouslyCrossed).toBe(false); // 4280.0 < 4283.28
+  });
+
+  it('never records an incident for a normal, correctly-tagged reversal close', async () => {
+    await seedStuckReversal({ requestedAtMs: NOW - 15000 });
+    const outcome = await service().reconcile(freshInput({
+      positions: [pos('58606999999', SAR_MAGIC)],
+      deals: [
+        deal('99000001', '58606170943', SAR_MAGIC, 'OUT', 4283.3, 'sar-SARb5ee0faa34a5'),
+        deal('99000002', '58606999999', SAR_MAGIC, 'IN', 4283.28, 'sar-SARtest0000001'),
+      ],
+    }));
+    expect(outcome.resolved).toBe(true);
+    const incidents = await prisma.xauusdSarCatastrophicIncident.findMany({ where: { accountId } });
+    expect(incidents).toHaveLength(0);
+  });
+
+  it('never records an incident when no exit deal was found at all (unconfirmed exit, not a backstop)', async () => {
+    await seedStuckReversal({ requestedAtMs: NOW - 15000 });
+    const outcome = await service().reconcile(freshInput({ positions: [], deals: [] }));
+    expect(outcome.resolved).toBe(true);
+    const incidents = await prisma.xauusdSarCatastrophicIncident.findMany({ where: { accountId } });
+    expect(incidents).toHaveLength(0);
+  });
+});
+
 describe('no UNKNOWN pending', () => {
   it('is a no-op that only reports foreign exposure when the session is not UNKNOWN', async () => {
     await prisma.xauusdSarSession.create({

@@ -35,7 +35,7 @@ import {
   sarOrderComment,
 } from './safety-constants';
 import { openInitialCycle, openReversalCycle, resolveUnknownAsFlat, type SarSessionState } from './state-machine';
-import { sarReconciliationIncidentMessage } from './notifications';
+import { sarCatastrophicBackstopMessage, sarReconciliationIncidentMessage } from './notifications';
 import { TelegramEngineNotificationService } from '../telegram-engine/notifications/notification.service';
 
 export interface BrokerPositionLite {
@@ -320,6 +320,16 @@ export class SarReconciliationService {
           sarReconciliationIncidentMessage({ detail: `${closingTicket} closed with no matching deal found; exit price unrecorded, review manually.` }),
           'OPS',
         );
+      } else if (!oldExitDeal.comment?.startsWith('sar-') && closedCycle) {
+        // A SAR position carries exactly one bracket -- the wide
+        // catastrophic $10 backstop -- and never any other SL/TP. An OUT
+        // deal whose comment does NOT carry our own "sar-" order-comment
+        // prefix (the broker's own auto-close comment, e.g. "[sl ...]" or
+        // "[tp ...]") can therefore only mean that backstop fired, which
+        // means the real $0.50 reversal pipeline failed to act for as long
+        // as it took price to travel the full $10 -- a strategy execution
+        // failure, never an ordinary SAR trade.
+        await this.recordCatastrophicIncident(input.accountId, closedCycle, oldExitDeal, row, input.nowMs);
       }
       this.logger.warn(`xauusd-sar: UNKNOWN resolved as FLAT (${closingTicket} gone) (case C).`);
       return { resolved: true, detail: `resolved as flat; ${closingTicket} confirmed gone`, foreignSarMagicPositions: foreign.map((p) => p.ticket) };
@@ -336,6 +346,79 @@ export class SarReconciliationService {
     ]);
     this.logger.warn(`xauusd-sar: UNKNOWN resolved as never-sent (${pending.idempotencyTag}).`);
     return { resolved: true, detail: 'resolved as never-sent; reverted to WAIT_INITIAL_DIRECTION', foreignSarMagicPositions: foreign.map((p) => p.ticket) };
+  }
+
+  /**
+   * Durable record + high-severity alert for a confirmed catastrophic-
+   * backstop closure. `thresholdWasPreviouslyCrossed` is computed directly
+   * from the exit price against the LAST KNOWN reversal level -- never
+   * inferred from timing alone -- so the record is honest about whether
+   * this was a stalled pipeline (the common case) or a genuine gap event.
+   */
+  private async recordCatastrophicIncident(
+    accountId: string,
+    closedCycle: { id: string; cycleId: string; direction: 'BUY' | 'SELL'; entryTicket: string; entryFillPrice: Prisma.Decimal; entryAt: Date },
+    exitDeal: BrokerDealLite,
+    sessionRow: {
+      extremeSinceEntry: Prisma.Decimal | null;
+      reversalLevel: Prisma.Decimal | null;
+      lastEvaluatedAt: Date | null;
+    },
+    nowMs: number,
+  ): Promise<void> {
+    const entryFillPrice = Number(closedCycle.entryFillPrice);
+    const reversalLevel = sessionRow.reversalLevel ? Number(sessionRow.reversalLevel) : null;
+    const thresholdWasPreviouslyCrossed =
+      reversalLevel === null
+        ? false
+        : closedCycle.direction === 'BUY'
+          ? exitDeal.price <= reversalLevel
+          : exitDeal.price >= reversalLevel;
+    const volumeAttempt = await this.prisma.xauusdSarOrderAttempt.findFirst({
+      where: { accountId, ticket: closedCycle.entryTicket },
+      select: { volume: true },
+    });
+
+    await this.prisma.xauusdSarCatastrophicIncident.create({
+      data: {
+        accountId,
+        cycleId: closedCycle.cycleId,
+        direction: closedCycle.direction,
+        entryTicket: closedCycle.entryTicket,
+        entryFillPrice,
+        entryAt: closedCycle.entryAt,
+        exitFillPrice: exitDeal.price,
+        exitAt: new Date(nowMs),
+        lastKnownExtreme: sessionRow.extremeSinceEntry,
+        lastKnownReversalLevel: sessionRow.reversalLevel,
+        lastEvaluatedAt: sessionRow.lastEvaluatedAt,
+        thresholdWasPreviouslyCrossed,
+        adverseDistanceUsd: Math.abs(exitDeal.price - entryFillPrice),
+        volumeLots: volumeAttempt?.volume ?? null,
+      },
+    });
+
+    this.logger.error(
+      `xauusd-sar: CATASTROPHIC BACKSTOP ACTIVATED — ${closedCycle.entryTicket} ${closedCycle.direction}, entry ${entryFillPrice}, exit ${exitDeal.price}.`,
+    );
+    void this.notifier.notify(
+      'SAR_CATASTROPHIC_BACKSTOP',
+      `sar:catastrophic-backstop:${accountId}:${closedCycle.cycleId}`,
+      sarCatastrophicBackstopMessage({
+        ticket: closedCycle.entryTicket,
+        cycleId: closedCycle.cycleId,
+        direction: closedCycle.direction,
+        entryFillPrice,
+        exitFillPrice: exitDeal.price,
+        adverseDistanceUsd: Math.abs(exitDeal.price - entryFillPrice),
+        lastKnownExtreme: sessionRow.extremeSinceEntry ? Number(sessionRow.extremeSinceEntry) : null,
+        lastKnownReversalLevel: reversalLevel,
+        lastEvaluatedAt: sessionRow.lastEvaluatedAt?.toISOString() ?? null,
+        thresholdWasPreviouslyCrossed,
+        volumeLots: volumeAttempt ? Number(volumeAttempt.volume) : null,
+      }),
+      'OPS',
+    );
   }
 
   private escalate(accountId: string, attemptId: string, detail: string): void {

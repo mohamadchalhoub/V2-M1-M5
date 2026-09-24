@@ -64,6 +64,23 @@ export const SAR_RECONCILE_MIN_AGE_SECONDS = 10;
 export const SAR_RECONCILE_MAX_SNAPSHOT_AGE_SECONDS = 30;
 
 /**
+ * How long the NORMAL evaluator may go without assessing an active position
+ * against a fresh quote before the watchdog treats it as stale and steps in
+ * through the exact same atomic path.
+ *
+ * Derived from measured behavior, not chosen arbitrarily: the normal
+ * cadence targets one evaluation per second (SPEC.observation.targetIntervalMs),
+ * and post-fix (commit 8dc4298) production data shows decision-to-fill
+ * latency clustering under 2s with rare jitter up to ~6.5s under ordinary
+ * poll contention -- never the multi-minute stalls that caused the two live
+ * incidents on 2026-09-24. 8 seconds sits comfortably above that observed
+ * jitter ceiling (no false triggers on ordinary variance) while still being
+ * a small fraction of how long a $10 catastrophic backstop takes to matter
+ * -- both real incidents ran 7-24 MINUTES stale before this existed.
+ */
+export const SAR_WATCHDOG_STALE_THRESHOLD_MS = 8_000;
+
+/**
  * The wide, catastrophic-only backstop stop-loss and take-profit distance
  * attached to every SAR order, in USD of gold price. NOT this strategy's
  * real exit mechanism — the $0.50 reversal is. This exists only because

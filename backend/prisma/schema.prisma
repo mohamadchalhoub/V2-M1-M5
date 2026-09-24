@@ -94,6 +94,7 @@ model TradingAccount {
   xauusdSarOrderAttempts XauusdSarOrderAttempt[]
   xauusdSarVolumeSetting XauusdSarVolumeSetting?
   xauusdSarVolumeAudits  XauusdSarVolumeAudit[]
+  xauusdSarCatastrophicIncidents XauusdSarCatastrophicIncident[]
 
   @@unique([platform, externalAccountId])
   @@map("trading_accounts")
@@ -2703,12 +2704,63 @@ model XauusdSarSession {
   // reconciliation resolves it. Blocks further Engine A submissions while set.
   unknownSince DateTime? @map("unknown_since")
 
+  // The last instant the NORMAL evaluator actually assessed this position
+  // against a fresh quote (set only in the ACTIVE_BUY/ACTIVE_SELL trailing
+  // update, never on an early return for a stale quote or a non-active
+  // state) -- the one signal the watchdog needs to tell "the normal path is
+  // just quiet because price hasn't moved" apart from "the normal path has
+  // stopped running at all". See execution.service.ts's watchdogCheck().
+  lastEvaluatedAt DateTime? @map("last_evaluated_at")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@map("xauusd_sar_sessions")
+}
+
+// One row per confirmed catastrophic-backstop closure -- a $10 SL/TP hit,
+// never this strategy's real exit mechanism. Its existence at all means the
+// normal $0.50 reversal pipeline failed to act in time; this is the durable
+// incident record and, by COUNT, the metric for how often that has happened.
+model XauusdSarCatastrophicIncident {
+  id        String @id @default(uuid())
+  accountId String @map("account_id")
+
+  cycleId      String             @map("cycle_id")
+  direction    XauusdSarDirection
+  entryTicket  String             @map("entry_ticket")
+  entryFillPrice Decimal          @map("entry_fill_price") @db.Decimal(18, 6)
+  entryAt      DateTime           @map("entry_at")
+
+  exitFillPrice Decimal @map("exit_fill_price") @db.Decimal(18, 6)
+  exitAt        DateTime @map("exit_at")
+
+  // The logical $0.50 level and trailing extreme as last known BEFORE this
+  // incident cleared them -- never re-derived or guessed after the fact.
+  lastKnownExtreme        Decimal?  @map("last_known_extreme") @db.Decimal(18, 6)
+  lastKnownReversalLevel  Decimal?  @map("last_known_reversal_level") @db.Decimal(18, 6)
+  lastEvaluatedAt         DateTime? @map("last_evaluated_at")
+
+  // Computed directly from the exit price against the last known reversal
+  // level -- never inferred from timing alone. True means the $0.50
+  // threshold really had already been crossed before the $10 backstop hit;
+  // false would mean a genuine gap event straight past both levels at once.
+  thresholdWasPreviouslyCrossed Boolean @map("threshold_was_previously_crossed")
+
+  // Adverse PRICE distance in USD (exit vs entry), the one thing knowable at
+  // this layer without a contract-size/volume conversion -- see the
+  // incident text for why this is not presented as an account-currency P/L.
+  adverseDistanceUsd Decimal @map("adverse_distance_usd") @db.Decimal(18, 6)
+  volumeLots         Decimal? @map("volume_lots") @db.Decimal(18, 6)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, createdAt])
+  @@map("xauusd_sar_catastrophic_incidents")
 }
 
 // One row per completed or in-progress BUY/SELL holding period — the audit

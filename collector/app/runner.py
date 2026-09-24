@@ -751,6 +751,15 @@ class CollectorApp:
                     self._sar_fast_execution_pass()
                 except Exception as exc:  # noqa: BLE001 - never let this thread die
                     logger.warning("xauusd-sar execution pass failed, continuing", extra={"error": str(exc)})
+                # Deliberately OUTSIDE the MT5 lock and its own try/timeout:
+                # this call touches no MT5 state at all (the backend reads
+                # its own quote from the database), and its entire purpose
+                # is to keep working even when MT5 access itself is stuck --
+                # requiring the lock here would defeat that.
+                try:
+                    self._poll_sar_watchdog()
+                except Exception as exc:  # noqa: BLE001 - never let this thread die
+                    logger.warning("xauusd-sar watchdog poll failed, continuing", extra={"error": str(exc)})
             delay = next_at - time.monotonic()
             if delay <= 0:
                 # Fell behind: resynchronise instead of trying to catch up with
@@ -1410,6 +1419,26 @@ class CollectorApp:
             self._api.post_sar_reconcile(self._config.collector_account_id, payload)
         except ApiClientError as exc:
             logger.warning("xauusd-sar reconciliation push failed, will retry", extra={"error": str(exc)})
+
+    def _poll_sar_watchdog(self) -> None:
+        """Pings the backend's watchdog check every second, independent of
+        whether the normal xauusd-sar-scheduler process is itself healthy.
+
+        This call touches no MT5 state and claims no order itself -- the
+        backend decides everything, including whether to act at all (see
+        SarExecutionService.watchdogCheck). This is purely the trigger that
+        keeps working even if the scheduler CONTAINER's own event loop has
+        stalled or crashed, since it reaches the API container instead.
+        """
+        try:
+            result = self._api.get_sar_watchdog_check(self._config.collector_account_id)
+        except ApiClientError as exc:
+            logger.warning("xauusd-sar watchdog check failed, will retry", extra={"error": str(exc)})
+            return
+        if result.get("watchdogActed"):
+            logger.warning("xauusd-sar watchdog acted", extra={
+                "action": result.get("action"), "detail": result.get("detail"),
+            })
 
     # =====================================================================
     # ENGINE B - the Telegram copy engine.

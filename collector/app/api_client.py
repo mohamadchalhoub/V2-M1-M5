@@ -195,6 +195,9 @@ class ApiClient:
     def post_sar_reconcile(self, account_id: str, payload: dict[str, Any]) -> dict[str, Any]:
         return self._post(f"/collector/{account_id}/xauusd-sar/reconcile", payload)
 
+    def get_sar_watchdog_check(self, account_id: str) -> dict[str, Any]:
+        return self._get(f"/collector/{account_id}/xauusd-sar/watchdog-check")
+
     def get_pending_rsi_order(self, account_id: str) -> dict[str, Any]:
         return self._get(f"/collector/{account_id}/xauusd-rsi/pending-order")
 
