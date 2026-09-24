@@ -216,6 +216,34 @@ def _tick(msc, bid=4345.1, ask=4345.3, seq=0):
     }
 
 
+def test_the_mt5_lock_is_free_during_the_http_push():
+    """Real incident, 2026-09-24: this push can legitimately carry a large
+    batch on a fast-moving symbol, and holding the shared MT5 lock for that
+    whole HTTP round-trip (this stream runs every second, from the same
+    thread that also drives xauusd-sar-v1's fast pass) starved SAR's order
+    execution and the main loop's account snapshot -- the dashboard showed
+    the collector itself as DOWN for as long as this held the lock. The
+    push touches no MT5 state, so the lock must already be free by the time
+    it happens."""
+    app, client, api, _executor = _app()
+    client.is_connected.return_value = True
+    client.get_ticks_from.return_value = [_tick(1_789_000_000_000)]
+
+    lock_was_held_during_push = {"value": None}
+
+    def _post_ticks(payload):
+        lock_was_held_during_push["value"] = not app._mt5_call_lock.acquire(blocking=False)
+        if not lock_was_held_during_push["value"]:
+            app._mt5_call_lock.release()
+        return {"inserted": 1}
+
+    api.post_ticks.side_effect = _post_ticks
+
+    app._observe_rsi_once()
+
+    assert lock_was_held_during_push["value"] is False
+
+
 def test_one_observation_pushes_incremental_ticks():
     app, client, api, _executor = _app()
     client.is_connected.return_value = True

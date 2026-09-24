@@ -770,6 +770,16 @@ class CollectorApp:
         incremental call yields nothing new — it is never treated as a fresh
         market event in its own right, because a quote that has not changed
         is not new information.
+
+        The MT5 lock is held ONLY around the actual MT5 read, never around
+        the HTTP push that follows -- confirmed live, 2026-09-24: pushing a
+        large batch (this stream can legitimately carry ~1000+ ticks/second
+        on XAUUSD) to our OWN backend touches no MT5 state at all, and
+        holding the shared lock for that network round-trip (up to several
+        seconds per the observed cadence) was starving xauusd-sar-v1's fast
+        pass and the main loop's account snapshot in the SAME thread's
+        every-second cycle -- the dashboard showed the collector itself as
+        DOWN for the whole time this held the lock.
         """
         if not self._mt5_call_lock.acquire(timeout=RSI_OBSERVATION_LOCK_TIMEOUT_SECONDS):
             # Another MT5 call is in flight. Skipping is correct: the next
@@ -795,44 +805,48 @@ class CollectorApp:
             except Exception as exc:  # noqa: BLE001 - MT5 boundary
                 logger.warning("rsi observation: incremental tick call failed", extra={"error": str(exc)})
                 return
-
-            # Drop anything at or before the cursor: copy_ticks_from is
-            # inclusive of its start, so the boundary tick would otherwise be
-            # re-sent every single second.
-            fresh = [t for t in ticks if cursor is None or int(t.get("time_msc", 0)) > cursor]
-            self._rsi_duplicate_skips += len(ticks) - len(fresh)
-
-            if not fresh:
-                # Nothing new. Deliberately no synthetic observation is
-                # manufactured merely because a poll occurred.
-                return
-
-            newest = max(int(t["time_msc"]) for t in fresh)
-            payload_ticks = [{k: v for k, v in t.items() if k != "time_msc"} for t in fresh]
-            # batch_seq must be contiguous within the pushed batch.
-            for i, t in enumerate(payload_ticks):
-                t["batch_seq"] = i
-
-            try:
-                payload = build_ticks_payload(RSI_TICK_SYMBOL, None, None, None, payload_ticks)
-                result = self._api.post_ticks(payload)
-            except Exception as exc:  # noqa: BLE001 - see below
-                # Deliberately broader than ApiClientError: payload
-                # construction sits inside this block too, so one malformed
-                # tick must not kill the observation thread. The cursor is NOT
-                # advanced on failure, so the same ticks are retried next
-                # second.
-                logger.warning("rsi observation: push failed, will retry", extra={"error": str(exc)})
-                return
-
-            self._rsi_cursor_msc = newest
-            self._rsi_last_pushed_msc = newest
-            self._rsi_ticks_pushed += len(fresh)
-            logger.debug("rsi observation pushed", extra={
-                "symbol": RSI_TICK_SYMBOL, "count": len(fresh), "inserted": result.get("inserted"),
-            })
         finally:
             self._mt5_call_lock.release()
+
+        # Everything below is pure data handling and an HTTP call to our own
+        # backend -- no MT5 access, so none of it needs the lock.
+
+        # Drop anything at or before the cursor: copy_ticks_from is
+        # inclusive of its start, so the boundary tick would otherwise be
+        # re-sent every single second.
+        fresh = [t for t in ticks if cursor is None or int(t.get("time_msc", 0)) > cursor]
+        self._rsi_duplicate_skips += len(ticks) - len(fresh)
+
+        if not fresh:
+            # Nothing new. Deliberately no synthetic observation is
+            # manufactured merely because a poll occurred.
+            return
+
+        newest = max(int(t["time_msc"]) for t in fresh)
+        payload_ticks = [{k: v for k, v in t.items() if k != "time_msc"} for t in fresh]
+        # batch_seq must be contiguous within the pushed batch.
+        for i, t in enumerate(payload_ticks):
+            t["batch_seq"] = i
+
+        try:
+            payload = build_ticks_payload(RSI_TICK_SYMBOL, None, None, None, payload_ticks)
+            result = self._api.post_ticks(payload)
+        except Exception as exc:  # noqa: BLE001 - see below
+            # Deliberately broader than ApiClientError: payload
+            # construction sits inside this block too, so one malformed
+            # tick must not kill the observation thread. The cursor is NOT
+            # advanced on failure, so the same ticks are retried next
+            # second.
+            logger.warning("rsi observation: push failed, will retry", extra={"error": str(exc)})
+            return
+
+        self._rsi_cursor_msc = newest
+        self._rsi_last_pushed_msc = newest
+        self._rsi_ticks_pushed += len(fresh)
+        logger.debug("rsi observation pushed", extra={
+            "symbol": RSI_TICK_SYMBOL, "count": len(fresh), "inserted": result.get("inserted"),
+        })
+
 
     def _record_rsi_cadence(self, now: datetime) -> None:
         """Measures the ACTUAL interval between observations.
