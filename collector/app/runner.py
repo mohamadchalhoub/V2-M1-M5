@@ -341,6 +341,8 @@ class CollectorApp:
             "trend_breakout_execution_enabled": self._config.trend_breakout_execution_enabled,
             "rsi_execution_enabled": self._config.rsi_execution_enabled,
             "m1m5_execution_enabled": self._config.m1m5_execution_enabled,
+            "sar_execution_enabled": getattr(self._config, "sar_execution_enabled", False),
+            "telegram_engine_execution_enabled": getattr(self._config, "telegram_engine_execution_enabled", False),
         })
 
         backoff = self._config.reconnect_initial_backoff_seconds
