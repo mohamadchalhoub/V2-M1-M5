@@ -13,9 +13,10 @@
  * `$executeRaw` INSERT) -- there is no ORM feature in use to justify a
  * second PrismaClient here, which would load a second copy of Prisma's
  * native query-engine binary into memory and open a second,
- * default-formula-sized connection pool. A plain `pg.Pool`, capped at 2
- * connections (this worker processes jobs one or two at a time, never
- * needs more), is the smaller, more honest choice for a single
+ * default-formula-sized connection pool. A plain `pg.Pool`, capped at 1
+ * connection (the BullMQ Worker's own concurrency is 1 -- see
+ * historical-tick.processor.ts -- so at most one query is ever in flight
+ * from this thread), is the smaller, more honest choice for a single
  * parameterized INSERT statement.
  */
 import { parentPort } from 'node:worker_threads';
@@ -27,10 +28,10 @@ if (!parentPort) {
   throw new Error('historical-tick-worker-thread.ts must be run as a worker_thread, not imported directly.');
 }
 
-// Capped at 2 -- see this file's own docstring. Never the Prisma-style
-// formula-sized default; this worker never needs more than a small,
-// explicit number of connections for a single serial-ish ingestion path.
-const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
+// Capped at 1 -- see this file's own docstring. Never the Prisma-style
+// formula-sized default; the BullMQ Worker feeding this thread runs at
+// concurrency:1, so a single connection is always sufficient.
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
 
 parentPort.on('message', (msg: IngestMessage | ShutdownMessage) => {
   if ('shutdown' in msg) {

@@ -34,6 +34,6 @@ import { MarketDataController } from './market-data.controller';
   imports: [AuthModule, JobsModule],
   controllers: [MarketDataController],
   providers: [HistoricalCandleService, HistoricalTickService, HistoricalTickProcessor, BackfillIntervalService],
-  exports: [HistoricalCandleService, HistoricalTickService, BackfillIntervalService],
+  exports: [HistoricalCandleService, HistoricalTickService, HistoricalTickProcessor, BackfillIntervalService],
 })
 export class MarketDataModule {}

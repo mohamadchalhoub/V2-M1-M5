@@ -46,13 +46,16 @@ export class HistoricalTickProcessor implements OnModuleInit, OnModuleDestroy {
   private worker?: Worker;
   private thread?: ThreadWorker;
   private shuttingDown = false;
+  private threadAlive = false;
   private nextId = 0;
   private readonly pending = new Map<number, { resolve: (r: IngestResult) => void; reject: (err: Error) => void }>();
 
-  /** Observable, in-memory only (Phase 1 scope) -- read by a future health/metrics endpoint. */
-  public droppedBacklogCount = 0;
-
   constructor(private readonly config: ConfigService, @Inject(HISTORICAL_TICK_QUEUE) private readonly queue: Queue) {}
+
+  /** Cheap, in-memory only -- no Redis/DB call. Read by GET /collector/ticks/health. */
+  isThreadAlive(): boolean {
+    return this.threadAlive;
+  }
 
   async onModuleInit(): Promise<void> {
     this.spawnThread();
@@ -60,7 +63,14 @@ export class HistoricalTickProcessor implements OnModuleInit, OnModuleDestroy {
     const connection = createRedisConnection(this.config);
     this.worker = new Worker(HISTORICAL_TICK_QUEUE_NAME, (job) => this.process(job), {
       connection,
-      concurrency: 2, // matches the worker_thread's own pg.Pool max: 2
+      // Deliberately 1, not 2: there is exactly one worker_thread, which is
+      // itself single-threaded (one V8 isolate, one event loop). Running
+      // concurrency:2 would only interleave two dedup passes on that SAME
+      // thread with no real parallelism gained, while adding a second
+      // in-flight job to reason about for no benefit -- historical
+      // ingestion is P2 and simplicity/determinism wins over throughput
+      // here (one queue job in flight, processed by one thread, at a time).
+      concurrency: 1,
       maxStalledCount: 0, // a stalled job (worker died mid-job) is marked failed immediately, never retried -- see jobs.constants.ts's own reasoning
     });
     this.worker.on('error', (err) => {
@@ -86,6 +96,9 @@ export class HistoricalTickProcessor implements OnModuleInit, OnModuleDestroy {
   private spawnThread(): void {
     const entry = path.join(__dirname, 'historical-tick-worker-thread.js');
     this.thread = new ThreadWorker(entry);
+    this.thread.on('online', () => {
+      this.threadAlive = true;
+    });
     this.thread.on('message', (result: IngestResult) => {
       const waiter = this.pending.get(result.id);
       if (!waiter) return;
@@ -96,6 +109,7 @@ export class HistoricalTickProcessor implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`historical-tick worker_thread error: ${err.message}`);
     });
     this.thread.on('exit', (code) => {
+      this.threadAlive = false;
       if (this.shuttingDown) return; // expected exit as part of onModuleDestroy, not a crash
       this.logger.error(`historical-tick worker_thread exited unexpectedly (code ${code}); respawning`);
       // Reject every in-flight request -- their BullMQ job fails

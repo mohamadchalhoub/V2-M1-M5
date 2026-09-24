@@ -160,16 +160,38 @@ export const HISTORICAL_TICK_QUEUE = Symbol('HISTORICAL_TICK_QUEUE');
  * completeness, and this VPS hosts live trading infrastructure with no
  * Redis maxmemory cap configured (verified 2026-09-24), so an unbounded
  * queue here is a real, if indirect, risk to everything else Redis backs.
+ * If historical ingestion is broken for a long period, dropping P2 data is
+ * preferable to holding a large backlog in Redis on the same VPS as live
+ * trading -- so this bound is sized conservatively, not generously.
  *
- * Sizing: production batches observed between 80 and ~2000 ticks (the
- * collector's own RSI_OBSERVATION_TICK_COUNT hard cap), pushed as often as
- * once per second under a busy market (confirmed live: ~795 ticks/sec
- * sustained in one earlier incident this same day). At roughly 300 bytes
- * of serialized JSON per tick, a 2000-tick job is ~600KB; 300 such jobs is
- * ~180MB worst case (typically far less, since observed average batch
- * size is closer to ~350 ticks). At a worst-case 1 job/second arrival
- * rate, 300 jobs is ~5 minutes of backlog -- generous enough to absorb a
- * brief worker respawn or a short Postgres blip, small enough that a
- * prolonged failure cannot grow unbounded.
+ * Sizing (corrected 2026-09-24, superseding this constant's original
+ * comment): a live terminal sample showed recent batches of 782, 517, 80,
+ * 130, 157, 348 and 406 ticks, with only 2 accepted-batch log entries in a
+ * 60-second window -- i.e. roughly one batch every ~30 seconds under
+ * present conditions, NOT the "~795 ticks/sec sustained" this constant's
+ * comment previously claimed. That figure could not be reproduced from any
+ * evidence available at review time and is retracted; nothing below relies
+ * on it. What IS confirmed by code, not measurement, is the collector's
+ * own hard per-batch cap (RSI_OBSERVATION_TICK_COUNT-derived, 2000 ticks)
+ * and its ~1-second push loop cadence -- so the bound below is sized
+ * against a conservative worst case of 2000-tick batches arriving once per
+ * second, well above anything actually observed, rather than against the
+ * calmer real sample.
+ *
+ * Payload: a 2000-tick job serializes to ~600KB (JSON field names repeated
+ * per tick plus numeric values, ~300 bytes/tick).
+ * Redis/BullMQ overhead: each job is stored as a Redis hash plus index
+ * entries in the queue's waiting list/sorted sets -- bookkeeping overhead
+ * is small in absolute terms but not zero; budgeting ~15% on top of the
+ * payload is conservative (~90KB on a 600KB job, ~700KB/job total).
+ * Total at HISTORICAL_TICK_MAX_BACKLOG=60: 60 x ~700KB =~ 42MB worst case
+ * -- versus ~210MB under the previous bound of 300, an unjustified amount
+ * of Redis memory to hold on a VPS also running live trading.
+ * Backlog duration represented: ~60 seconds at the conservative worst-case
+ * arrival rate above (1 job/sec) -- enough to absorb a brief worker
+ * respawn or a short Postgres blip; at the actually-observed rate
+ * (~1 job/30s), the same 60 jobs represent roughly 30 minutes, which is
+ * already generous for "ordinary short outages" and intentionally not
+ * sized to survive a prolonged one.
  */
-export const HISTORICAL_TICK_MAX_BACKLOG = 300;
+export const HISTORICAL_TICK_MAX_BACKLOG = 60;

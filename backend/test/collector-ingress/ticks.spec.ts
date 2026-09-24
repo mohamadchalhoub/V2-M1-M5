@@ -56,7 +56,12 @@ describe('historical tick ingestion (/collector/ticks)', () => {
   });
   beforeEach(async () => {
     await resetDatabase(prisma);
-    await queue.drain(true);
+    // drain() only clears waiting/delayed jobs -- failed/completed jobs
+    // from earlier test runs accumulate in this same real Redis instance
+    // otherwise (removeOnFail/removeOnComplete only prune by age/count, not
+    // per-test-run), which would make a getJobs(['...','failed',...]) read
+    // in this file see stale jobs from unrelated previous runs.
+    await queue.obliterate({ force: true });
   });
 
   it('accepts a valid push and enqueues it, unchanged, onto the historical-tick queue', async () => {
@@ -74,7 +79,13 @@ describe('historical tick ingestion (/collector/ticks)', () => {
     // Dedup/insert now happens in the worker_thread (see this file's own
     // top comment) -- what this layer owns is getting the right job onto
     // the queue, unchanged, not re-doing its insert-count arithmetic.
-    const jobs = await queue.getJobs(['waiting']);
+    // The REAL BullMQ Worker in this test's app graph picks the job up
+    // immediately (concurrency:1, but immediately -- there's nothing else
+    // in the way), and since the worker_thread can't spawn in this Vitest
+    // process (see this file's top comment), the job fails fast rather
+    // than staying 'waiting' -- so this checks every state the job could
+    // legitimately be in by the time this assertion runs, not just 'waiting'.
+    const jobs = await queue.getJobs(['waiting', 'active', 'failed', 'completed']);
     expect(jobs).toHaveLength(1);
     expect(jobs[0].data).toMatchObject({
       symbol: 'XAUUSD',

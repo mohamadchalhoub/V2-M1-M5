@@ -7,6 +7,7 @@ import { AccountsService } from '../accounts/accounts.service';
 import { RuleEngineService } from '../alerts/rule-engine.service';
 import { HistoricalCandleService } from '../market-data/historical-candle.service';
 import { HistoricalTickService } from '../market-data/historical-tick.service';
+import { HistoricalTickProcessor } from '../market-data/historical-tick.processor';
 import { BackfillIntervalService } from '../market-data/backfill-interval.service';
 import { TradingDataService } from '../trading-data/trading-data.service';
 import { CandlesPushDto } from '../market-data/dto/candles-push.dto';
@@ -72,6 +73,7 @@ export class CollectorIngressController {
     private readonly goldClosures: GoldClosureReconciliationService,
     private readonly goldProtection: GoldProtectionMonitorService,
     @Inject(HISTORICAL_TICK_QUEUE) private readonly historicalTickQueue: Queue,
+    private readonly historicalTickProcessor: HistoricalTickProcessor,
   ) {}
 
   /** In-memory only (Phase 1 scope) -- observable via a future health/metrics endpoint. Reset on process restart, which is fine: it's a rate signal, not an audit trail. */
@@ -225,6 +227,21 @@ export class CollectorIngressController {
   // visibility -- counted, and rate-limited-logged -- but it IS dropped,
   // deliberately, rather than allowed to grow the queue (and Redis memory,
   // which has no configured cap on this VPS) without bound.
+  // NOTE (bound-check race, documented not fixed -- 2026-09-24 review): the
+  // getWaitingCount() read below and the add() write further down are two
+  // separate Redis round-trips, not one atomic operation. If N requests to
+  // this endpoint were ever in flight concurrently, all N could read the
+  // same waiting count and all N could pass the check before any of their
+  // add() calls land, overshooting HISTORICAL_TICK_MAX_BACKLOG by up to
+  // N-1 jobs. This is a SOFT bound, not a strict one. Accepted as-is: this
+  // VPS runs exactly one collector process, which pushes ticks
+  // sequentially (one HTTP call at a time, from its own single-threaded
+  // loop -- see the Phase 0 performance audit), so concurrent calls to
+  // this specific endpoint are not expected in practice. Adding Redis-side
+  // atomic enforcement (a Lua script, or an atomic counter) would be
+  // unjustified complexity for a race this architecture doesn't currently
+  // produce; revisit only if a second concurrent caller of this endpoint
+  // is ever introduced.
   @Post('ticks')
   async postTicks(@Body() dto: TicksPushDto) {
     const waiting = await this.historicalTickQueue.getWaitingCount();
@@ -255,6 +272,22 @@ export class CollectorIngressController {
     });
     this.logger.log(`ticks queued symbol=${dto.symbol} received=${dto.ticks.length}`);
     return { ok: true, queued: true };
+  }
+
+  // Cheap health visibility for the Phase 1 ingestion pipeline -- no
+  // per-tick metrics, just the three things that matter operationally:
+  // is the worker_thread alive, how full is the backlog, and how many
+  // batches have been dropped since last restart. getWaitingCount() is a
+  // single Redis call; isThreadAlive() is a pure in-memory read.
+  @Get('ticks/health')
+  async getTicksHealth() {
+    const waiting = await this.historicalTickQueue.getWaitingCount();
+    return {
+      workerThreadAlive: this.historicalTickProcessor.isThreadAlive(),
+      waitingBacklog: waiting,
+      backlogBound: HISTORICAL_TICK_MAX_BACKLOG,
+      droppedBatchesSinceRestart: this.droppedTickBatches,
+    };
   }
 
   @Get('ticks/coverage')
