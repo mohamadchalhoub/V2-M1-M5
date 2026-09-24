@@ -320,6 +320,40 @@ services:
 
 
   # ===========================================================================
+  # ENGINE A REPLACEMENT - xauusd-sar-v1, the $0.50 continuous trailing
+  # stop-and-reverse strategy.
+  #
+  # Its own container, its own scheduler script -- m1m5-scheduler above now
+  # runs the FROZEN RSI strategy's residual reconciliation/protective-
+  # management loop only (its entry wiring is hard-disabled in code); this
+  # is the process an operator actually starts to run Engine A.
+  #
+  # Shares the runtime volume with m1m5-scheduler ONLY for the kill-switch
+  # file path (xauusd-sar/controls.ts defaults to the same state directory)
+  # -- it writes and reads none of that strategy's warm-up/indicator state.
+  # ===========================================================================
+  sar-scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: m1m5-v2-sar-scheduler
+    restart: unless-stopped
+    env_file: ./backend/.env.production
+    command: ["node", "dist/scripts/xauusd-sar-scheduler.js"]
+    volumes:
+      - m1m5_v2_runtime_data:/app/xauusd-m1m5-runtime
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [internal]
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+
+  # ===========================================================================
   # ENGINE B - the Telegram copy engine's ingestion process.
   #
   # Its own container, holding the Telegram USER session, for two reasons:
