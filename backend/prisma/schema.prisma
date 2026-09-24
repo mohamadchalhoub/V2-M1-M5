@@ -88,6 +88,13 @@ model TradingAccount {
   xauusdM1M5CloseRequests      XauusdM1M5CloseRequest[]
   xauusdM1M5ProtectionRequests XauusdM1M5ProtectionRequest[]
 
+  // xauusd-sar-v1 — replaces xauusd-m1-m5-rsi-threshold-v2 as Engine A.
+  xauusdSarSession      XauusdSarSession?
+  xauusdSarCycles       XauusdSarCycle[]
+  xauusdSarOrderAttempts XauusdSarOrderAttempt[]
+  xauusdSarVolumeSetting XauusdSarVolumeSetting?
+  xauusdSarVolumeAudits  XauusdSarVolumeAudit[]
+
   @@unique([platform, externalAccountId])
   @@map("trading_accounts")
 }
@@ -2638,4 +2645,165 @@ model TelegramEngineNotification {
 
   @@index([status, createdAt])
   @@map("telegram_engine_notifications")
+}
+
+// ---------------------------------------------------------------------------
+// xauusd-sar-v1 — the $0.50 continuous trailing stop-and-reverse strategy
+// that REPLACES xauusd-m1-m5-rsi-threshold-v2 as Engine A.
+//
+// Every xauusd_m1m5_* table above is left exactly as it is: frozen, historical
+// data for audit, never written to by this strategy. This strategy's own
+// magic number (262610220, see safety-constants.ts) is disjoint from every
+// number any other strategy — including the frozen RSI one and Engine B —
+// uses.
+// ---------------------------------------------------------------------------
+
+enum XauusdSarState {
+  WAIT_MARKET_OPEN
+  WAIT_INITIAL_DIRECTION
+  ACTIVE_BUY
+  ACTIVE_SELL
+  REVERSAL_UNKNOWN
+  DAILY_CLOSED
+}
+
+enum XauusdSarDirection {
+  BUY
+  SELL
+}
+
+// One row per account: this is CURRENT state, not a history, deliberately —
+// see xauusd_m1m5_mt5_snapshots for the same reasoning. The full shape a
+// restart needs to recover exactly where the session stood, with nothing
+// reconstructed from current price alone (the spec explicitly forbids
+// re-deriving the initial trigger sequence or a mid-cycle high/low from
+// scratch after a restart).
+model XauusdSarSession {
+  accountId String @id @map("account_id")
+
+  specHash      String         @map("spec_hash")
+  sessionDate   String         @map("session_date") // YYYY-MM-DD, Beirut calendar day
+  state         XauusdSarState
+
+  sessionReference     Decimal? @map("session_reference") @db.Decimal(18, 6)
+  initialBuyTrigger    Decimal? @map("initial_buy_trigger") @db.Decimal(18, 6)
+  initialSellTrigger   Decimal? @map("initial_sell_trigger") @db.Decimal(18, 6)
+  referenceCapturedAt  DateTime? @map("reference_captured_at")
+  // The bid/ask the reference was captured from, for audit.
+  referenceQuoteEvidence Json?  @map("reference_quote_evidence")
+
+  cycleId          String?             @map("cycle_id")
+  direction        XauusdSarDirection?
+  entryFillPrice   Decimal?            @map("entry_fill_price") @db.Decimal(18, 6)
+  extremeSinceEntry Decimal?           @map("extreme_since_entry") @db.Decimal(18, 6)
+  reversalLevel    Decimal?            @map("reversal_level") @db.Decimal(18, 6)
+  brokerTicket     String?             @map("broker_ticket")
+
+  // Set when a submission's broker answer was lost or ambiguous; cleared once
+  // reconciliation resolves it. Blocks further Engine A submissions while set.
+  unknownSince DateTime? @map("unknown_since")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("xauusd_sar_sessions")
+}
+
+// One row per completed or in-progress BUY/SELL holding period — the audit
+// trail a single current-state row cannot carry once a cycle ends. Not read
+// by the execution path; read by the dashboard, the daily report cross-check
+// and tests.
+model XauusdSarCycle {
+  id        String @id @default(uuid())
+  accountId String @map("account_id")
+  cycleId   String @unique @map("cycle_id")
+
+  direction      XauusdSarDirection
+  entryTicket    String             @map("entry_ticket")
+  entryFillPrice Decimal            @map("entry_fill_price") @db.Decimal(18, 6)
+  entryAt        DateTime           @map("entry_at")
+
+  exitTicket    String? @map("exit_ticket")
+  exitFillPrice Decimal? @map("exit_fill_price") @db.Decimal(18, 6)
+  exitAt        DateTime? @map("exit_at")
+  // REVERSAL / DAILY_CLOSE / UNKNOWN_RESOLVED_FLAT.
+  exitReason    String?  @map("exit_reason")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, entryAt])
+  @@map("xauusd_sar_cycles")
+}
+
+// Idempotent submission log: one row per attempt to reach the broker, keyed
+// so a restart between "marked PENDING" and "broker answered" recovers
+// exactly which attempt it was mid-flight on rather than guessing from
+// XauusdSarSession alone. Mirrors telegram_signal_legs' idempotencyTag
+// pattern for the same reason: the tag is carried into the broker order
+// comment, so recovery can match a position at the broker to the attempt
+// that opened it.
+model XauusdSarOrderAttempt {
+  id             String @id @default(uuid())
+  accountId      String @map("account_id")
+  cycleId        String @map("cycle_id")
+  idempotencyTag String @unique @map("idempotency_tag")
+
+  // INITIAL (first direction of the session) or REVERSAL.
+  kind      String
+  direction XauusdSarDirection
+  volume    Decimal            @db.Decimal(18, 6)
+
+  status        String   @default("PENDING") // PENDING / SENT / FILLED / FAILED / UNKNOWN
+  ticket        String?
+  fillPrice     Decimal? @map("fill_price") @db.Decimal(18, 6)
+  failureReason String?  @map("failure_reason")
+
+  requestedAt DateTime  @default(now()) @map("requested_at")
+  // The collector's claim on this attempt. Offered to exactly one poll —
+  // mirrors telegram_signal_legs.claimedAt for the identical reason: without
+  // it, two overlapping polls (or a retried request) could send the same
+  // order, or run the same close-then-open reversal sequence, twice.
+  claimedAt   DateTime? @map("claimed_at")
+  resolvedAt  DateTime? @map("resolved_at")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, status])
+  @@map("xauusd_sar_order_attempts")
+}
+
+model XauusdSarVolumeSetting {
+  accountId String @id @map("account_id")
+
+  volumeLots Decimal @map("volume_lots") @db.Decimal(18, 6)
+  // SAR_DEFAULT / MIGRATED_FROM_M1M5 / OPERATOR.
+  source     String
+  provenance String
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("xauusd_sar_volume_settings")
+}
+
+model XauusdSarVolumeAudit {
+  id        String @id @default(uuid())
+  accountId String @map("account_id")
+
+  previousLots Decimal? @map("previous_lots") @db.Decimal(18, 6)
+  newLots      Decimal  @map("new_lots") @db.Decimal(18, 6)
+  source       String
+  provenance   String
+  changedBy    String   @map("changed_by")
+  changedAt    DateTime @default(now()) @map("changed_at")
+
+  account TradingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, changedAt])
+  @@map("xauusd_sar_volume_audits")
 }

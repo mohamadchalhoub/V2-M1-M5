@@ -15,12 +15,12 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     root: './',
-    include: ['test/xauusd-m1m5/**/*.spec.ts', 'test/telegram-engine/**/*.spec.ts'],
+    include: ['test/xauusd-m1m5/**/*.spec.ts', 'test/telegram-engine/**/*.spec.ts', 'test/xauusd-sar/**/*.spec.ts'],
     // occupancy.spec.ts and execution.spec.ts verify DATABASE constraints — that a composite
     // primary key serialises concurrent claims — so it needs a real Postgres
     // and belongs to the full suite, not here. Asserting that guarantee
     // against a mock would prove nothing about it.
-    exclude: ['**/node_modules/**', '**/dist/**', 'test/xauusd-m1m5/occupancy.spec.ts', 'test/xauusd-m1m5/execution.spec.ts', 'test/xauusd-m1m5/reconciliation.spec.ts', 'test/telegram-engine/execution.spec.ts', 'test/telegram-engine/reconciliation.spec.ts', 'test/telegram-engine/engine-isolation.spec.ts', 'test/telegram-engine/tp1-watch.spec.ts', 'test/telegram-engine/dashboard-status.spec.ts', 'test/telegram-engine/daily-report-db.spec.ts', 'test/xauusd-m1m5/liquidation-reporting.spec.ts'],
+    exclude: ['**/node_modules/**', '**/dist/**', 'test/xauusd-m1m5/occupancy.spec.ts', 'test/xauusd-m1m5/execution.spec.ts', 'test/xauusd-m1m5/reconciliation.spec.ts', 'test/telegram-engine/execution.spec.ts', 'test/telegram-engine/reconciliation.spec.ts', 'test/telegram-engine/engine-isolation.spec.ts', 'test/telegram-engine/tp1-watch.spec.ts', 'test/telegram-engine/dashboard-status.spec.ts', 'test/telegram-engine/daily-report-db.spec.ts', 'test/xauusd-sar/execution-db.spec.ts', 'test/xauusd-sar/isolation.spec.ts', 'test/xauusd-m1m5/liquidation-reporting.spec.ts'],
     testTimeout: 20_000,
   },
   plugins: [

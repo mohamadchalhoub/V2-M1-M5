@@ -19,6 +19,7 @@ import { GoldExecutionModule } from './gold-execution/gold-execution.module';
 import { XauusdRsiModule } from './xauusd-rsi/xauusd-rsi.module';
 import { XauusdM1M5Module } from './xauusd-m1m5/xauusd-m1m5.module';
 import { TelegramEngineModule } from './telegram-engine/telegram-engine.module';
+import { XauusdSarModule } from './xauusd-sar/xauusd-sar.module';
 import { AppController } from './app.controller';
 
 /**
@@ -37,15 +38,25 @@ import { AppController } from './app.controller';
  * Two modules can produce a new entry, and they are independent strategy
  * engines rather than two paths of one:
  *
- *   - `XauusdM1M5Module`      Engine A, the RSI M1/M5 threshold strategy,
- *                             with its own schedule, locks and occupancy.
+ *   - `XauusdSarModule`       Engine A, now `xauusd-sar-v1`: a single,
+ *                             continuous $0.50 trailing stop-and-reverse on
+ *                             XAUUSD. 01:00 Asia/Beirut session start, 23:40
+ *                             daily close, no RSI, no M1/M5 split, no
+ *                             post-loss lock. Replaces the RSI M1/M5
+ *                             threshold strategy below as of this migration.
  *   - `TelegramEngineModule`  Engine B, the Telegram copy engine, which has
- *                             no RSI rule and no time-of-day pause. Engine
- *                             A's 14:00-19:00 and 23:30-01:00 Beirut pauses
- *                             and its Friday cutoff apply to Engine A alone.
+ *                             no RSI rule and no time-of-day pause of its
+ *                             own, and is unaffected by Engine A's schedule
+ *                             in either generation.
  *
- * Importing either one starts nothing: both are driven by separate, manually
- * started processes.
+ * `XauusdM1M5Module` (the RSI M1/M5 threshold strategy) stays imported below
+ * for its dashboard, reconciliation and protective management of any
+ * residual position — its entry wiring is hard-disabled in code, the same
+ * technique already used to retire `xauusd-rsi`, gold and trend-breakout in
+ * this copy (see `xauusd-m1m5/legacy-entries-disabled.ts`).
+ *
+ * Importing any of these starts nothing: each is driven by its own,
+ * separate, manually started process.
  *
  * `XauusdRsiModule` is still imported, and still serves its dashboard,
  * reconciliation and protective management, but its ENTRY wiring is disabled
@@ -91,6 +102,15 @@ import { AppController } from './app.controller';
     // are disjoint, so a colliding constant fails at boot rather than when
     // Engine A's Friday liquidation selects a Telegram position.
     TelegramEngineModule,
+    // Engine A REPLACEMENT: xauusd-sar-v1, the $0.50 continuous trailing
+    // stop-and-reverse strategy. XauusdM1M5Module stays imported above for
+    // its dashboard, reconciliation and protective management of any
+    // residual frozen-strategy exposure — its entry wiring is disabled in
+    // code (see xauusd-m1m5/legacy-entries-disabled.ts). This module owns
+    // new entries for Engine A now. Importing it does not start trading —
+    // the loop is a separate, manually started process
+    // (scripts/xauusd-sar-scheduler.ts).
+    XauusdSarModule,
   ],
   controllers: [AppController],
 })
