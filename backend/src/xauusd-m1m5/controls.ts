@@ -31,6 +31,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { defaultStateDir } from './state-store';
+import { LEGACY_EXECUTION_MODE } from './legacy-entries-disabled';
 
 /**
  * There is no REAL mode and no automatic real-account path — the type cannot
@@ -45,13 +46,15 @@ import { defaultStateDir } from './state-store';
  */
 export type M1M5ExecutionMode = 'OFF' | 'SHADOW' | 'DEMO';
 
+/**
+ * RETIRED as of the Engine A strategy replacement — see
+ * `legacy-entries-disabled.ts`. `xauusd-sar-v1` is Engine A now. This getter
+ * hard-returns OFF regardless of `XAUUSD_M1M5_EXECUTION_MODE`, exactly the
+ * technique already used to retire `xauusd-rsi` in this same copy: the gate
+ * is closed in code, not by a default an operator's env file could override.
+ */
 export function getM1M5ExecutionMode(): M1M5ExecutionMode {
-  const raw = (process.env.XAUUSD_M1M5_EXECUTION_MODE ?? '').trim().toUpperCase();
-  if (raw === 'SHADOW') return 'SHADOW';
-  if (raw === 'DEMO') return 'DEMO';
-  // Fails closed to OFF for anything else — unset, a typo, "true" — so an
-  // active mode is never reached by accident.
-  return 'OFF';
+  return LEGACY_EXECUTION_MODE;
 }
 
 /**

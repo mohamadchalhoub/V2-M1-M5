@@ -1,10 +1,19 @@
 /**
  * §2 — every earlier entry route is disabled **in this copy only**.
  *
- * This application must have exactly one enabled strategy version, with two
- * execution paths (M1 and M5). Everything that could previously generate or
- * submit an entry is therefore switched off here, at the single point each
- * of those strategies consults before acting.
+ * UPDATED for the Engine A strategy replacement: `xauusd-m1-m5-rsi-threshold-v2`
+ * itself — the strategy this file's name and doc comments originally
+ * described as "the only enabled strategy" — is now ALSO on the disabled
+ * list. `xauusd-sar-v1` (`src/xauusd-sar/`) is Engine A now. This file keeps
+ * its original name and location (its `import` graph is depended on by
+ * `xauusd-rsi/controls.ts`) rather than being renamed, for the same reason
+ * nothing here is ever deleted: minimizing unrelated churn on a change that
+ * is already large.
+ *
+ * Everything that could generate or submit an entry other than
+ * `xauusd-sar-v1` and Engine B (`telegram-engine/`, which has its own,
+ * independent enablement switch and is not listed here) is switched off at
+ * the single point each strategy consults before acting.
  *
  * ## Why this, rather than deleting the code
  *
@@ -52,9 +61,9 @@ import { XAUUSD_M1M5_STRATEGY_VERSION } from './spec';
  * it is not trading, so the dashboard and logs say the same thing.
  */
 export const LEGACY_ENTRIES_DISABLED_REASON =
-  `Entry generation is disabled in this application. ${XAUUSD_M1M5_STRATEGY_VERSION} is the only enabled ` +
-  'strategy here, and it owns the M1 and M5 execution paths. This strategy’s code, tables and historical ' +
-  'records are retained and readable; only its ability to generate or submit an entry has been removed.';
+  `Entry generation is disabled in this application. xauusd-sar-v1 is Engine A now, and telegram-sfxauusd1-copy-v1 ` +
+  `is Engine B; ${XAUUSD_M1M5_STRATEGY_VERSION} and every strategy below are retired. Their code, tables and ` +
+  'historical records are retained and readable; only their ability to generate or submit an entry has been removed.';
 
 /**
  * Strategies whose entry wiring is disabled in this copy, for the startup
@@ -68,6 +77,8 @@ export const DISABLED_LEGACY_ENTRY_PATHS: readonly string[] = [
   'XAUUSD M1 RSI standalone Extreme SELL/BUY',
   'H4-trend / H1-breakout (EURUSD and XAUUSD)',
   'AI-assisted trading approval or veto',
+  // Retired by the Engine A strategy replacement — xauusd-sar-v1 replaces it.
+  `${XAUUSD_M1M5_STRATEGY_VERSION} (RSI(5) M1/M5 threshold strategy — frozen, replaced by xauusd-sar-v1)`,
 ];
 
 /**

@@ -93,9 +93,13 @@ describe('§14 the disabled-paths record is complete and attributed', () => {
     }
   });
 
-  it('attributes the disablement to this strategy, and says history is retained', () => {
+  it('attributes the disablement to the current strategies, and says history is retained', () => {
+    // Engine A strategy replacement: this strategy (xauusd-m1-m5-rsi-threshold-v2)
+    // is now itself one of the retired paths named here, alongside the ones
+    // it used to describe as "previous". xauusd-sar-v1 is Engine A now.
     expect(LEGACY_ENTRIES_DISABLED_REASON).toContain(XAUUSD_M1M5_STRATEGY_VERSION);
     expect(LEGACY_ENTRIES_DISABLED_REASON).toMatch(/retained and readable/i);
-    expect(LEGACY_ENTRIES_DISABLED_REASON).toMatch(/M1 and M5 execution paths/i);
+    expect(LEGACY_ENTRIES_DISABLED_REASON).toMatch(/xauusd-sar-v1/i);
+    expect(DISABLED_LEGACY_ENTRY_PATHS.join(' | ')).toMatch(/xauusd-sar-v1/i);
   });
 });

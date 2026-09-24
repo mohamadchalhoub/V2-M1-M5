@@ -1,3 +1,4 @@
+/** ENGINE A RETIRED: getM1M5ExecutionMode() is now hard-locked to OFF (see legacy-entries-disabled.ts), so tests below that require a real DEMO submission through M1M5ExecutionService are skipped rather than deleted -- xauusd-sar-v1 is Engine A now, and its own submission-path tests live under test/xauusd-sar/. */
 /**
  * One crossing, at most one order attempt -- however fast and however often
  * anything evaluates it. Against a real database, with a simulated broker.
@@ -128,7 +129,7 @@ afterAll(async () => {
 });
 
 describe('the same crossing, evaluated more than once', () => {
-  it('produces ONE decision and ONE broker attempt when evaluated twice', async () => {
+  it.skip('produces ONE decision and ONE broker attempt when evaluated twice [Engine A retired]', async () => {
     const broker = new CountingBroker(QUEUED);
     const s = signal('M1');
 
@@ -141,7 +142,7 @@ describe('the same crossing, evaluated more than once', () => {
     expect(await prisma.xauusdM1M5Decision.count({ where: { accountId } })).toBe(1);
   });
 
-  it('produces ONE broker attempt when evaluated concurrently', async () => {
+  it.skip('produces ONE broker attempt when evaluated concurrently [Engine A retired]', async () => {
     const broker = new CountingBroker(QUEUED);
     const s = signal('M1');
 
@@ -152,7 +153,7 @@ describe('the same crossing, evaluated more than once', () => {
     expect(await prisma.xauusdM1M5Decision.count({ where: { accountId } })).toBe(1);
   });
 
-  it('records when the crossing was detected', async () => {
+  it.skip('records when the crossing was detected [Engine A retired]', async () => {
     const result = await service(new CountingBroker(QUEUED)).execute(ctx(signal('M1')));
 
     const row = await prisma.xauusdM1M5Decision.findUnique({ where: { id: result.decisionId! } });
@@ -161,7 +162,7 @@ describe('the same crossing, evaluated more than once', () => {
 });
 
 describe('a held timeframe', () => {
-  it('skips a NEW crossing while the first order is still pending', async () => {
+  it.skip('skips a NEW crossing while the first order is still pending [Engine A retired]', async () => {
     const broker = new CountingBroker(QUEUED);
     await service(broker).execute(ctx(signal('M1')));
 
@@ -171,7 +172,7 @@ describe('a held timeframe', () => {
     expect(broker.calls).toBe(1);
   });
 
-  it('keeps the slot on an UNKNOWN submission, and skips the next crossing', async () => {
+  it.skip('keeps the slot on an UNKNOWN submission, and skips the next crossing [Engine A retired]', async () => {
     // An UNKNOWN may be a live position. Freeing its slot would permit a
     // second position on a timeframe that may already hold one.
     const broker = new CountingBroker(UNKNOWN);
@@ -185,7 +186,7 @@ describe('a held timeframe', () => {
     expect((await occupancy.current(accountId, 'M1'))?.state).toBe('UNKNOWN');
   });
 
-  it('leaves the other timeframe free: M1 and M5 are independent', async () => {
+  it.skip('leaves the other timeframe free: M1 and M5 are independent [Engine A retired]', async () => {
     const broker = new CountingBroker(QUEUED);
     await service(broker).execute(ctx(signal('M1')));
 
@@ -197,7 +198,7 @@ describe('a held timeframe', () => {
 });
 
 describe('claiming, as the one-second pass does', () => {
-  it('hands a queued order out ONCE across ten concurrent claims', async () => {
+  it.skip('hands a queued order out ONCE across ten concurrent claims [Engine A retired]', async () => {
     await service(new CountingBroker(QUEUED)).execute(ctx(signal('M1')));
 
     const claims = await Promise.all(Array.from({ length: 10 }, () => queue.claimOldest(accountId, NOW)));
@@ -205,7 +206,7 @@ describe('claiming, as the one-second pass does', () => {
     expect(claims.filter((c) => c !== null)).toHaveLength(1);
   });
 
-  it('hands it out once across repeated sequential claims', async () => {
+  it.skip('hands it out once across repeated sequential claims [Engine A retired]', async () => {
     await service(new CountingBroker(QUEUED)).execute(ctx(signal('M1')));
 
     const claims = [];
@@ -214,7 +215,7 @@ describe('claiming, as the one-second pass does', () => {
     expect(claims.filter((c) => c !== null)).toHaveLength(1);
   });
 
-  it('never re-offers an UNKNOWN submission, so it is never attempted twice', async () => {
+  it.skip('never re-offers an UNKNOWN submission, so it is never attempted twice [Engine A retired]', async () => {
     const queued = await service(new CountingBroker(QUEUED)).execute(ctx(signal('M1')));
     await queue.claimOldest(accountId, NOW);
     await queue.recordResult(queued.decisionId!, {
@@ -228,7 +229,7 @@ describe('claiming, as the one-second pass does', () => {
     expect((await occupancy.current(accountId, 'M1'))?.state).toBe('UNKNOWN');
   });
 
-  it('cancels, rather than sends, a signal that aged past the limit before it was claimed', async () => {
+  it.skip('cancels, rather than sends, a signal that aged past the limit before it was claimed [Engine A retired]', async () => {
     const queued = await service(new CountingBroker(QUEUED)).execute(ctx(signal('M1')));
 
     // The collector was down; it is claimed 90s after the crossing.
@@ -249,7 +250,7 @@ describe("recording the collector's result", () => {
     return queued.decisionId!;
   }
 
-  it('cancels a NOT-SENT order and frees the slot, without calling it a broker failure', async () => {
+  it.skip('cancels a NOT-SENT order and frees the slot, without calling it a broker failure [Engine A retired]', async () => {
     const id = await claimedOrder();
 
     const outcome = await queue.recordResult(id, {
@@ -265,7 +266,7 @@ describe("recording the collector's result", () => {
     expect(await occupancy.current(accountId, 'M1')).toBeNull();
   });
 
-  it('never treats an UNCERTAIN result as not-sent, even if both flags arrive', async () => {
+  it.skip('never treats an UNCERTAIN result as not-sent, even if both flags arrive [Engine A retired]', async () => {
     // A contradictory report must resolve in the SAFE direction: held.
     const id = await claimedOrder();
 
@@ -278,7 +279,7 @@ describe("recording the collector's result", () => {
     expect((await occupancy.current(accountId, 'M1'))?.state).toBe('UNKNOWN');
   });
 
-  it('stores the full execution timeline, and dates the fill from the acknowledgement', async () => {
+  it.skip('stores the full execution timeline, and dates the fill from the acknowledgement [Engine A retired]', async () => {
     const id = await claimedOrder();
     const evaluated = new Date(NOW + 800);
     const submitted = new Date(NOW + 850);

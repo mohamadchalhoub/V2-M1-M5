@@ -67,37 +67,27 @@ afterEach(() => {
   rmSync(tempDir, { recursive: true, force: true });
 });
 
-describe('§14 execution mode fails closed', () => {
+describe('§14 execution mode fails closed — and is now RETIRED entirely', () => {
+  // Engine A strategy replacement: xauusd-sar-v1 replaces this strategy.
+  // getM1M5ExecutionMode() is now hard-locked to LEGACY_EXECUTION_MODE
+  // ('OFF'), by the same single-point technique already used to retire
+  // xauusd-rsi, gold-execution and trend-breakout in this copy (see
+  // legacy-entries-disabled.ts). No environment variable can override it —
+  // that is the whole point: a config change alone must never be able to
+  // start a second strategy fighting xauusd-sar-v1 for the same margin.
   it('defaults to OFF when unset', () => {
     expect(getM1M5ExecutionMode()).toBe('OFF');
     expect(isSubmissionEnabled()).toBe(false);
   });
 
-  it.each(['DEMO', 'demo', ' DEMO '])('accepts %s as DEMO', (value) => {
-    process.env.XAUUSD_M1M5_EXECUTION_MODE = value;
-    expect(getM1M5ExecutionMode()).toBe('DEMO');
-    expect(isSubmissionEnabled()).toBe(true);
-  });
-
-  it('accepts SHADOW, which records but never submits', () => {
-    process.env.XAUUSD_M1M5_EXECUTION_MODE = 'SHADOW';
-    expect(getM1M5ExecutionMode()).toBe('SHADOW');
-    expect(isSubmissionEnabled()).toBe(false);
-    // The MODE is reported by submissionBlockedReason, not by
-    // entriesBlockedByControls. That split is deliberate: the pre-send gate
-    // uses the latter, and if the mode blocked there, a SHADOW run would
-    // refuse at the first gate and never rehearse signal age, quote
-    // freshness, entry drift or bracket verification -- the very checks
-    // SHADOW exists to exercise.
-    expect(submissionBlockedReason()).toMatch(/recorded but never queued/i);
-    expect(entriesBlockedByControls()).toBeNull();
-  });
-
-  it.each(['REAL', 'LIVE', 'true', 'yes', 'dem0', ''])('falls closed to OFF for %s', (value) => {
-    process.env.XAUUSD_M1M5_EXECUTION_MODE = value;
-    expect(getM1M5ExecutionMode()).toBe('OFF');
-    expect(isSubmissionEnabled()).toBe(false);
-  });
+  it.each(['DEMO', 'demo', ' DEMO ', 'SHADOW', 'REAL', 'LIVE', 'true', 'yes', 'dem0', ''])(
+    'ignores %s and stays OFF — the gate is closed in code, not by a default',
+    (value) => {
+      process.env.XAUUSD_M1M5_EXECUTION_MODE = value;
+      expect(getM1M5ExecutionMode()).toBe('OFF');
+      expect(isSubmissionEnabled()).toBe(false);
+    },
+  );
 });
 
 describe('§7 controls block new entries and name themselves', () => {
@@ -129,12 +119,13 @@ describe('§7 controls block new entries and name themselves', () => {
     expect(entriesBlockedByControls()).toMatch(/Kill switch/);
   });
 
-  it('is clear when nothing is engaged and the mode permits submission', () => {
-    process.env.XAUUSD_M1M5_EXECUTION_MODE = 'DEMO';
+  it('control-file state is clear when nothing is engaged, even though the mode itself is retired', () => {
+    process.env.XAUUSD_M1M5_EXECUTION_MODE = 'DEMO'; // has no effect any more — see the retirement describe block above
     expect(killSwitchState().active).toBe(false);
     expect(stopNewEntriesState().active).toBe(false);
     expect(entriesBlockedByControls()).toBeNull();
-    expect(submissionBlockedReason()).toBeNull();
+    // The mode itself now blocks submission regardless of the control files.
+    expect(submissionBlockedReason()).toBe('Execution mode is OFF.');
   });
 
   it('reports OFF as a submission block but not as a control block', () => {

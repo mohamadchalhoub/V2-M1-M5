@@ -1,3 +1,4 @@
+/** ENGINE A RETIRED: getM1M5ExecutionMode() is now hard-locked to OFF (see legacy-entries-disabled.ts), so tests below that require a real DEMO submission through M1M5ExecutionService are skipped rather than deleted -- xauusd-sar-v1 is Engine A now, and its own submission-path tests live under test/xauusd-sar/. */
 /**
  * Post-loss locks are ENFORCED on entries, from the database, against a real
  * database.
@@ -164,7 +165,7 @@ describe('entries into a locked direction are refused', () => {
     expect(await occupancy.current(accountId, 'M1')).toBeNull();
   });
 
-  it('still allows M1 BUY and both M5 directions: the lock is scoped', async () => {
+  it.skip('still allows M1 BUY and both M5 directions: the lock is scoped [Engine A retired]', async () => {
     await loseOnM1Sell();
     const broker = new CountingBroker();
     const service = new M1M5ExecutionService(prisma, occupancy, broker);
@@ -191,7 +192,7 @@ describe('entries into a locked direction are refused', () => {
 describe('unlocks are written back to the database', () => {
   const unlock = (at: number) => ({ condition: 'RSI_AT_OR_BELOW' as const, threshold: 25, rsi: 24.1, at });
 
-  it('releases the lock on a qualifying observation after the loss', async () => {
+  it.skip('releases the lock on a qualifying observation after the loss [Engine A retired]', async () => {
     await loseOnM1Sell(NOW - 60_000);
 
     const released = await persistUnlock(prisma, accountId, 'M1', 'SELL', unlock(NOW));

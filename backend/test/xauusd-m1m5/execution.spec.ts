@@ -1,3 +1,4 @@
+/** ENGINE A RETIRED: getM1M5ExecutionMode() is now hard-locked to OFF (see legacy-entries-disabled.ts), so tests below that require a real DEMO submission through M1M5ExecutionService are skipped rather than deleted -- xauusd-sar-v1 is Engine A now, and its own submission-path tests live under test/xauusd-sar/. */
 /**
  * §15.6 — execution against a SIMULATED broker, with a real database.
  *
@@ -122,7 +123,7 @@ const FILLED: SubmitResponse = {
 };
 
 describe('§7 the happy path', () => {
-  it('submits, records the fill, and holds the timeframe', async () => {
+  it.skip('submits, records the fill, and holds the timeframe [Engine A retired]', async () => {
     const broker = new FakeBroker(FILLED);
     const result = await service(broker).execute(ctx({ signal: signal('M1') }));
 
@@ -149,7 +150,7 @@ describe('§7 the happy path', () => {
     expect(rowM5?.magicNumber).toBe(V2_MAGIC_M5);
   });
 
-  it('allows M1 and M5 to hold positions simultaneously', async () => {
+  it.skip('allows M1 and M5 to hold positions simultaneously [Engine A retired]', async () => {
     await service(new FakeBroker(FILLED)).execute(ctx({ signal: signal('M1', 'SELL') }));
     await service(new FakeBroker(FILLED)).execute(ctx({ signal: signal('M5', 'BUY') }));
 
@@ -159,7 +160,7 @@ describe('§7 the happy path', () => {
 });
 
 describe('§4/§7 an ambiguous broker response holds the slot', () => {
-  it('an UNKNOWN response keeps the timeframe occupied', async () => {
+  it.skip('an UNKNOWN response keeps the timeframe occupied [Engine A retired]', async () => {
     const result = await service(new FakeBroker({ status: 'UNKNOWN', error: 'response lost' })).execute(
       ctx({ signal: signal('M1') }),
     );
@@ -175,7 +176,7 @@ describe('§4/§7 an ambiguous broker response holds the slot', () => {
     expect(second.outcome).toBe('SKIPPED_OCCUPIED');
   });
 
-  it('a thrown error is recorded as UNKNOWN, never as a failure', async () => {
+  it.skip('a thrown error is recorded as UNKNOWN, never as a failure [Engine A retired]', async () => {
     const broker = new FakeBroker((() => {
       throw new Error('socket hang up');
     }) as unknown as () => never);
@@ -187,7 +188,7 @@ describe('§4/§7 an ambiguous broker response holds the slot', () => {
     expect(await occupancy.current(accountId, 'M5')).toMatchObject({ state: 'UNKNOWN' });
   });
 
-  it('a broker-confirmed FAILED releases the slot, because nothing was opened', async () => {
+  it.skip('a broker-confirmed FAILED releases the slot, because nothing was opened [Engine A retired]', async () => {
     const result = await service(new FakeBroker({ status: 'FAILED', error: 'invalid stops' })).execute(
       ctx({ signal: signal('M1') }),
     );
@@ -313,7 +314,7 @@ describe('§8 no per-trade approval exists', () => {
     expect(broker.calls).toBe(0);
   });
 
-  it('DEMO submits with no approval step in between', async () => {
+  it.skip('DEMO submits with no approval step in between [Engine A retired]', async () => {
     // The point of this test is the ABSENCE of a gate: a signal that passes
     // the deterministic checks reaches the broker with nothing asked of a
     // human, an AI, Telegram or the dashboard.
@@ -325,7 +326,7 @@ describe('§8 no per-trade approval exists', () => {
 });
 
 describe('§12 the decision row is the audit trail', () => {
-  it('records the evidence a later reader needs', async () => {
+  it.skip('records the evidence a later reader needs [Engine A retired]', async () => {
     const result = await service(new FakeBroker(FILLED)).execute(ctx({ signal: signal('M1') }));
     const row = await prisma.xauusdM1M5Decision.findUnique({ where: { id: result.decisionId! } });
     const evidence = row?.evidence as Record<string, any>;
@@ -341,7 +342,7 @@ describe('§12 the decision row is the audit trail', () => {
     expect(Number(row?.rsiValue)).toBe(92);
   });
 
-  it('a replayed signal id cannot create a second decision', async () => {
+  it.skip('a replayed signal id cannot create a second decision [Engine A retired]', async () => {
     const s = signal('M1');
     const first = await service(new FakeBroker(FILLED)).execute(ctx({ signal: s }));
     expect(first.outcome).toBe('SUBMITTED');
