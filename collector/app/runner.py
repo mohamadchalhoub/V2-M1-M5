@@ -392,6 +392,15 @@ class CollectorApp:
                         # reconciliation and liquidation running.
                         self._poll_and_execute_m1m5_close_request()
                         self._poll_and_execute_m1m5_protection_request()
+                    if getattr(self._config, "sar_execution_enabled", False):
+                        # Engine A REPLACEMENT, in its own try — the same
+                        # isolation Engine B gets below. A SAR poll, execution
+                        # or reconciliation failure must never stop the frozen
+                        # RSI strategy's residual management or Engine B.
+                        try:
+                            self._poll_and_execute_pending_sar_order()
+                        except Exception as exc:  # noqa: BLE001
+                            logger.warning("xauusd-sar pass failed, continuing", extra={"error": str(exc)})
                     # `getattr` with a default, not a direct attribute read:
                     # Engine A's existing tests build their own config doubles,
                     # and adding a field to the real Config must not make those
@@ -1102,6 +1111,131 @@ class CollectorApp:
                 extra={"decision_id": decision_id, "error": str(exc)},
             )
 
+
+    # =====================================================================
+    # ENGINE A REPLACEMENT — xauusd-sar-v1, the $0.50 continuous trailing
+    # stop-and-reverse strategy.
+    #
+    # Two shapes of order, both handled here:
+    #   INITIAL   the first direction of a session — a plain open, no
+    #             existing position to close.
+    #   REVERSAL  closingTicket is set. The existing position is closed
+    #             FIRST (close_position), and only once that is confirmed
+    #             is the new direction opened (send_bracket_order). Both
+    #             calls happen inside this poll, itself inside the shared
+    #             MT5 lock, so nothing else can interleave between them.
+    #
+    # Every order — INITIAL or REVERSAL — carries a wide CATASTROPHIC
+    # backstop stop-loss and take-profit, never the strategy's real exit:
+    # the reversal itself is what actually manages risk and takes profit.
+    # This backstop exists because send_bracket_order enforces this
+    # codebase's own audited rule that no order is ever sent without an
+    # attached stop-loss (AUTONOMOUS_DEMO_TRADING_PLAN.md §1) — a rule
+    # this strategy's design does not get to silently bypass. It only
+    # matters if this process is down or disconnected long enough that the
+    # reversal logic itself cannot run — see the final report for the
+    # explicit tradeoff.
+    # =====================================================================
+
+    def _poll_and_execute_pending_sar_order(self) -> None:
+        try:
+            response = self._api.get_pending_sar_order(self._config.collector_account_id)
+        except ApiClientError as exc:
+            logger.warning("xauusd-sar pending-order poll failed, will retry", extra={"error": str(exc)})
+            return
+
+        order = response.get("order")
+        if not order:
+            return
+
+        tag = order["idempotencyTag"]
+        side = order["side"]
+        volume = order["volume"]
+        magic = order["magic"]
+        symbol = order.get("symbol") or "XAUUSD"
+        point_size = order.get("pointSize") or 0.01
+        catastrophic_points = order.get("catastrophicStopPoints", 100000)
+        closing_ticket = order.get("closingTicket")
+
+        # Once the close step has actually happened, ANY non-success of the
+        # open step that follows — clean broker refusal or ambiguous — is
+        # reported UNCERTAIN, never a clean ok=False: the account is known to
+        # be flat, but whether the new cycle opened is not, and this codebase
+        # never guesses a state back into shape from a partial multi-step
+        # result. A full success is NOT affected by this — only reported as
+        # uncertain when the open itself does not cleanly succeed.
+        reversal_in_progress = False
+
+        if closing_ticket:
+            close_side = "SELL" if side == "BUY" else "BUY"  # the side the EXISTING position is on
+            logger.info("xauusd-sar closing existing position before reversal", extra={
+                "ticket": closing_ticket, "close_side": close_side, "tag": tag,
+            })
+            try:
+                close_result = self._executor.close_position(
+                    ticket=int(closing_ticket), side=close_side, volume=volume, symbol=symbol,
+                )
+            except Exception as exc:  # noqa: BLE001 - must never crash the loop
+                logger.error("xauusd-sar close-before-reverse raised; outcome UNKNOWN", extra={"error": str(exc)})
+                self._report_sar_execution_result(tag, ok=False, uncertain=True, error_message=f"close raised: {exc}")
+                return
+            if not close_result.ok:
+                logger.error("xauusd-sar failed to close existing position before reversing", extra={
+                    "ticket": closing_ticket, "error": close_result.error_message,
+                })
+                self._report_sar_execution_result(
+                    tag, ok=False, uncertain=True,
+                    error_message=f"could not close {closing_ticket} before reversing: {close_result.error_message}",
+                )
+                return
+            reversal_in_progress = True  # from here on, any open failure leaves the account FLAT, not in the old state.
+
+        logger.info("xauusd-sar opening position", extra={
+            "tag": tag, "kind": order["kind"], "side": side, "volume": volume, "magic": magic,
+        })
+        try:
+            result = self._executor.send_bracket_order(
+                side=side, volume=volume,
+                stop_loss_points=catastrophic_points, take_profit_points=catastrophic_points,
+                magic=magic, comment=order["comment"], symbol=symbol, point_size=point_size,
+            )
+        except DemoAccountRequiredError as exc:
+            logger.critical("XAUUSD-SAR: DEMO ACCOUNT CHECK FAILED - refusing to trade", extra={"error": str(exc)})
+            self._report_sar_execution_result(tag, ok=False, uncertain=reversal_in_progress, error_message=str(exc))
+            return
+        except Exception as exc:  # noqa: BLE001
+            logger.error("xauusd-sar order execution raised; outcome UNKNOWN", extra={"error": str(exc)})
+            self._report_sar_execution_result(tag, ok=False, uncertain=True, error_message=f"open raised: {exc}")
+            return
+
+        ambiguous_open = (not result.ok) and result.ticket is None and result.retcode is None
+        uncertain = ambiguous_open or (reversal_in_progress and not result.ok)
+        logger.info("xauusd-sar order execution result", extra={
+            "tag": tag, "ok": result.ok, "ticket": result.ticket, "retcode": result.retcode, "uncertain": uncertain,
+        })
+        self._report_sar_execution_result(
+            tag, ok=result.ok, ticket=result.ticket, filled_price=result.price,
+            error_message=result.error_message, uncertain=uncertain,
+        )
+
+    def _report_sar_execution_result(
+        self, idempotency_tag: str, *, ok: bool, ticket: int | None = None,
+        filled_price: float | None = None, error_message: str | None = None, uncertain: bool = False,
+    ) -> None:
+        payload: dict[str, Any] = {"ok": ok, "uncertain": uncertain}
+        if ticket is not None:
+            payload["ticket"] = int(ticket)
+        if filled_price is not None:
+            payload["filledPrice"] = float(filled_price)
+        if error_message:
+            payload["errorMessage"] = error_message
+        try:
+            self._api.post_sar_execution_result(self._config.collector_account_id, idempotency_tag, payload)
+        except ApiClientError as exc:
+            logger.error(
+                "xauusd-sar execution result report FAILED; the backend does not know this outcome",
+                extra={"tag": idempotency_tag, "error": str(exc)},
+            )
 
     # =====================================================================
     # ENGINE B - the Telegram copy engine.

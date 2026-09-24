@@ -182,6 +182,19 @@ class ApiClient:
     def post_m1m5_protection_result(self, account_id: str, request_id: str, result: dict[str, Any]) -> dict[str, Any]:
         return self._post(f"/collector/{account_id}/xauusd-m1m5/protection-request/{request_id}/result", result)
 
+    # --- Engine A REPLACEMENT: xauusd-sar-v1, the $0.50 continuous trailing
+    # stop-and-reverse strategy. Its OWN route prefix, never xauusd-m1m5's:
+    # that one now serves only the frozen RSI strategy's residual reconciliation.
+
+    def get_pending_sar_order(self, account_id: str) -> dict[str, Any]:
+        return self._get(f"/collector/{account_id}/xauusd-sar/pending-order")
+
+    def post_sar_execution_result(self, account_id: str, idempotency_tag: str, result: dict[str, Any]) -> dict[str, Any]:
+        return self._post(f"/collector/{account_id}/xauusd-sar/pending-order/{idempotency_tag}/result", result)
+
+    def post_sar_reconcile(self, account_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._post(f"/collector/{account_id}/xauusd-sar/reconcile", payload)
+
     def get_pending_rsi_order(self, account_id: str) -> dict[str, Any]:
         return self._get(f"/collector/{account_id}/xauusd-rsi/pending-order")
 

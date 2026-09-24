@@ -193,6 +193,10 @@ class Config:
     # operator turning one engine's execution off must not silently
     # turn the other's off, or on.
     telegram_engine_execution_enabled: bool = False
+    # Engine A REPLACEMENT: xauusd-sar-v1. Separate from m1m5_execution_enabled
+    # for the same reason — m1m5_execution_enabled now governs only the frozen
+    # RSI strategy's residual close/protection polling, never a new entry.
+    sar_execution_enabled: bool = False
 
     def timeframes_for(self, symbol: str) -> tuple[str, ...]:
         return (self.candle_timeframes_by_symbol or {}).get(symbol, self.candle_timeframes)
@@ -304,6 +308,7 @@ class Config:
         rsi_execution_enabled = e.get("XAUUSD_RSI_EXECUTION_ENABLED", "false").strip().lower() == "true"
         m1m5_execution_enabled = e.get("XAUUSD_M1M5_EXECUTION_ENABLED", "false").strip().lower() == "true"
         telegram_engine_execution_enabled = e.get("TELEGRAM_ENGINE_EXECUTION_ENABLED", "false").strip().lower() == "true"
+        sar_execution_enabled = e.get("XAUUSD_SAR_EXECUTION_ENABLED", "false").strip().lower() == "true"
 
         require_explicit_terminal = (
             e.get("MT5_REQUIRE_EXPLICIT_TERMINAL", "false").strip().lower() == "true"
@@ -373,6 +378,7 @@ class Config:
             rsi_execution_enabled=rsi_execution_enabled,
             m1m5_execution_enabled=m1m5_execution_enabled,
             telegram_engine_execution_enabled=telegram_engine_execution_enabled,
+            sar_execution_enabled=sar_execution_enabled,
         )
 
     @property
