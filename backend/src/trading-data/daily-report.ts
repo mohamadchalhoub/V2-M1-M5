@@ -77,6 +77,8 @@ export interface DailyReport {
   readonly currency: string;
   readonly engineAM1: Tally;
   readonly engineAM5: Tally;
+  /** xauusd-sar-v1 — the strategy replacement, no timeframe split. */
+  readonly engineASar: Tally;
   readonly engineB: Tally;
   readonly other: Tally;
   readonly total: Tally;
@@ -105,6 +107,7 @@ export function buildDailyReport(
     currency,
     engineAM1: empty(),
     engineAM5: empty(),
+    engineASar: empty(),
     engineB: empty(),
     other: empty(),
     total: empty(),
@@ -117,9 +120,11 @@ export function buildDailyReport(
         ? r.engineAM1
         : engine === 'Engine A' && timeframe === 'M5'
           ? r.engineAM5
-          : engine === 'Engine B'
-            ? r.engineB
-            : r.other;
+          : engine === 'Engine A'
+            ? r.engineASar // Engine A, no timeframe: xauusd-sar-v1.
+            : engine === 'Engine B'
+              ? r.engineB
+              : r.other;
     add(bucket, p.net);
     add(r.total, p.net);
   }
@@ -174,7 +179,7 @@ export function renderDailyReport(r: DailyReport, maxChars = 3800): string[] {
     `📊 DAILY REPORT — ${r.date} (Beirut time)`,
     `Account: ${r.accountLabel}`,
     '',
-    ...section('🅰️ ENGINE A (RSI M1 / M5)', 'Engine A', engineA),
+    ...section('🅰️ ENGINE A (Stop & Reverse; M1/M5 lines are historical RSI trades)', 'Engine A', engineA),
     ...section('🅱️ ENGINE B (Telegram)', 'Engine B', engineB),
     ...(other.length ? section('Other (manual / legacy)', 'Other', other) : []),
     'TOTAL',
