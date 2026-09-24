@@ -51,6 +51,19 @@ export const SAR_OBSERVATION_INTERVAL_MS = SPEC.observation.targetIntervalMs;
 export const SAR_UNKNOWN_ESCALATION_SECONDS = 300;
 
 /**
+ * A fresh, COMPLETE, connected snapshot is authoritative on position
+ * presence/absence the instant it arrives -- unlike a plain "is there a
+ * matching deal yet" check, there is no propagation delay to wait out.
+ * This only guards the rare race of a snapshot landing before the
+ * just-submitted order has registered at the broker at all; it is not a
+ * substitute for freshness (see SAR_RECONCILE_MAX_SNAPSHOT_AGE_SECONDS).
+ */
+export const SAR_RECONCILE_MIN_AGE_SECONDS = 10;
+
+/** A snapshot older than this, relative to when it is read, is never used to resolve an UNKNOWN. */
+export const SAR_RECONCILE_MAX_SNAPSHOT_AGE_SECONDS = 30;
+
+/**
  * The wide, catastrophic-only backstop stop-loss and take-profit distance
  * attached to every SAR order, in USD of gold price. NOT this strategy's
  * real exit mechanism — the $0.50 reversal is. This exists only because
@@ -62,6 +75,18 @@ export const SAR_UNKNOWN_ESCALATION_SECONDS = 300;
  * disconnected) for long enough that price has moved this far unmanaged.
  */
 export const SAR_CATASTROPHIC_STOP_USD = SPEC.reversalDistanceUsd * 20;
+
+/**
+ * The broker order comment every SAR order is sent with -- the single
+ * source of truth for this format, so the collector-facing controller (which
+ * builds it) and reconciliation (which must match it back against a broker
+ * deal) can never drift apart. They did: reconciliation used to compare a
+ * deal's comment against the bare idempotency tag, which never matched
+ * anything, because every actual order comment carries this prefix.
+ */
+export function sarOrderComment(idempotencyTag: string): string {
+  return `sar-${idempotencyTag}`.slice(0, 26);
+}
 
 export function assertSarMagicIsDisjoint(otherOwnedMagics: readonly number[]): void {
   if (otherOwnedMagics.includes(SAR_MAGIC)) {

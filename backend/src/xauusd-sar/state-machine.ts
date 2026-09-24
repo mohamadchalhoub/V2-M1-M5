@@ -233,6 +233,31 @@ export function resolveUnknown(
   return openInitialCycle(session, resolved.direction, resolved.fillPrice, resolved.cycleId, resolved.ticket);
 }
 
+/**
+ * Resolves an UNKNOWN when reconciliation established the account is
+ * genuinely FLAT -- the position this attempt was managing is confirmed gone
+ * from the broker's own position list, with or without a matching deal to
+ * explain it. Distinct from `resolveUnknown`'s `filled: false` case, which
+ * means "the order never reached the broker" and therefore the PRIOR
+ * position (if any) is still open and unchanged: that is never true here, so
+ * conflating the two would resume managing a ticket that no longer exists.
+ *
+ * Deliberately keeps sessionReference/initialBuyTrigger/initialSellTrigger --
+ * this is still today's session, just between cycles.
+ */
+export function resolveUnknownAsFlat(session: SarSessionState): SarSessionState {
+  return {
+    ...session,
+    state: 'WAIT_INITIAL_DIRECTION',
+    cycleId: null,
+    direction: null,
+    entryFillPrice: null,
+    extremeSinceEntry: null,
+    reversalLevel: null,
+    brokerTicket: null,
+  };
+}
+
 /** 23:40 Beirut: no new exposure, flatten whatever is open, end the day. */
 export function closeForDay(session: SarSessionState): SarSessionState {
   return {

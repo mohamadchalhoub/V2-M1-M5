@@ -32,7 +32,6 @@ import { Logger } from '@nestjs/common';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { XauusdSarModule } from '../src/xauusd-sar/xauusd-sar.module';
 import { SarExecutionService } from '../src/xauusd-sar/execution.service';
-import { SarReconciliationService } from '../src/xauusd-sar/reconciliation.service';
 import { getSarExecutionMode, sarEngineEnabled } from '../src/xauusd-sar/controls';
 import { SAR_OBSERVATION_INTERVAL_MS } from '../src/xauusd-sar/safety-constants';
 import { isWithinDailyClose } from '../src/xauusd-sar/spec';
@@ -61,7 +60,6 @@ async function main(): Promise<void> {
   const app = await NestFactory.createApplicationContext(XauusdSarModule, { logger: ['error', 'warn', 'log'] });
   const prisma = app.get(PrismaService);
   const execution = app.get(SarExecutionService);
-  const reconciliation = app.get(SarReconciliationService);
   const snapshots = new M1M5Mt5SnapshotService(prisma as never);
 
   logger.log(`xauusd-sar starting. mode=${getSarExecutionMode()} enabled=${sarEngineEnabled()} account=${accountId}`);
@@ -112,12 +110,12 @@ async function main(): Promise<void> {
         }
       }
 
-      // NOT YET WIRED: reconciliation needs a broker positions/deals snapshot,
-      // which only the collector's process can read from MT5 directly. The
-      // collector-side polling for xauusd_sar_order_attempts and the endpoint
-      // that pushes a snapshot into SarReconciliationService.reconcile() are
-      // listed as an open item in the final report — see PART LXIII #20.
-      void reconciliation;
+      // Reconciliation itself runs OUTSIDE this loop: the collector pushes a
+      // broker positions/deals snapshot straight to the main API's
+      // POST .../xauusd-sar/reconcile endpoint (SarExecutionController ->
+      // SarReconciliationService), on the same one-second cadence as its SAR
+      // order poll. This scheduler only needs to keep evaluating ticks; it
+      // has no MT5 access of its own to reconcile with.
     } catch (err) {
       logger.error(`cycle failed (continuing): ${(err as Error).message}`);
     }

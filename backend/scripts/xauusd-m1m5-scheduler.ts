@@ -511,7 +511,18 @@ async function main() {
       // A submission failure never stops the loop and never advances state as
       // though it had succeeded; the outcome is recorded and observation
       // continues.
-      if (result.candidates.length > 0) {
+      // RETIRED (Engine A replacement, 2026-09-24): `getM1M5ExecutionMode()`
+      // is hard-locked to OFF forever now (see controls.ts), and its own
+      // documented contract for OFF is "no evaluation, no orders" -- not
+      // merely "no orders". Before this guard, every candidate here still
+      // ran the full risk/brackets/MT5-permission pipeline and posted a
+      // SIGNAL_SKIPPED alert for each refusal, indistinguishable from a live
+      // strategy still trying to trade, confirmed live on 2026-09-24 as a
+      // stream of REFUSED_RISK alerts arriving well after xauusd-sar-v1 (the
+      // real Engine A now) was already running. Crossing DETECTION above
+      // still runs (state/dashboard consistency); nothing below this guard
+      // ever acts on it while retired.
+      if (getM1M5ExecutionMode() !== 'OFF' && result.candidates.length > 0) {
         const blocked = entriesBlockedByControls();
         const eligibility = evaluateEntryEligibility(startedAt, gates);
 
@@ -606,7 +617,10 @@ async function main() {
         // most importantly a post-loss lock -- never becomes an order
         // candidate, so it must be announced here or it would be silent.
         const skipped = outcome.decision?.signal && outcome.decision.skipReason ? outcome.decision : null;
-        if (skipped?.signal && skipped.skipReason) {
+        // Same retirement guard as above -- a crossing that formed while
+        // this strategy is permanently OFF must be recorded (still happens
+        // above, in `crossings`/`engines` state) but never alerted about.
+        if (getM1M5ExecutionMode() !== 'OFF' && skipped?.signal && skipped.skipReason) {
           log(`${outcome.timeframe} ${skipped.signal.direction} signal SKIPPED -- ${skipped.skipReason}: ${skipped.skipDetail ?? ''}`);
           // RSI can chop back and forth across a threshold within the same
           // forming bar, so the SAME gate (e.g. SCHEDULE_BLOCKED) can be hit by
@@ -664,8 +678,25 @@ async function main() {
       // there is anything to do. The report refuses a period it has already
       // generated; the sweep only picks up rows whose backoff has elapsed.
       // Calling them unconditionally is what makes a missed timer impossible.
+      //
+      // RETIRED, report generation included (2026-09-24): this report is
+      // structurally broken and must not generate further periods. Its
+      // `closuresIn()` treats every FILLED *decision* row (an order OPEN
+      // attempt, per xauusd_m1m5_decisions -- there is no closure/exit field
+      // on that model at all) as if it were a closed position, and sums each
+      // one's `fillPrice` (an entry price around 4280-4300) as if it were a
+      // realized profit. Ten such rows in one window produces something
+      // like "+42899.85", confirmed live: it is a sum of gold prices, not a
+      // P&L, and because a price is never negative it can also never report
+      // a loss ("10 wins, 0 losses" regardless of what actually happened).
+      // The correct realized P&L lives in the `trades` table (real broker
+      // deals) exactly as the combined daily report and xauusd-sar-v1's own
+      // reporting already use -- this standalone report never joins that
+      // and was not fixed to, because there is no live-trading purpose left
+      // for a per-strategy report on a permanently retired strategy.
+      // Historical rows already in xauusd_m1m5_report_periods are untouched.
       try {
-        if (accountId) {
+        if (accountId && getM1M5ExecutionMode() !== 'OFF') {
           const report = await reporting.runOnce(accountId, messageCtx.accountLabel, startedAt);
           if (report.generated) {
             log(`Performance report generated and ${report.delivered ? 'delivered' : 'NOT delivered'}: ${report.detail}`);

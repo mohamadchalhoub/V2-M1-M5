@@ -82,6 +82,11 @@ TELEGRAM_MAGIC = 262610210
 # How far back to look for closing deals when establishing a realised result.
 TELEGRAM_RECONCILE_DEAL_DAYS = 3
 
+# xauusd-sar-v1's own magic (Engine A replacement) -- see safety-constants.ts
+# for the full list this must stay disjoint from.
+SAR_MAGIC = 262610220
+SAR_RECONCILE_DEAL_DAYS = 3
+
 
 def _position_magic(position: dict[str, Any]) -> int | None:
     """MT5's magic number for a position OR a deal.
@@ -972,6 +977,7 @@ class CollectorApp:
         if not self._mt5_call_lock.acquire(timeout=SAR_EXECUTION_LOCK_TIMEOUT_SECONDS):
             return
         try:
+            self._push_sar_reconciliation()
             self._poll_and_execute_pending_sar_order()
         finally:
             self._mt5_call_lock.release()
@@ -1211,12 +1217,46 @@ class CollectorApp:
 
         if closing_ticket:
             close_side = "SELL" if side == "BUY" else "BUY"  # the side the EXISTING position is on
+
+            # The LIVE position's own volume, not the queued order's --
+            # confirmed live incident, 2026-09-24: the operator changed the
+            # configured SAR volume (0.02 -> 0.01) between a cycle's entry
+            # and its reversal. `volume` here is the NEW order's queued
+            # volume; the OPEN position being reversed out of was still
+            # holding the OLD volume. Closing with the wrong (smaller)
+            # volume is a PARTIAL close that leaves the remainder open
+            # under the same ticket and magic -- which is exactly what
+            # `send_bracket_order`'s own duplicate-position guard then
+            # correctly refused to open a second position on top of,
+            # immediately afterward, in that incident. Same lesson
+            # `_poll_and_execute_m1m5_close_request` already learned: the
+            # terminal is the authority on what is actually open, never a
+            # value queued earlier under conditions that may since have
+            # changed.
+            try:
+                live_position = self._executor.find_open_position(magic, symbol=symbol)
+            except Exception as exc:  # noqa: BLE001 - must never crash the loop
+                logger.error("xauusd-sar could not verify the live position before reversing; outcome UNKNOWN", extra={"error": str(exc)})
+                self._report_sar_execution_result(tag, ok=False, uncertain=True, error_message=f"live position lookup failed: {exc}")
+                return
+            if live_position is None or str(getattr(live_position, "ticket", None)) != str(closing_ticket):
+                live_ticket = getattr(live_position, "ticket", None) if live_position is not None else None
+                logger.error("xauusd-sar reversal ticket mismatch or already gone", extra={
+                    "expected_ticket": closing_ticket, "live_ticket": live_ticket, "tag": tag,
+                })
+                self._report_sar_execution_result(
+                    tag, ok=False, uncertain=True,
+                    error_message=f"ticket mismatch before reversing: expected {closing_ticket}, live position is {live_ticket}",
+                )
+                return
+            close_volume = float(getattr(live_position, "volume", volume))
+
             logger.info("xauusd-sar closing existing position before reversal", extra={
-                "ticket": closing_ticket, "close_side": close_side, "tag": tag,
+                "ticket": closing_ticket, "close_side": close_side, "close_volume": close_volume, "tag": tag,
             })
             try:
                 close_result = self._executor.close_position(
-                    ticket=int(closing_ticket), side=close_side, volume=volume, symbol=symbol,
+                    ticket=int(closing_ticket), side=close_side, volume=close_volume, symbol=symbol,
                 )
             except Exception as exc:  # noqa: BLE001 - must never crash the loop
                 logger.error("xauusd-sar close-before-reverse raised; outcome UNKNOWN", extra={"error": str(exc)})
@@ -1284,6 +1324,78 @@ class CollectorApp:
                 "xauusd-sar execution result report FAILED; the backend does not know this outcome",
                 extra={"tag": idempotency_tag, "error": str(exc)},
             )
+
+    def _push_sar_reconciliation(self) -> None:
+        """Sends the broker's own view of xauusd-sar-v1's exposure to the backend.
+
+        Filtered to SAR's own magic only -- see safety-constants.ts's
+        disjoint magic-number list. Never reads or reasons about any other
+        strategy's position; the backend-side ownership check
+        (`isOwnedBySar`) is the second, independent gate on top of this one.
+
+        Both `positionId` (the POSITION a deal belongs to) and `ticket` (the
+        deal's OWN id) are sent for every deal -- conflating the two was a
+        latent bug in the original, never-wired version of this payload: an
+        OUT deal's own ticket is a different number from the position it
+        closed, and matching a closing ticket by the wrong one would just
+        never match.
+
+        `mt5Connected` and `snapshotAt` both matter as much as the position
+        list itself: the backend refuses to resolve anything from a
+        snapshot that is stale or was taken while disconnected, exactly the
+        same discipline `snapshotComplete` already gets.
+        """
+        snapshot_at = datetime.now(timezone.utc)
+        mt5_connected = self._client.is_connected()
+        try:
+            positions = self._client.get_open_positions()
+            complete = True
+        except PositionsUnavailable as exc:
+            logger.warning("sar reconciliation: positions unavailable", extra={"error": str(exc)})
+            positions, complete = [], False
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("sar reconciliation: position query failed", extra={"error": str(exc)})
+            positions, complete = [], False
+
+        deals: list[dict[str, Any]] = []
+        if complete and mt5_connected:
+            try:
+                for deal in self._client.get_recent_deals(SAR_RECONCILE_DEAL_DAYS):
+                    if deal.get("entry") not in ("IN", "OUT", "OUT_BY", "INOUT"):
+                        continue
+                    if _position_magic(deal) != SAR_MAGIC:
+                        continue
+                    deals.append({
+                        "ticket": str(deal.get("ticket")),
+                        "positionId": str(deal["position_id"]) if deal.get("position_id") else None,
+                        "magic": _position_magic(deal),
+                        "comment": deal.get("comment") or "",
+                        "entry": deal.get("entry"),
+                        "price": deal.get("price"),
+                    })
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("sar reconciliation: deal query failed", extra={"error": str(exc)})
+                complete = False
+
+        payload = {
+            "snapshotComplete": complete,
+            "mt5Connected": mt5_connected,
+            "snapshotAt": snapshot_at.isoformat(),
+            "positions": [
+                {
+                    "ticket": str(p.get("ticket")),
+                    "magic": _position_magic(p),
+                    "comment": p.get("comment"),
+                }
+                for p in positions
+                if _position_magic(p) == SAR_MAGIC
+            ],
+            "deals": deals,
+        }
+        try:
+            self._api.post_sar_reconcile(self._config.collector_account_id, payload)
+        except ApiClientError as exc:
+            logger.warning("xauusd-sar reconciliation push failed, will retry", extra={"error": str(exc)})
 
     # =====================================================================
     # ENGINE B - the Telegram copy engine.

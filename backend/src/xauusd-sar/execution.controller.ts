@@ -21,7 +21,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CollectorTokenGuard } from '../auth/collector-token.guard';
 import { SarExecutionService } from './execution.service';
 import { SarReconciliationService } from './reconciliation.service';
-import { SAR_CATASTROPHIC_STOP_USD, SAR_EXPECTED_GOLD_POINT_SIZE, SAR_MAGIC, SAR_SYMBOL } from './safety-constants';
+import { SAR_CATASTROPHIC_STOP_USD, SAR_EXPECTED_GOLD_POINT_SIZE, SAR_MAGIC, SAR_SYMBOL, sarOrderComment } from './safety-constants';
 
 export class SarExecutionResultDto {
   @IsBoolean() ok!: boolean;
@@ -41,7 +41,18 @@ export class SarBrokerPositionDto {
 }
 
 export class SarBrokerDealDto {
+  /** The deal's own ticket -- NOT the position it belongs to. Never used to identify a position; see `positionId`. */
   @IsString() ticket!: string;
+  /**
+   * The POSITION this deal belongs to. For an entry (IN) deal this becomes
+   * the new position's ticket; for an exit (OUT) deal this is how the
+   * closed position is matched back to the ticket reconciliation is
+   * watching. MT5 carries this on every deal distinctly from the deal's own
+   * ticket, and conflating the two was a latent bug here (the deal ticket
+   * was previously read as if it were the position ticket, never exercised
+   * before this was actually wired to a live feed).
+   */
+  @IsOptional() @IsString() positionId?: string | null;
   @IsOptional() @IsInt() magic?: number | null;
   @IsOptional() @IsString() comment?: string | null;
   @IsString() entry!: 'IN' | 'OUT' | 'INOUT' | 'OUT_BY';
@@ -51,6 +62,8 @@ export class SarBrokerDealDto {
 export class SarReconcileDto {
   /** False means no closure/resolution may be concluded — see the identical field on Engine B's DTO for why. */
   @IsBoolean() snapshotComplete!: boolean;
+  /** Whether the collector's own MT5 terminal was connected when this snapshot was taken. False blocks every resolution, same as an incomplete snapshot -- an snapshot pulled from a disconnected terminal is not authoritative. */
+  @IsBoolean() mt5Connected!: boolean;
   @IsISO8601() snapshotAt!: string;
   @IsArray() @ValidateNested({ each: true }) @Type(() => SarBrokerPositionDto)
   positions!: SarBrokerPositionDto[];
@@ -89,7 +102,7 @@ export class SarExecutionController {
         pointSize: SAR_EXPECTED_GOLD_POINT_SIZE,
         catastrophicStopPoints: Math.round(SAR_CATASTROPHIC_STOP_USD / SAR_EXPECTED_GOLD_POINT_SIZE),
         closingTicket: session?.brokerTicket ?? null,
-        comment: `sar-${attempt.idempotencyTag}`.slice(0, 26),
+        comment: sarOrderComment(attempt.idempotencyTag),
       },
     };
   }
@@ -118,9 +131,18 @@ export class SarExecutionController {
     const outcome = await this.reconciliation.reconcile({
       accountId,
       nowMs: Date.now(),
+      snapshotAtMs: Date.parse(dto.snapshotAt),
       snapshotComplete: dto.snapshotComplete,
+      mt5Connected: dto.mt5Connected,
       positions: dto.positions.map((p) => ({ ticket: p.ticket, magicNumber: p.magic ?? null, comment: p.comment ?? null })),
-      deals: dto.deals.map((d) => ({ ticket: d.ticket, magicNumber: d.magic ?? null, comment: d.comment ?? null, entry: d.entry, price: d.price })),
+      deals: dto.deals.map((d) => ({
+        ticket: d.ticket,
+        positionId: d.positionId ?? null,
+        magicNumber: d.magic ?? null,
+        comment: d.comment ?? null,
+        entry: d.entry,
+        price: d.price,
+      })),
     });
     return { ok: true, ...outcome };
   }

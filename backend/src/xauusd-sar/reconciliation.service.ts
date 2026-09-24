@@ -4,23 +4,37 @@
  * Two jobs:
  *
  * 1. **UNKNOWN resolution.** A submission whose broker answer was lost is
- *    matched against the broker's own positions/deals by the idempotency tag
- *    carried in the order comment (same mechanism Engine B's legs use). Found
- *    -> the fill is real, open the cycle. Absent from a COMPLETE snapshot for
- *    long enough -> it never reached the broker, revert to the pre-attempt
- *    state. An INCOMPLETE snapshot resolves nothing, in either direction.
+ *    resolved against a fresh, complete, connected broker snapshot. Broker
+ *    truth is established two ways, never one:
+ *      - POSITION PRESENCE is authoritative and immediate. Whether the
+ *        ticket this attempt was closing (a REVERSAL) still appears in the
+ *        live position list settles, with no propagation delay, whether that
+ *        close actually happened.
+ *      - Deals explain WHAT happened (a fill price, a close reason), but are
+ *        never the sole basis for concluding a position is open or closed --
+ *        a broker's own auto-close (TP/SL/backstop) does not reliably carry
+ *        the original order's comment onto the closing deal (see the
+ *        magic-vs-comment note below), so matching by comment alone would
+ *        silently miss exactly the case that matters most: the position
+ *        closed by something OTHER than the reversal this code sent.
+ *
+ *    See `resolveUnknown` for the full case matrix (A/B/C/D).
  *
  * 2. **Foreign exposure awareness.** Every position on this account, filtered
  *    by magic. `SAR_MAGIC` positions are this strategy's own — everything
  *    else (legacy RSI, Engine B, anything else) is reported for the dashboard
- *    and NEVER touched.
+ *    and NEVER touched, adopted, relabelled or closed.
  */
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { isOwnedBySar } from './ownership';
-import { SAR_UNKNOWN_ESCALATION_SECONDS } from './safety-constants';
-import { openInitialCycle, openReversalCycle, type SarSessionState } from './state-machine';
+import {
+  SAR_RECONCILE_MAX_SNAPSHOT_AGE_SECONDS,
+  SAR_RECONCILE_MIN_AGE_SECONDS,
+  sarOrderComment,
+} from './safety-constants';
+import { openInitialCycle, openReversalCycle, resolveUnknownAsFlat, type SarSessionState } from './state-machine';
 import { sarReconciliationIncidentMessage } from './notifications';
 import { TelegramEngineNotificationService } from '../telegram-engine/notifications/notification.service';
 
@@ -32,6 +46,8 @@ export interface BrokerPositionLite {
 
 export interface BrokerDealLite {
   readonly ticket: string;
+  /** The POSITION this deal belongs to -- never the deal's own ticket. Null only for legacy callers that predate this field. */
+  readonly positionId: string | null;
   readonly magicNumber: number | null;
   readonly comment: string | null;
   readonly entry: 'IN' | 'OUT' | 'INOUT' | 'OUT_BY';
@@ -41,7 +57,10 @@ export interface BrokerDealLite {
 export interface SarReconcileInput {
   readonly accountId: string;
   readonly nowMs: number;
+  readonly snapshotAtMs: number;
   readonly snapshotComplete: boolean;
+  /** Whether the collector's MT5 terminal was actually connected when this snapshot was taken. */
+  readonly mt5Connected: boolean;
   readonly positions: readonly BrokerPositionLite[];
   readonly deals: readonly BrokerDealLite[];
 }
@@ -50,6 +69,37 @@ export interface SarReconcileOutcome {
   readonly resolved: boolean;
   readonly detail: string;
   readonly foreignSarMagicPositions: readonly string[];
+}
+
+function toSessionState(row: {
+  sessionDate: string;
+  state: string;
+  sessionReference: unknown;
+  initialBuyTrigger: unknown;
+  initialSellTrigger: unknown;
+  referenceCapturedAt: Date | null;
+  cycleId: string | null;
+  direction: 'BUY' | 'SELL' | null;
+  entryFillPrice: unknown;
+  extremeSinceEntry: unknown;
+  reversalLevel: unknown;
+  brokerTicket: string | null;
+}): SarSessionState {
+  const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+  return {
+    sessionDate: row.sessionDate,
+    state: row.state as SarSessionState['state'],
+    sessionReference: num(row.sessionReference),
+    initialBuyTrigger: num(row.initialBuyTrigger),
+    initialSellTrigger: num(row.initialSellTrigger),
+    referenceCapturedAtMs: row.referenceCapturedAt?.getTime() ?? null,
+    cycleId: row.cycleId,
+    direction: row.direction,
+    entryFillPrice: num(row.entryFillPrice),
+    extremeSinceEntry: num(row.extremeSinceEntry),
+    reversalLevel: num(row.reversalLevel),
+    brokerTicket: row.brokerTicket,
+  };
 }
 
 @Injectable()
@@ -75,33 +125,75 @@ export class SarReconciliationService {
       return { resolved: false, detail: 'session is UNKNOWN but no pending order attempt exists — needs an operator.', foreignSarMagicPositions: [] };
     }
 
-    // Match by the idempotency tag carried in the order comment.
-    const matchedDeal = input.deals.find((d) => d.comment === pending.idempotencyTag && d.entry !== 'OUT');
-    if (matchedDeal) {
-      const cycleId = pending.cycleId;
-      const session: SarSessionState = {
-        sessionDate: row.sessionDate,
-        state: row.state,
-        sessionReference: row.sessionReference ? Number(row.sessionReference) : null,
-        initialBuyTrigger: row.initialBuyTrigger ? Number(row.initialBuyTrigger) : null,
-        initialSellTrigger: row.initialSellTrigger ? Number(row.initialSellTrigger) : null,
-        referenceCapturedAtMs: row.referenceCapturedAt?.getTime() ?? null,
-        cycleId: row.cycleId,
-        direction: row.direction,
-        entryFillPrice: row.entryFillPrice ? Number(row.entryFillPrice) : null,
-        extremeSinceEntry: row.extremeSinceEntry ? Number(row.extremeSinceEntry) : null,
-        reversalLevel: row.reversalLevel ? Number(row.reversalLevel) : null,
-        brokerTicket: row.brokerTicket,
-      };
+    // Freshness/authority gate, unconditional. A stale, incomplete, or
+    // disconnected snapshot is never used to resolve an UNKNOWN — this
+    // guards every case below, not just one branch of it.
+    const ageSeconds = (input.nowMs - input.snapshotAtMs) / 1000;
+    if (!input.snapshotComplete) {
+      return { resolved: false, detail: 'snapshot incomplete; cannot reconcile.', foreignSarMagicPositions: [] };
+    }
+    if (!input.mt5Connected) {
+      return { resolved: false, detail: 'collector reports MT5 disconnected; snapshot is not authoritative.', foreignSarMagicPositions: [] };
+    }
+    if (ageSeconds < 0 || ageSeconds > SAR_RECONCILE_MAX_SNAPSHOT_AGE_SECONDS) {
+      return { resolved: false, detail: `snapshot is ${ageSeconds.toFixed(1)}s old (or from the future); too stale to use.`, foreignSarMagicPositions: [] };
+    }
+
+    const sarPositions = input.positions.filter((p) => isOwnedBySar(p.magicNumber));
+    const foreign = input.positions.filter((p) => !isOwnedBySar(p.magicNumber));
+
+    // A second position under this strategy's own magic is a data defect
+    // this code has never seen and must never guess through — it would mean
+    // either a duplicate submission slipped past the idempotency guard, or a
+    // ticket was misattributed. Refuse and demand a human look.
+    if (sarPositions.length > 1) {
+      const detail = `${sarPositions.length} positions carry SAR's own magic (${sarPositions.map((p) => p.ticket).join(', ')}); refusing to guess which is real.`;
+      this.escalate(input.accountId, pending.id, detail);
+      return { resolved: false, detail, foreignSarMagicPositions: foreign.map((p) => p.ticket) };
+    }
+
+    const closingTicket = pending.kind === 'REVERSAL' ? row.brokerTicket : null;
+    const oldStillOpen = closingTicket !== null && sarPositions.some((p) => p.ticket === closingTicket);
+
+    const expectedComment = sarOrderComment(pending.idempotencyTag);
+    const newFillDeal = input.deals.find(
+      (d) => d.comment === expectedComment && (d.entry === 'IN' || d.entry === 'INOUT') && isOwnedBySar(d.magicNumber) && d.positionId,
+    );
+    const oldExitDeal = closingTicket
+      ? input.deals.find(
+          (d) => d.positionId === closingTicket && (d.entry === 'OUT' || d.entry === 'OUT_BY' || d.entry === 'INOUT') && isOwnedBySar(d.magicNumber),
+        )
+      : undefined;
+
+    // Case D: contradictory. The old ticket is confirmed both still open
+    // AND a brand new fill also landed under this attempt's own tag. Two
+    // real positions cannot both be true here for a single-position
+    // strategy — never guess which broker fact is stale.
+    if (oldStillOpen && newFillDeal) {
+      const detail = `contradictory: ${closingTicket} is still open AND a new fill (${newFillDeal.positionId}) matches this attempt's tag.`;
+      this.escalate(input.accountId, pending.id, detail);
+      return { resolved: false, detail, foreignSarMagicPositions: foreign.map((p) => p.ticket) };
+    }
+
+    const session = toSessionState(row);
+
+    // Case B: the new leg is confirmed filled (by idempotency tag, which
+    // every order this code submits carries), regardless of whether the old
+    // ticket's own closing deal was found — a lost acknowledgement on our
+    // side does not mean the broker didn't act.
+    if (newFillDeal) {
+      const newTicket = newFillDeal.positionId!;
       const opened =
         pending.kind === 'INITIAL'
-          ? openInitialCycle(session, pending.direction, matchedDeal.price, cycleId, matchedDeal.ticket)
-          : openReversalCycle(session, pending.direction, matchedDeal.price, cycleId, matchedDeal.ticket);
-      await this.prisma.$transaction([
+          ? openInitialCycle(session, pending.direction, newFillDeal.price, pending.cycleId, newTicket)
+          : openReversalCycle(session, pending.direction, newFillDeal.price, pending.cycleId, newTicket);
+
+      const writes: Prisma.PrismaPromise<unknown>[] = [
         this.prisma.xauusdSarSession.update({
           where: { accountId: input.accountId },
           data: {
             state: opened.state,
+            cycleId: opened.cycleId,
             direction: opened.direction,
             entryFillPrice: opened.entryFillPrice,
             extremeSinceEntry: opened.extremeSinceEntry,
@@ -112,37 +204,147 @@ export class SarReconciliationService {
         }),
         this.prisma.xauusdSarOrderAttempt.update({
           where: { id: pending.id },
-          data: { status: 'FILLED', ticket: matchedDeal.ticket, fillPrice: matchedDeal.price, resolvedAt: new Date(input.nowMs) },
+          data: { status: 'FILLED', ticket: newTicket, fillPrice: newFillDeal.price, resolvedAt: new Date(input.nowMs) },
+        }),
+        this.prisma.xauusdSarCycle.create({
+          data: {
+            accountId: input.accountId,
+            cycleId: pending.cycleId,
+            direction: pending.direction,
+            entryTicket: newTicket,
+            entryFillPrice: newFillDeal.price,
+            entryAt: new Date(input.nowMs),
+          },
+        }),
+      ];
+      if (closingTicket) {
+        writes.push(
+          this.prisma.xauusdSarCycle.updateMany({
+            where: { accountId: input.accountId, entryTicket: closingTicket, exitAt: null },
+            data: {
+              exitTicket: closingTicket,
+              exitFillPrice: oldExitDeal?.price ?? null,
+              exitAt: new Date(input.nowMs),
+              exitReason: 'RECONCILED_REVERSAL',
+            },
+          }),
+        );
+      }
+      await this.prisma.$transaction(writes);
+      this.logger.warn(`xauusd-sar: UNKNOWN resolved as FILLED (${newTicket}) by idempotency tag ${pending.idempotencyTag} (case B).`);
+      return { resolved: true, detail: `resolved FILLED via reconciled deal, new ticket ${newTicket}`, foreignSarMagicPositions: foreign.map((p) => p.ticket) };
+    }
+
+    // Case A: this was a REVERSAL, its own new fill was not found, but the
+    // ticket it was trying to close is confirmed STILL open. The close (and
+    // therefore the whole reversal) never completed — resume managing the
+    // existing position exactly as before the attempt, unchanged.
+    if (oldStillOpen) {
+      await this.prisma.$transaction([
+        this.prisma.xauusdSarSession.update({
+          where: { accountId: input.accountId },
+          data: { state: row.direction === 'BUY' ? 'ACTIVE_BUY' : 'ACTIVE_SELL', unknownSince: null },
+        }),
+        this.prisma.xauusdSarOrderAttempt.update({
+          where: { id: pending.id },
+          data: { status: 'FAILED', failureReason: 'reconciled: closing ticket is still open at the broker; reversal never completed', resolvedAt: new Date(input.nowMs) },
         }),
       ]);
-      this.logger.warn(`xauusd-sar: UNKNOWN resolved as FILLED (${matchedDeal.ticket}) by idempotency tag ${pending.idempotencyTag}.`);
-      return { resolved: true, detail: `resolved FILLED via deal ${matchedDeal.ticket}`, foreignSarMagicPositions: [] };
+      this.logger.warn(`xauusd-sar: UNKNOWN resolved — ${closingTicket} still open, resuming management (case A).`);
+      return { resolved: true, detail: `resolved: ${closingTicket} still open, resumed`, foreignSarMagicPositions: foreign.map((p) => p.ticket) };
     }
 
-    if (!input.snapshotComplete) {
-      return { resolved: false, detail: 'snapshot incomplete; absence is not evidence.', foreignSarMagicPositions: [] };
+    // Below this point: no new fill was found under this attempt's tag, and
+    // (for a REVERSAL) the old ticket is confirmed gone. Absence is only
+    // conclusive once the attempt is old enough that a same-second
+    // registration race is not a plausible explanation.
+    const requestAgeSeconds = (input.nowMs - pending.requestedAt.getTime()) / 1000;
+    if (requestAgeSeconds < SAR_RECONCILE_MIN_AGE_SECONDS) {
+      return { resolved: false, detail: `attempt is only ${requestAgeSeconds.toFixed(1)}s old; too soon to conclude absence.`, foreignSarMagicPositions: foreign.map((p) => p.ticket) };
     }
 
-    const ageSeconds = (input.nowMs - pending.requestedAt.getTime()) / 1000;
-    if (ageSeconds < SAR_UNKNOWN_ESCALATION_SECONDS) {
-      return { resolved: false, detail: `not yet old enough to conclude absence (${ageSeconds.toFixed(0)}s).`, foreignSarMagicPositions: [] };
+    if (closingTicket) {
+      // Case C: the old position is gone and no new one appeared under our
+      // tag — flat. Use the old ticket's own exit deal for the record when
+      // the broker has one; its absence (deal history not yet visible, or
+      // outside the lookback window) does not change the one broker fact
+      // that IS unambiguous here — the account is flat — so the cycle is
+      // still closed, only its exit price is left unrecorded rather than
+      // guessed.
+      const closedCycle = await this.prisma.xauusdSarCycle.findFirst({
+        where: { accountId: input.accountId, entryTicket: closingTicket, exitAt: null },
+      });
+      const resumed = resolveUnknownAsFlat(session);
+      await this.prisma.$transaction([
+        this.prisma.xauusdSarSession.update({
+          where: { accountId: input.accountId },
+          data: {
+            state: resumed.state,
+            cycleId: null,
+            direction: null,
+            entryFillPrice: null,
+            extremeSinceEntry: null,
+            reversalLevel: null,
+            brokerTicket: null,
+            unknownSince: null,
+          },
+        }),
+        this.prisma.xauusdSarOrderAttempt.update({
+          where: { id: pending.id },
+          data: {
+            status: 'FAILED',
+            failureReason: oldExitDeal
+              ? `reconciled: ${closingTicket} closed at ${oldExitDeal.price} (broker deal, not this attempt's own reversal), no new position opened`
+              : `reconciled: ${closingTicket} is gone from the broker's position list, but no matching exit deal was found in the lookback window; exit price left unrecorded`,
+            resolvedAt: new Date(input.nowMs),
+          },
+        }),
+        ...(closedCycle
+          ? [
+              this.prisma.xauusdSarCycle.update({
+                where: { id: closedCycle.id },
+                data: {
+                  exitTicket: closingTicket,
+                  exitFillPrice: oldExitDeal?.price ?? null,
+                  exitAt: new Date(input.nowMs),
+                  exitReason: oldExitDeal ? 'RECONCILED_BROKER_CLOSE' : 'RECONCILED_UNCONFIRMED_EXIT',
+                },
+              }),
+            ]
+          : []),
+      ]);
+      if (!oldExitDeal) {
+        void this.notifier.notify(
+          'SAR_RECONCILIATION_INCIDENT',
+          `sar:reconciliation-unconfirmed-exit:${input.accountId}:${pending.id}`,
+          sarReconciliationIncidentMessage({ detail: `${closingTicket} closed with no matching deal found; exit price unrecorded, review manually.` }),
+          'OPS',
+        );
+      }
+      this.logger.warn(`xauusd-sar: UNKNOWN resolved as FLAT (${closingTicket} gone) (case C).`);
+      return { resolved: true, detail: `resolved as flat; ${closingTicket} confirmed gone`, foreignSarMagicPositions: foreign.map((p) => p.ticket) };
     }
 
-    // A COMPLETE snapshot, long enough after the attempt, with no matching
-    // deal anywhere: the order never reached the broker. Revert to the state
-    // before the attempt.
-    const priorState = row.cycleId === null ? 'WAIT_INITIAL_DIRECTION' : row.direction === 'BUY' ? 'ACTIVE_BUY' : 'ACTIVE_SELL';
+    // Case: an INITIAL attempt with no fill found anywhere and no old
+    // position to worry about — it never reached the broker.
     await this.prisma.$transaction([
-      this.prisma.xauusdSarSession.update({ where: { accountId: input.accountId }, data: { state: priorState, unknownSince: null } }),
-      this.prisma.xauusdSarOrderAttempt.update({ where: { id: pending.id }, data: { status: 'FAILED', failureReason: 'not found in a complete broker snapshot after the escalation window', resolvedAt: new Date(input.nowMs) } }),
+      this.prisma.xauusdSarSession.update({ where: { accountId: input.accountId }, data: { state: 'WAIT_INITIAL_DIRECTION', unknownSince: null } }),
+      this.prisma.xauusdSarOrderAttempt.update({
+        where: { id: pending.id },
+        data: { status: 'FAILED', failureReason: 'reconciled: not found in a complete broker snapshot; never reached the broker', resolvedAt: new Date(input.nowMs) },
+      }),
     ]);
+    this.logger.warn(`xauusd-sar: UNKNOWN resolved as never-sent (${pending.idempotencyTag}).`);
+    return { resolved: true, detail: 'resolved as never-sent; reverted to WAIT_INITIAL_DIRECTION', foreignSarMagicPositions: foreign.map((p) => p.ticket) };
+  }
+
+  private escalate(accountId: string, attemptId: string, detail: string): void {
     void this.notifier.notify(
       'SAR_RECONCILIATION_INCIDENT',
-      `sar:reconciliation-incident:${input.accountId}:${pending.id}`,
-      sarReconciliationIncidentMessage({ detail: `attempt ${pending.idempotencyTag} never reached the broker; reverted to ${priorState}.` }),
+      `sar:reconciliation-contradiction:${accountId}:${attemptId}`,
+      sarReconciliationIncidentMessage({ detail }),
       'OPS',
     );
-    return { resolved: true, detail: `resolved as never-sent; reverted to ${priorState}`, foreignSarMagicPositions: [] };
   }
 
   private async reportForeignExposureOnly(input: SarReconcileInput): Promise<SarReconcileOutcome> {
