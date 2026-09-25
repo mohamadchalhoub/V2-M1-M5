@@ -613,3 +613,68 @@ def test_flatten_reports_uncertain_when_the_close_itself_fails():
     payload = api.post_sar_execution_result.call_args.args[2]
     assert payload["ok"] is False
     assert payload["uncertain"] is True
+
+
+# --- The MT5 permission/session snapshot must be pushed for SAR alone -------
+#
+# xauusd-sar-v1's scheduler only calls initializeSession/evaluateTick when a
+# recent permission snapshot reports sessionOpen and passes readiness. That
+# snapshot used to be pushed only under m1m5_execution_enabled, so with the
+# retired M1M5 strategy switched off the SAR session sat in WAIT_MARKET_OPEN
+# forever while the broker was connected and quotes were fresh.
+
+
+def _run_one_cycle(app):
+    # The one-second observation thread shares _stop_event; left running, its
+    # own wait() would end the loop before the main cycle is observed.
+    app._start_rsi_observation_loop = MagicMock()
+    for name in ("_push_and_print_snapshot", "_sync_trades", "_sync_candles", "_sync_symbol_metadata", "_maybe_start_tick_sync"):
+        setattr(app, name, MagicMock())
+    app._poll_and_execute_pending_sar_order = MagicMock()
+    app._push_m1m5_mt5_snapshot = MagicMock()
+    app._poll_and_execute_pending_m1m5_order = MagicMock()
+    app._poll_and_execute_m1m5_close_request = MagicMock()
+    app._poll_and_execute_m1m5_protection_request = MagicMock()
+    app._stop_event.wait = lambda timeout=None: app._stop_event.set()
+    app.run()
+
+
+def test_sar_alone_pushes_the_permission_snapshot_its_scheduler_gates_on():
+    app, client, _api, _executor = _app_with_client(sar_execution_enabled=True, m1m5_execution_enabled=False)
+    client.is_connected.return_value = True
+
+    _run_one_cycle(app)
+
+    app._push_m1m5_mt5_snapshot.assert_called_once()
+
+
+def test_sar_alone_never_reaches_the_retired_m1m5_order_routes():
+    app, client, _api, _executor = _app_with_client(sar_execution_enabled=True, m1m5_execution_enabled=False)
+    client.is_connected.return_value = True
+
+    _run_one_cycle(app)
+
+    app._poll_and_execute_pending_m1m5_order.assert_not_called()
+    app._poll_and_execute_m1m5_close_request.assert_not_called()
+    app._poll_and_execute_m1m5_protection_request.assert_not_called()
+
+
+def test_m1m5_enabled_still_pushes_the_snapshot_exactly_once_and_polls_its_routes():
+    app, client, _api, _executor = _app_with_client(sar_execution_enabled=True, m1m5_execution_enabled=True)
+    client.is_connected.return_value = True
+
+    _run_one_cycle(app)
+
+    app._push_m1m5_mt5_snapshot.assert_called_once()
+    app._poll_and_execute_pending_m1m5_order.assert_called_once()
+    app._poll_and_execute_m1m5_close_request.assert_called_once()
+    app._poll_and_execute_m1m5_protection_request.assert_called_once()
+
+
+def test_neither_flag_pushes_no_snapshot():
+    app, client, _api, _executor = _app_with_client(sar_execution_enabled=False, m1m5_execution_enabled=False)
+    client.is_connected.return_value = True
+
+    _run_one_cycle(app)
+
+    app._push_m1m5_mt5_snapshot.assert_not_called()

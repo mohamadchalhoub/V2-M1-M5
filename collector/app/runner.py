@@ -459,13 +459,18 @@ class CollectorApp:
                         self._poll_and_execute_pending_gold_order()
                         self._poll_and_execute_gold_close_request()
                         self._poll_and_execute_gold_restore_protection_request()
-                    if self._config.m1m5_execution_enabled:
-                        # Permissions FIRST, then the order poll. The backend
+                    if self._config.m1m5_execution_enabled or getattr(self._config, "sar_execution_enabled", False):
+                        # Permissions FIRST, then any order poll. The backend
                         # refuses to submit without a recent permission report,
                         # so reporting after the poll would mean the first
                         # candidate of every restart is refused for a reason
-                        # that had already been fixed.
+                        # that had already been fixed. xauusd-sar-v1's
+                        # scheduler gates initializeSession/evaluateTick on
+                        # this same snapshot's permissions and sessionOpen, so
+                        # it must be pushed whenever SAR is enabled even with
+                        # the retired M1M5 strategy switched off.
                         self._push_m1m5_mt5_snapshot()
+                    if self._config.m1m5_execution_enabled:
                         self._poll_and_execute_pending_m1m5_order()
                         # Closes are polled on the same flag as entries. That
                         # means turning this flag off while a position is open

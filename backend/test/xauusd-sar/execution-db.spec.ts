@@ -141,6 +141,51 @@ describe('the initial entry, end to end', () => {
     expect(cycles[0].direction).toBe('BUY');
   });
 
+  it('stays in WAIT_INITIAL_DIRECTION when neither +/-0.50 trigger is reached', async () => {
+    const broker = new FakeBroker('FILLED');
+    const svc = service(broker);
+    await svc.ensureSession(accountId, SESSION_START);
+    await svc.initializeSession(accountId, { bid: 4500, ask: 4500.2, ageSeconds: 1, fresh: true }, SESSION_START);
+
+    // Reference 4500.10; BUY trigger 4500.60, SELL trigger 4499.60.
+    const result = await svc.evaluateTick(accountId, { bid: 4500.2, ask: 4500.4, ageSeconds: 1, fresh: true }, SESSION_START + 1000);
+
+    expect(result.action).toBe('NONE');
+    expect(broker.calls).toHaveLength(0);
+    const row = await prisma.xauusdSarSession.findUnique({ where: { accountId } });
+    expect(row!.state).toBe('WAIT_INITIAL_DIRECTION');
+  });
+
+  it('submits a SELL exactly once when the lower trigger is crossed first', async () => {
+    const broker = new FakeBroker('FILLED');
+    const svc = service(broker);
+    await svc.ensureSession(accountId, SESSION_START);
+    await svc.initializeSession(accountId, { bid: 4500, ask: 4500.2, ageSeconds: 1, fresh: true }, SESSION_START);
+
+    const result = await svc.evaluateTick(accountId, { bid: 4499.5, ask: 4499.7, ageSeconds: 1, fresh: true }, SESSION_START + 1000);
+
+    expect(result.action).toBe('INITIAL_ENTRY_SUBMITTED');
+    expect(broker.calls).toHaveLength(1);
+    expect(broker.calls[0].direction).toBe('SELL');
+    expect(broker.calls[0].kind).toBe('INITIAL');
+    const row = await prisma.xauusdSarSession.findUnique({ where: { accountId } });
+    expect(row!.state).toBe('ACTIVE_SELL');
+  });
+
+  it('creates no exposure inside the 23:40 Beirut daily-close window, even past a trigger', async () => {
+    const broker = new FakeBroker('FILLED');
+    const svc = service(broker);
+    await svc.ensureSession(accountId, SESSION_START);
+    await svc.initializeSession(accountId, { bid: 4500, ask: 4500.2, ageSeconds: 1, fresh: true }, SESSION_START);
+
+    // 23:45 Beirut (UTC+3) on the same trading day.
+    const insideDailyClose = Date.UTC(2026, 8, 24, 20, 45);
+    const result = await svc.evaluateTick(accountId, { bid: 4510, ask: 4510.2, ageSeconds: 1, fresh: true }, insideDailyClose);
+
+    expect(result.action).toBe('NONE');
+    expect(broker.calls).toHaveLength(0);
+  });
+
   it('refuses to submit when the kill switch is engaged, and evaluates nothing', async () => {
     await initialized();
     process.env.XAUUSD_SAR_KILL_SWITCH = 'true';
