@@ -23,6 +23,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { isSarSubmissionEnabled, sarEntriesBlockedByControls, getSarExecutionMode } from './controls';
+import { readFlattenRequired } from './flatten-required';
 import { SAR_MAGIC, SAR_WATCHDOG_STALE_THRESHOLD_MS } from './safety-constants';
 import {
   SPEC,
@@ -226,6 +227,11 @@ export class SarExecutionService {
 
   /** The per-tick evaluation: initial direction discovery, or trailing + reversal while active. */
   async evaluateTick(accountId: string, quote: SarQuoteInput, nowMs: number): Promise<SarTickResult> {
+    // An operator flatten-required marker takes precedence over the
+    // strategy: no entry and no reversal until the named position is closed.
+    if (readFlattenRequired() !== null) {
+      return { action: 'BLOCKED', detail: 'flatten required: the strategy is paused until the stranded position is closed.' };
+    }
     if (isWithinDailyClose(nowMs)) return { action: 'NONE', detail: 'within the daily close window.' };
 
     const blocked = sarEntriesBlockedByControls();

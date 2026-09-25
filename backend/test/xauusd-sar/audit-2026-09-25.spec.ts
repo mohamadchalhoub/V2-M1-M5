@@ -57,14 +57,14 @@ describe('SAR never owns positions that are not its own magic', () => {
 });
 
 describe('daily close at 23:40 Beirut follows DST', () => {
-  it('summer (UTC+3): 20:39:59Z trades, 20:40:00Z is closed, 21:59:59Z closed, 22:00:00Z trades', () => {
-    expect(isWithinDailyClose(Date.UTC(2026, 8, 25, 20, 39, 59))).toBe(false);
-    expect(isWithinDailyClose(Date.UTC(2026, 8, 25, 20, 40, 0))).toBe(true);
-    expect(isWithinDailyClose(Date.UTC(2026, 8, 25, 21, 59, 59))).toBe(true);
-    expect(isWithinDailyClose(Date.UTC(2026, 8, 25, 22, 0, 0))).toBe(false);
+  it('summer weekday (UTC+3, a Thursday): 20:39:59Z trades, 20:40:00Z is closed, 21:59:59Z closed, 22:00:00Z trades', () => {
+    expect(isWithinDailyClose(Date.UTC(2026, 8, 24, 20, 39, 59))).toBe(false);
+    expect(isWithinDailyClose(Date.UTC(2026, 8, 24, 20, 40, 0))).toBe(true);
+    expect(isWithinDailyClose(Date.UTC(2026, 8, 24, 21, 59, 59))).toBe(true);
+    expect(isWithinDailyClose(Date.UTC(2026, 8, 24, 22, 0, 0))).toBe(false);
   });
 
-  it('winter (UTC+2): 21:39:59Z trades, 21:40:00Z is closed, 22:59:59Z closed, 23:00:00Z trades', () => {
+  it('winter weekday (UTC+2, a Thursday): 21:39:59Z trades, 21:40:00Z is closed, 22:59:59Z closed, 23:00:00Z trades', () => {
     expect(isWithinDailyClose(Date.UTC(2026, 11, 10, 21, 39, 59))).toBe(false);
     expect(isWithinDailyClose(Date.UTC(2026, 11, 10, 21, 40, 0))).toBe(true);
     expect(isWithinDailyClose(Date.UTC(2026, 11, 10, 22, 59, 59))).toBe(true);

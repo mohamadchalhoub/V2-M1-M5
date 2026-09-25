@@ -35,6 +35,8 @@ import { SarExecutionService } from '../src/xauusd-sar/execution.service';
 import { getSarExecutionMode, sarEngineEnabled } from '../src/xauusd-sar/controls';
 import { SAR_OBSERVATION_INTERVAL_MS } from '../src/xauusd-sar/safety-constants';
 import { isWithinDailyClose } from '../src/xauusd-sar/spec';
+import { checkFlattenIdentity, closeWindowAction, readFlattenRequired } from '../src/xauusd-sar/flatten-required';
+import { SAR_MAGIC } from '../src/xauusd-sar/safety-constants';
 import { M1M5Mt5SnapshotService } from '../src/xauusd-m1m5/mt5-snapshot.service';
 import { readQuoteCandidates } from '../src/xauusd-m1m5/quote-sources';
 import { resolveQuote } from '../src/xauusd-m1m5/quote';
@@ -82,7 +84,7 @@ async function main(): Promise<void> {
   }
 
   let running = true;
-  let lastCloseDate: string | null = null;
+  let lastCloseLogMs = 0;
   let lastGateReason = '';
   let lastGateLogMs = 0;
 
@@ -102,15 +104,31 @@ async function main(): Promise<void> {
       const candidates = await readQuoteCandidates(prisma as never);
       const resolved = resolveQuote(candidates, cycleStart);
 
-      if (isWithinDailyClose(cycleStart)) {
-        const today = new Date(cycleStart).toISOString().slice(0, 10);
-        if (lastCloseDate !== today) {
+      const flattenMarker = readFlattenRequired();
+      if (isWithinDailyClose(cycleStart) || flattenMarker !== null) {
+        const session = await prisma.xauusdSarSession.findUnique({ where: { accountId } });
+        const readinessNow = evaluateReadiness({ nowMs: cycleStart, snapshot: permissionSnapshot?.permissions ?? null, expectedLoginId });
+        const marketTradeable = resolved.quote?.fresh === true && permissionSnapshot?.sessionOpen === true && readinessNow.ready;
+        let identityProblems: string[] = [];
+        if (flattenMarker === 'UNREADABLE') {
+          identityProblems = ['flatten-required marker is unreadable'];
+        } else if (flattenMarker !== null) {
+          const open = await prisma.position.findMany({ where: { accountId, symbol: 'XAUUSD', status: 'OPEN' } });
+          const sar = open
+            .map((p) => ({ ticket: p.externalPositionId, side: String(p.side), volume: Number(p.volume), magic: Number((p.rawPayload as { magic?: unknown } | null)?.magic ?? NaN), symbol: p.symbol }))
+            .filter((p) => p.magic === SAR_MAGIC);
+          identityProblems = checkFlattenIdentity(flattenMarker, sar, session?.brokerTicket ?? null);
+        }
+        const action = closeWindowAction({ sessionState: session?.state ?? null, marketTradeable, flattenRequired: flattenMarker !== null, identityProblems });
+        if (action === 'FLATTEN') {
           const result = await execution.closeForDay(accountId, cycleStart);
-          logger.log(`daily close: ${result.action} — ${result.detail}`);
-          if (result.action === 'DAILY_CLOSED') lastCloseDate = today;
+          logger.log(`close: ${result.action} — ${result.detail}`);
+        } else if (action !== 'NONE' && cycleStart - lastCloseLogMs >= GATE_LOG_INTERVAL_MS) {
+          const why = action === 'IDENTITY_MISMATCH' ? identityProblems.join('; ') : 'market not tradeable (closed, stale quote or not ready); flatten stays required';
+          (action === 'IDENTITY_MISMATCH' ? logger.error.bind(logger) : logger.warn.bind(logger))(`close pending, not submitting: ${action} — ${why}`);
+          lastCloseLogMs = cycleStart;
         }
       } else {
-        lastCloseDate = null;
         const readiness = evaluateReadiness({
           nowMs: cycleStart,
           snapshot: permissionSnapshot?.permissions ?? null,

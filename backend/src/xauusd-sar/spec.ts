@@ -84,9 +84,30 @@ export function localDateInZone(atMs: number, timeZone: string = SPEC.schedule.t
   return new Date(atMs + offsetMs).toISOString().slice(0, 10);
 }
 
-/** True at/after 23:40 Beirut and before the next 01:00 Beirut. */
+/**
+ * Friday close, Beirut. This broker (MetaQuotes-Demo) stopped accepting
+ * XAUUSD orders at 23:00:00 Beirut on Friday 2026-09-25 ("Market closed"),
+ * before the 23:40 weekday close, which stranded a position over the
+ * weekend. 22:30 leaves 30 minutes for the flatten, its retries and
+ * broker-confirmed reconciliation before that hard stop.
+ */
+export const SAR_FRIDAY_CLOSE_SECONDS_BEIRUT = 22 * 3600 + 30 * 60;
+
+/** 0 = Sunday … 6 = Saturday, in `timeZone`. */
+export function weekdayInZone(atMs: number, timeZone: string = SPEC.schedule.timeZone): number {
+  const name = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' }).format(new Date(atMs));
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(name);
+}
+
+/**
+ * True whenever SAR must hold no exposure: 23:40 → 01:00 Beirut on weekdays,
+ * from 22:30 Beirut on Friday, and all of Saturday and Sunday.
+ */
 export function isWithinDailyClose(atMs: number): boolean {
   const s = secondsOfDayInZone(atMs);
+  const day = weekdayInZone(atMs);
+  if (day === 6 || day === 0) return true;
+  if (day === 5 && s >= SAR_FRIDAY_CLOSE_SECONDS_BEIRUT) return true;
   return s >= SPEC.schedule.dailyCloseSecondsBeirut || s < SPEC.schedule.sessionStartSecondsBeirut;
 }
 

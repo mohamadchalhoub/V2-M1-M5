@@ -5,8 +5,8 @@ import { SAR_MAGIC } from '../../src/xauusd-sar/safety-constants';
 import { createTradingAccount, createUser } from '../helpers/factories';
 import { resetDatabase } from '../helpers/db';
 
-const NOW = Date.UTC(2026, 8, 25, 19, 50, 0); // 22:50 Beirut, Friday
-const TODAY = '2026-09-25';
+const NOW = Date.UTC(2026, 8, 24, 19, 50, 0); // 22:50 Beirut, Thursday
+const TODAY = '2026-09-24';
 
 const OK: ResumeFacts = {
   nowMs: NOW,
@@ -47,7 +47,7 @@ describe('resume preconditions', () => {
     ['symbol not fully tradable', { symbolTradeMode: 0 }],
     ['after 23:40 Beirut', { withinDailyClose: true }],
     ['kill switch OFF', { killSwitchOn: false }],
-    ['a session from another day', { sessionDate: '2026-09-24' }],
+    ['a session from another day', { sessionDate: '2026-09-23' }],
     ['an active session', { sessionState: 'ACTIVE_BUY' }],
   ])('refuses with %s', (_label, change) => {
     expect(evaluateResume({ ...OK, ...change }).length).toBeGreaterThan(0);
