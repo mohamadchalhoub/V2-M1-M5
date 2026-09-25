@@ -9,6 +9,10 @@ import {
 import type { FastifyRequest } from 'fastify';
 import { PrismaService } from '../prisma/prisma.service';
 import { verifyToken } from './token.util';
+import { collectorTokenCache, tokenDigest, type VerifiedCredential } from './collector-token-cache';
+
+/** Valid hash, but the credential predates account binding: rejected, never cached. */
+const UNBOUND = Symbol('unbound');
 
 /** Every /collector/* route carries the target account either in the body (POST) or the URL (GET). */
 function requestedAccountId(request: FastifyRequest): string | undefined {
@@ -42,38 +46,68 @@ export class CollectorTokenGuard implements CanActivate {
       throw new UnauthorizedException('Malformed token');
     }
     const prefix = plaintext.slice(0, 8);
+    const digest = tokenDigest(plaintext);
+    const nowMs = Date.now();
 
+    let verified: VerifiedCredential | null = null;
+    const cached = collectorTokenCache.get(digest, nowMs);
+    if (cached) {
+      // The cache only skips Argon2. The credential row is still re-read on
+      // every request, so revocation, rotation or deletion by another
+      // process takes effect immediately.
+      const row = await this.prisma.apiCredential.findFirst({
+        where: { id: cached.credentialId, revokedAt: null, scope: 'collector' },
+        select: { id: true, accountId: true },
+      });
+      if (row && row.accountId === cached.accountId) verified = cached;
+      else collectorTokenCache.delete(digest);
+    }
+
+    if (!verified) {
+      const outcome = await collectorTokenCache.verifyOnce(digest, () => this.verifyWithArgon2(prefix, plaintext));
+      if (outcome === UNBOUND) {
+        // A token minted before this fix, never rotated. Reject rather
+        // than treat as unrestricted — see create-collector-token.ts.
+        this.logger.warn(`Rejected collector token prefix ${prefix}: not bound to an account`);
+        throw new UnauthorizedException(
+          'This collector token predates account binding and must be rotated: ' +
+            'run `npm run create-token -- <accountId>` and update the collector\'s .env',
+        );
+      }
+      if (!outcome) {
+        this.logger.warn(`Rejected collector token with prefix ${prefix}`);
+        throw new UnauthorizedException('Invalid or revoked token');
+      }
+      verified = outcome;
+      collectorTokenCache.set(digest, verified, nowMs);
+    }
+
+    const target = requestedAccountId(request);
+    if (target && target !== verified.accountId) {
+      this.logger.warn(`Rejected collector token prefix ${prefix}: bound to a different account`);
+      throw new ForbiddenException('This token is not authorized for the requested account');
+    }
+
+    if (collectorTokenCache.claimLastUsedWrite(verified.credentialId, nowMs)) {
+      await this.prisma.apiCredential.update({
+        where: { id: verified.credentialId },
+        data: { lastUsedAt: new Date(nowMs) },
+      });
+    }
+    return true;
+  }
+
+  /** The authoritative path: prefix lookup, then Argon2 against each candidate. */
+  private async verifyWithArgon2(prefix: string, plaintext: string): Promise<VerifiedCredential | typeof UNBOUND | null> {
     const candidates = await this.prisma.apiCredential.findMany({
       where: { tokenPrefix: prefix, revokedAt: null, scope: 'collector' },
     });
-
     for (const candidate of candidates) {
       if (await verifyToken(candidate.tokenHash, plaintext)) {
-        if (!candidate.accountId) {
-          // A token minted before this fix, never rotated. Reject rather
-          // than treat as unrestricted — see create-collector-token.ts.
-          this.logger.warn(`Rejected collector token prefix ${prefix}: not bound to an account`);
-          throw new UnauthorizedException(
-            'This collector token predates account binding and must be rotated: ' +
-              'run `npm run create-token -- <accountId>` and update the collector\'s .env',
-          );
-        }
-
-        const target = requestedAccountId(request);
-        if (target && target !== candidate.accountId) {
-          this.logger.warn(`Rejected collector token prefix ${prefix}: bound to a different account`);
-          throw new ForbiddenException('This token is not authorized for the requested account');
-        }
-
-        await this.prisma.apiCredential.update({
-          where: { id: candidate.id },
-          data: { lastUsedAt: new Date() },
-        });
-        return true;
+        if (!candidate.accountId) return UNBOUND;
+        return { credentialId: candidate.id, accountId: candidate.accountId };
       }
     }
-
-    this.logger.warn(`Rejected collector token with prefix ${prefix}`);
-    throw new UnauthorizedException('Invalid or revoked token');
+    return null;
   }
 }
