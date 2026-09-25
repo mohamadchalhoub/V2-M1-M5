@@ -35,6 +35,7 @@ import {
 import {
   applyTrailing,
   captureSessionReference,
+  enterRecoveryRequired,
   evaluateInitialDirection,
   initialSessionState,
   openInitialCycle,
@@ -63,12 +64,20 @@ export interface SarQuoteInput extends SarQuote {
 export interface SarSubmitRequest {
   readonly accountId: string;
   readonly cycleId: string;
-  readonly kind: 'INITIAL' | 'REVERSAL';
+  /**
+   * FLATTEN is distinct from REVERSAL: both carry `closingTicket`, but only
+   * REVERSAL opens a new position afterward. FLATTEN (daily close only)
+   * closes and stops there -- see closeForDay()'s own comment for the
+   * production bug this distinction fixes (daily close used to reuse
+   * 'REVERSAL', which the collector always followed with a fresh open in
+   * the opposite direction, defeating "no new exposure at close").
+   */
+  readonly kind: 'INITIAL' | 'REVERSAL' | 'FLATTEN';
   readonly direction: SarDirection;
   readonly volumeLots: number;
   readonly magicNumber: number;
   readonly idempotencyTag: string;
-  /** Present only for a REVERSAL: the ticket of the position being closed. */
+  /** Present for a REVERSAL or FLATTEN: the ticket of the position being closed. */
   readonly closingTicket: string | null;
 }
 
@@ -223,6 +232,12 @@ export class SarExecutionService {
     const row = await this.prisma.xauusdSarSession.findUnique({ where: { accountId } });
     if (!row) return { action: 'NONE', detail: 'no session row.' };
     if (row.state === 'REVERSAL_UNKNOWN') return { action: 'BLOCKED', detail: 'blocked on an UNKNOWN submission; reconciliation must resolve it.' };
+    if (row.state === 'RECOVERY_REQUIRED') {
+      return { action: 'BLOCKED', detail: 'broker/session ownership mismatch — operator recovery required before any evaluation resumes.' };
+    }
+    if (row.state === 'DAILY_CLOSE_PENDING_CONFIRMATION') {
+      return { action: 'BLOCKED', detail: 'daily close filled; awaiting broker-confirmed zero SAR positions.' };
+    }
     if (row.state === 'DAILY_CLOSED') return { action: 'NONE', detail: 'daily closed; waiting for the next session.' };
     if (!quote.fresh) return { action: 'NONE', detail: `quote is stale (${quote.ageSeconds.toFixed(1)}s).` };
 
@@ -383,7 +398,7 @@ export class SarExecutionService {
       accountId: string;
       session: SarSessionState;
       direction: SarDirection;
-      kind: 'INITIAL' | 'REVERSAL';
+      kind: 'INITIAL' | 'REVERSAL' | 'FLATTEN';
       closingTicket: string | null;
       cycleId: string;
       idempotencyTag: string;
@@ -393,6 +408,52 @@ export class SarExecutionService {
     response: SarSubmitResponse,
   ): Promise<SarTickResult> {
     const { accountId, session, direction, kind, closingTicket, cycleId, idempotencyTag, volume, nowMs } = ctx;
+
+    // FLATTEN never opens a new position on FILLED -- see closeForDay()'s
+    // own comment for the production bug this distinction fixes.
+    if (kind === 'FLATTEN') {
+      if (response.status === 'FILLED') {
+        // 2026-09-25 hardening pass: a successful close-order acknowledgment
+        // ALONE is NOT sufficient to declare DAILY_CLOSED. Record the fill
+        // (we DO know the close order was accepted -- that part is real),
+        // but move to DAILY_CLOSE_PENDING_CONFIRMATION and KEEP brokerTicket
+        // set (deliberately not cleared yet) so reconciliation's
+        // confirmDailyCloseFlat() can compare a fresh broker snapshot
+        // against exactly this ticket before ever clearing ownership or
+        // setting DAILY_CLOSED. See reconciliation.service.ts.
+        await this.prisma.xauusdSarOrderAttempt.update({
+          where: { idempotencyTag },
+          data: { status: 'FILLED', ticket: response.ticket ?? null, fillPrice: response.fillPrice ?? null, resolvedAt: new Date() },
+        });
+        if (closingTicket) {
+          await this.prisma.xauusdSarCycle.updateMany({
+            where: { accountId, entryTicket: closingTicket, exitAt: null },
+            data: { exitTicket: closingTicket, exitFillPrice: response.fillPrice ?? null, exitAt: new Date(nowMs), exitReason: 'DAILY_CLOSE' },
+          });
+        }
+        await this.prisma.xauusdSarSession.update({
+          where: { accountId },
+          data: { state: 'DAILY_CLOSE_PENDING_CONFIRMATION', unknownSince: null },
+        });
+        return { action: 'BLOCKED', detail: 'flatten filled; awaiting broker-confirmed zero SAR positions before closing the day.' };
+      }
+      if (response.status === 'FAILED') {
+        await this.prisma.xauusdSarOrderAttempt.update({
+          where: { idempotencyTag },
+          data: { status: 'FAILED', failureReason: response.error ?? null, resolvedAt: new Date() },
+        });
+        // Broker-confirmed refusal to flatten: resume managing the
+        // existing position exactly as before -- never guess flat.
+        await this.prisma.xauusdSarSession.update({
+          where: { accountId },
+          data: { state: session.direction === 'BUY' ? 'ACTIVE_BUY' : 'ACTIVE_SELL', unknownSince: null },
+        });
+        return { action: 'NONE', detail: `daily close flatten refused by broker: ${response.error ?? 'no reason given'}` };
+      }
+      // UNKNOWN: leave state as REVERSAL_UNKNOWN. Reconciliation must resolve it.
+      this.announce(sarUnknownMessage({ kind: 'REVERSAL', direction, cycleId, error: response.error ?? 'lost or ambiguous broker answer during daily close' }), `sar:unknown:${accountId}:${cycleId}`);
+      return { action: 'BLOCKED', detail: `daily close flatten broker answer UNKNOWN: ${response.error ?? 'no detail'}` };
+    }
 
     if (response.status === 'FILLED' && response.ticket && response.fillPrice !== undefined) {
       await this.prisma.xauusdSarOrderAttempt.update({
@@ -468,16 +529,16 @@ export class SarExecutionService {
     if (!row) return null;
 
     const session = sessionRowToState(row);
-    // The "closing ticket" for a REVERSAL is whatever ticket the session
-    // still shows — the position this attempt is reversing out of.
-    const closingTicket = attempt.kind === 'REVERSAL' ? row.brokerTicket : null;
+    // The "closing ticket" for a REVERSAL or FLATTEN is whatever ticket the
+    // session still shows — the position this attempt is reversing/flattening.
+    const closingTicket = attempt.kind === 'REVERSAL' || attempt.kind === 'FLATTEN' ? row.brokerTicket : null;
 
     return this.applyBrokerResult(
       {
         accountId: attempt.accountId,
         session,
         direction: attempt.direction,
-        kind: attempt.kind as 'INITIAL' | 'REVERSAL',
+        kind: attempt.kind as 'INITIAL' | 'REVERSAL' | 'FLATTEN',
         closingTicket,
         cycleId: attempt.cycleId,
         idempotencyTag,
@@ -488,11 +549,49 @@ export class SarExecutionService {
     );
   }
 
-  /** 23:40 Beirut: stop new exposure, flatten whatever is open, mark DAILY_CLOSED. Shutdown wins over a simultaneous reversal. */
+  /**
+   * 23:40 Beirut: stop new exposure, flatten whatever is open, mark
+   * DAILY_CLOSED ONLY once broker-confirmed flat.
+   *
+   * GLOBAL INVARIANT (2026-09-25 incident repair): this method must NEVER
+   * transition to DAILY_CLOSED and must NEVER clear cycleId/direction/
+   * brokerTicket/entryFillPrice/extremeSinceEntry/reversalLevel/
+   * unknownSince unless the session row itself already shows a genuinely
+   * flat, fully-resolved state (WAIT_MARKET_OPEN or WAIT_INITIAL_DIRECTION
+   * with no brokerTicket) -- regardless of what state it's in. The
+   * previous implementation had an implicit `if (ACTIVE_*) {...}` guard
+   * with NO else branch, so ANY other state (most critically
+   * REVERSAL_UNKNOWN, a routine transient state while a reversal's broker
+   * result is still being resolved) fell through to an unconditional wipe
+   * with zero broker verification -- confirmed live, 2026-09-24, as
+   * exactly what orphaned a real open position from session tracking.
+   *
+   * This does not query the broker directly (this service has no broker
+   * access of its own) -- it trusts the SAME durable, continuously
+   * reconciled session row every other path already trusts.
+   * `SarReconciliationService` runs on every collector cycle regardless of
+   * daily-close timing and is what actually resolves REVERSAL_UNKNOWN /
+   * detects RECOVERY_REQUIRED; this method's job is only to never race
+   * ahead of that resolution by assuming flat before it's confirmed.
+   */
   async closeForDay(accountId: string, nowMs: number): Promise<SarTickResult> {
     const row = await this.prisma.xauusdSarSession.findUnique({ where: { accountId } });
     if (!row) return { action: 'NONE', detail: 'no session row.' };
     if (row.state === 'DAILY_CLOSED') return { action: 'NONE', detail: 'already closed.' };
+
+    if (row.state === 'REVERSAL_UNKNOWN') {
+      return { action: 'BLOCKED', detail: 'an UNKNOWN submission is still unresolved; reconciliation must confirm broker state before daily close can proceed.' };
+    }
+    if (row.state === 'RECOVERY_REQUIRED') {
+      return { action: 'BLOCKED', detail: 'broker/session ownership mismatch — operator recovery required; daily close will not guess flat.' };
+    }
+    if (row.state === 'DAILY_CLOSE_PENDING_CONFIRMATION') {
+      // Already flattened and awaiting reconciliation's independent
+      // broker-confirmed-zero-positions check (2026-09-25 hardening pass)
+      // -- never resubmit another flatten while one is already pending
+      // confirmation.
+      return { action: 'BLOCKED', detail: 'flatten already filled; awaiting broker-confirmed zero SAR positions before closing the day.' };
+    }
 
     if (row.state === 'ACTIVE_BUY' || row.state === 'ACTIVE_SELL') {
       if (!row.brokerTicket) return { action: 'BLOCKED', detail: 'active state with no ticket — data defect, refusing to guess.' };
@@ -501,9 +600,14 @@ export class SarExecutionService {
       const response = await this.broker.submit({
         accountId,
         cycleId: row.cycleId ?? randomUUID(),
-        kind: 'REVERSAL', // closing, not reversing — collector treats "closingTicket set, no reversal cycle to open" as a flatten.
+        // FLATTEN, never REVERSAL: the collector opens a fresh opposite
+        // position after every REVERSAL close by design (that's the whole
+        // point of a reversal) -- reusing that kind for a daily close was
+        // itself a production bug (it would reopen exposure immediately
+        // after "closing" for the day). FLATTEN closes and stops there.
+        kind: 'FLATTEN',
         direction: row.direction === 'BUY' ? 'SELL' : 'BUY',
-        volumeLots: Number(row.entryFillPrice ? await currentSarVolume(this.prisma, accountId) : 0) || (await currentSarVolume(this.prisma, accountId)) || 0,
+        volumeLots: (await currentSarVolume(this.prisma, accountId)) ?? 0,
         magicNumber: SAR_MAGIC,
         idempotencyTag: `SARCLOSE${(row.cycleId ?? randomUUID()).replace(/-/g, '').slice(0, 8)}`,
         closingTicket: row.brokerTicket,
@@ -513,14 +617,37 @@ export class SarExecutionService {
         return { action: 'BLOCKED', detail: `daily close failed: ${response.error ?? 'unknown'}` };
       }
       if (response.status === 'QUEUED') {
-        return { action: 'BLOCKED', detail: 'flatten queued; reconciliation confirms the close.' };
+        // Session stays REVERSAL_UNKNOWN (already claimed above) --
+        // reconciliation resolves it on a later cycle, exactly like any
+        // other reversal. A LATER call to closeForDay (the scheduler
+        // retries every cycle until DAILY_CLOSED) will see the resolved,
+        // genuinely-flat state and complete the transition below.
+        return { action: 'BLOCKED', detail: 'flatten queued; reconciliation confirms the close before daily close can complete.' };
       }
+      // Synchronous FILLED (test broker only -- production is always
+      // QUEUED): the close order was acknowledged, but per the same
+      // 2026-09-25 hardening as applyBrokerResult's FLATTEN branch, that
+      // acknowledgment ALONE is not sufficient -- move to
+      // DAILY_CLOSE_PENDING_CONFIRMATION and let reconciliation's
+      // confirmDailyCloseFlat() independently verify zero SAR positions
+      // before ever setting DAILY_CLOSED or clearing brokerTicket.
       await this.prisma.xauusdSarCycle.updateMany({
         where: { accountId, entryTicket: row.brokerTicket, exitAt: null },
         data: { exitFillPrice: response.fillPrice ?? null, exitAt: new Date(nowMs), exitReason: 'DAILY_CLOSE' },
       });
+      await this.prisma.xauusdSarSession.update({
+        where: { accountId },
+        data: { state: 'DAILY_CLOSE_PENDING_CONFIRMATION', unknownSince: null },
+      });
+      return { action: 'BLOCKED', detail: 'flatten filled; awaiting broker-confirmed zero SAR positions before closing the day.' };
     }
 
+    // Only remaining states here: WAIT_MARKET_OPEN / WAIT_INITIAL_DIRECTION,
+    // both of which mean no owned position by construction -- brokerTicket
+    // is asserted null as a defensive check, not assumed.
+    if (row.brokerTicket !== null) {
+      return { action: 'BLOCKED', detail: `state ${row.state} unexpectedly carries brokerTicket=${row.brokerTicket} — data defect, refusing to guess; operator review required.` };
+    }
     await this.prisma.xauusdSarSession.update({
       where: { accountId },
       data: {

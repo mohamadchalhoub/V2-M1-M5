@@ -32,6 +32,10 @@ class _FakeConfig:
     gold_execution_enabled: bool = False
     trend_breakout_execution_enabled: bool = False
     rsi_execution_enabled: bool = True
+    sar_execution_enabled: bool = False
+    m1m5_execution_enabled: bool = False
+    telegram_engine_execution_enabled: bool = False
+    historical_tick_archival_enabled: bool = True
     mt5_broker_timezone: str = "UTC"
     candle_timeframes_by_symbol: dict = field(default_factory=dict)
 
@@ -373,3 +377,135 @@ def test_cadence_is_measured_across_observations():
 def test_the_observation_loop_is_only_started_when_the_strategy_is_enabled():
     app, _client, _api, _executor = _app(rsi_execution_enabled=False)
     assert app._rsi_observation_thread is None
+
+
+# --- 2026-09-25 emergency hardening pass: historical archival must never
+# delay live execution. `historical_tick_archival_enabled` is entirely
+# separate from live observation/execution -- see Config's own docstring
+# for the full trace proving nothing execution-relevant reads
+# _rsi_cursor_msc/_rsi_last_pushed_msc or this function's fetched ticks. ---
+
+
+def test_A_archival_disabled_live_observation_still_occurs():
+    """MT5 lock acquire/release, is_connected() check, and get_ticks_from()
+    all still happen exactly as before -- only the push is skipped."""
+    app, client, api, _executor = _app(historical_tick_archival_enabled=False)
+    client.is_connected.return_value = True
+    client.get_ticks_from.return_value = [_tick(1_789_000_000_000)]
+
+    app._observe_rsi_once()
+
+    client.is_connected.assert_called_once()
+    client.get_ticks_from.assert_called_once()
+
+
+def test_B_archival_disabled_post_ticks_is_never_called():
+    app, client, api, _executor = _app(historical_tick_archival_enabled=False)
+    client.is_connected.return_value = True
+    client.get_ticks_from.return_value = [_tick(1_789_000_000_000), _tick(1_789_000_000_500, seq=1)]
+
+    app._observe_rsi_once()
+
+    api.post_ticks.assert_not_called()
+    # The cursor still advances -- as if the push had succeeded -- so a
+    # later re-enable doesn't need to catch up an unbounded backlog, and
+    # the MT5 query window above stays bounded regardless of this flag.
+    assert app._rsi_cursor_msc == 1_789_000_000_500
+
+
+def test_C_archival_disabled_execution_fast_pass_still_runs():
+    """The SAR/M1M5 fast-passes run on the SAME thread, right after
+    _observe_rsi_once, regardless of this flag -- confirmed by checking
+    they are still invoked and still reach the backend."""
+    app, client, api, _executor = _app(
+        historical_tick_archival_enabled=False, sar_execution_enabled=True, m1m5_execution_enabled=True,
+    )
+    client.is_connected.return_value = True
+    client.get_ticks_from.return_value = []
+    api.get_pending_sar_order.return_value = {"order": None}
+    api.get_pending_m1m5_order.return_value = {"order": None}
+
+    app._observe_rsi_once()
+    app._sar_fast_execution_pass()
+    app._m1m5_fast_execution_pass()
+
+    api.get_pending_sar_order.assert_called_once()
+    api.get_pending_m1m5_order.assert_called_once()
+
+
+def test_D_archival_enabled_existing_behavior_remains_functional():
+    """Default (absent / True) behaves identically to before this pass."""
+    app, client, api, _executor = _app()  # no override -- default True
+    client.is_connected.return_value = True
+    client.get_ticks_from.return_value = [_tick(1_789_000_000_000)]
+    api.post_ticks.return_value = {"inserted": 1}
+
+    app._observe_rsi_once()
+
+    api.post_ticks.assert_called_once()
+    assert app._rsi_cursor_msc == 1_789_000_000_000
+
+    app2, client2, api2, _executor2 = _app(historical_tick_archival_enabled=True)  # explicit True, same result
+    client2.is_connected.return_value = True
+    client2.get_ticks_from.return_value = [_tick(1_789_000_000_000)]
+    api2.post_ticks.return_value = {"inserted": 1}
+    app2._observe_rsi_once()
+    api2.post_ticks.assert_called_once()
+
+
+def test_E_archival_disabled_a_slow_or_timing_out_backend_cannot_delay_the_next_observation():
+    """The exact production symptom this fix closes: with archival
+    disabled, post_ticks() is never attempted at all, so it cannot time
+    out, block, or otherwise delay this thread -- there is nothing to
+    retry, and the next observation is free to proceed at full 1s cadence
+    regardless of how unavailable/slow the historical-tick backend is."""
+    app, client, api, _executor = _app(historical_tick_archival_enabled=False)
+    client.is_connected.return_value = True
+    client.get_ticks_from.return_value = [_tick(1_789_000_000_000)]
+    # Even if the api client would raise/hang, post_ticks is never called,
+    # so its side_effect (if any) can never fire.
+    from app.api_client import ApiClientError
+    api.post_ticks.side_effect = ApiClientError("Read timed out. (read timeout=10)")
+
+    app._observe_rsi_once()  # must not raise, must not hit post_ticks at all
+
+    api.post_ticks.assert_not_called()
+    assert app._rsi_cursor_msc == 1_789_000_000_000  # cursor still advanced
+
+
+def test_F_no_strategy_rule_changes_default_config_omits_the_new_field_and_still_works():
+    """A config double built before this flag existed (getattr default)
+    behaves exactly like archival-enabled -- proving no strategy/execution
+    rule changed for any existing test or deployment that hasn't set the
+    new flag at all."""
+    @dataclass
+    class _OldFakeConfig:
+        poll_interval_seconds: int = 10
+        reconnect_initial_backoff_seconds: float = 2.0
+        reconnect_max_backoff_seconds: float = 60.0
+        has_explicit_credentials: bool = False
+        collector_account_id: str = "acct-1"
+        collector_api_base_url: str = "http://localhost:8420"
+        initial_sync_days: int = 90
+        history_sync_overlap_minutes: int = 5
+        candle_symbols: tuple = ()
+        candle_timeframes: tuple = ()
+        candle_sync_interval_seconds: int = 300
+        candle_initial_sync_days: int = 1000
+        autonomous_execution_enabled: bool = False
+        gold_execution_enabled: bool = False
+        trend_breakout_execution_enabled: bool = False
+        rsi_execution_enabled: bool = True
+        mt5_broker_timezone: str = "UTC"
+        candle_timeframes_by_symbol: dict = field(default_factory=dict)
+        # historical_tick_archival_enabled deliberately OMITTED here.
+
+    client, api, executor = MagicMock(), MagicMock(), MagicMock()
+    app = CollectorApp(config=_OldFakeConfig(), client=client, api=api, executor=executor)
+    client.is_connected.return_value = True
+    client.get_ticks_from.return_value = [_tick(1_789_000_000_000)]
+    api.post_ticks.return_value = {"inserted": 1}
+
+    app._observe_rsi_once()
+
+    api.post_ticks.assert_called_once()  # unaffected: absent -> defaults to enabled

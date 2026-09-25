@@ -140,17 +140,32 @@ describe('the hard invariant: at most one broker reversal attempt however this r
     // A broker whose reversal fill lands far from the crossing quote, so
     // this test is deterministic regardless of exactly how the two calls
     // interleave: if the SECOND caller loses the atomic claim outright, it
-    // gets 0 rows and does nothing; if instead it runs against the
-    // ALREADY-reversed fresh cycle, that cycle's own reversal level (set
-    // far from this quote) means it correctly finds nothing to do either
-    // way. Either path proves the same invariant -- exactly one broker call.
+    // gets 0 rows and does nothing; if instead it runs SEQUENTIALLY against
+    // the ALREADY-reversed fresh cycle (a real, legitimate interleaving --
+    // confirmed live via direct instrumentation during this investigation:
+    // both claims succeeded, claim.count=1 each, one strictly after the
+    // other, never two concurrent successes on the same state), that fresh
+    // cycle's OWN reversal level must NOT also be crossed by this SAME
+    // fixed quote, or a second, perfectly legitimate reversal fires (the
+    // strategy correctly continues trailing a fresh position whose own
+    // level is already in range) -- correct strategy behaviour, but it
+    // would defeat this test's own "exactly one" assertion. See the SELL
+    // fill price's own comment below for why 4520.0 (not the original
+    // 4490.0, which put the fresh SELL cycle's reversal level on the WRONG
+    // side of the quote -- already crossed, not dormant) is what actually
+    // makes this deterministic.
     class FarFillBroker implements SarBrokerPort {
       public readonly calls: SarSubmitRequest[] = [];
       private ticketSeq = 900000;
       async submit(request: SarSubmitRequest): Promise<SarSubmitResponse> {
         this.calls.push(request);
         this.ticketSeq += 1;
-        const fillPrice = request.direction === 'BUY' ? 4500.5 : 4490.0;
+        // BUY fill stays 4500.5: this SAME broker instance also submits the
+        // INITIAL entry via activeBuy(broker) below, and that entry's own
+        // reversal level (4500.0) must land within range of the later
+        // crossing quote (bid 4499.9) -- that part was always correct.
+        // Only the SELL fill (below) needed changing.
+        const fillPrice = request.direction === 'BUY' ? 4500.5 : 4520.0;
         return { status: 'FILLED', ticket: String(this.ticketSeq), fillPrice };
       }
     }

@@ -9,9 +9,16 @@
 import { PrismaClient } from '@prisma/client';
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SarExecutionService, type SarBrokerPort, type SarSubmitRequest, type SarSubmitResponse } from '../../src/xauusd-sar/execution.service';
+import { SarReconciliationService } from '../../src/xauusd-sar/reconciliation.service';
+import { SAR_MAGIC } from '../../src/xauusd-sar/safety-constants';
 import { setSarVolume } from '../../src/xauusd-sar/volume-setting';
 import { createTradingAccount, createUser } from '../helpers/factories';
 import { resetDatabase } from '../helpers/db';
+
+const notifier = { notify: async () => undefined } as never;
+function reconciliation() {
+  return new SarReconciliationService(prisma as never, notifier);
+}
 
 const prisma = new PrismaClient();
 let accountId: string;
@@ -208,7 +215,10 @@ describe('the full reversal cycle, end to end', () => {
 });
 
 describe('the daily close', () => {
-  it('flattens an active position and marks the session DAILY_CLOSED', async () => {
+  it('flattens an active position: FLATTEN filled moves to DAILY_CLOSE_PENDING_CONFIRMATION, never straight to DAILY_CLOSED', async () => {
+    // 2026-09-25 hardening pass: a successful close-order acknowledgment
+    // alone is NOT sufficient -- see execution-db's sibling test below for
+    // the full two-step flow completing via reconciliation.
     const broker = new FakeBroker('FILLED');
     const svc = service(broker);
     await svc.ensureSession(accountId, SESSION_START);
@@ -217,16 +227,45 @@ describe('the daily close', () => {
 
     const closeAt = Date.UTC(2026, 8, 23, 20, 40); // 23:40 Beirut
     const result = await svc.closeForDay(accountId, closeAt);
-    expect(result.action).toBe('DAILY_CLOSED');
+    expect(result.action).toBe('BLOCKED');
+    expect(result.detail).toMatch(/awaiting broker-confirmed zero SAR positions/);
+
+    const row = await prisma.xauusdSarSession.findUnique({ where: { accountId } });
+    expect(row!.state).toBe('DAILY_CLOSE_PENDING_CONFIRMATION');
+    expect(row!.brokerTicket).not.toBeNull(); // deliberately NOT cleared yet
+    expect(row!.direction).not.toBeNull();
+
+    const cycles = await prisma.xauusdSarCycle.findMany({ where: { accountId } });
+    expect(cycles[0].exitReason).toBe('DAILY_CLOSE');
+    expect(cycles[0].exitAt).not.toBeNull();
+  });
+
+  it('completes to DAILY_CLOSED only once reconciliation independently confirms zero SAR positions', async () => {
+    const broker = new FakeBroker('FILLED');
+    const svc = service(broker);
+    await svc.ensureSession(accountId, SESSION_START);
+    await svc.initializeSession(accountId, { bid: 4500, ask: 4500.2, ageSeconds: 1, fresh: true }, SESSION_START);
+    await svc.evaluateTick(accountId, { bid: 4500.4, ask: 4500.6, ageSeconds: 1, fresh: true }, SESSION_START + 1000);
+    const closeAt = Date.UTC(2026, 8, 23, 20, 40);
+    await svc.closeForDay(accountId, closeAt);
+    const pending = await prisma.xauusdSarSession.findUnique({ where: { accountId } });
+    expect(pending!.state).toBe('DAILY_CLOSE_PENDING_CONFIRMATION');
+
+    const outcome = await reconciliation().reconcile({
+      accountId,
+      nowMs: closeAt + 1000,
+      snapshotAtMs: closeAt + 500,
+      snapshotComplete: true,
+      mt5Connected: true,
+      positions: [], // broker-confirmed zero SAR-magic positions
+      deals: [],
+    });
+    expect(outcome.resolved).toBe(true);
 
     const row = await prisma.xauusdSarSession.findUnique({ where: { accountId } });
     expect(row!.state).toBe('DAILY_CLOSED');
     expect(row!.direction).toBeNull();
     expect(row!.brokerTicket).toBeNull();
-
-    const cycles = await prisma.xauusdSarCycle.findMany({ where: { accountId } });
-    expect(cycles[0].exitReason).toBe('DAILY_CLOSE');
-    expect(cycles[0].exitAt).not.toBeNull();
   });
 
   it('closes even a flat WAIT_MARKET_OPEN session (nothing to flatten, but still marks DAILY_CLOSED)', async () => {

@@ -38,7 +38,9 @@ export type SarState =
   | 'ACTIVE_BUY'
   | 'ACTIVE_SELL'
   | 'REVERSAL_UNKNOWN'
-  | 'DAILY_CLOSED';
+  | 'DAILY_CLOSED'
+  | 'RECOVERY_REQUIRED'
+  | 'DAILY_CLOSE_PENDING_CONFIRMATION';
 
 export interface SarQuote {
   readonly bid: number;
@@ -264,6 +266,18 @@ export function closeForDay(session: SarSessionState): SarSessionState {
     ...initialSessionState(session.sessionDate),
     state: 'DAILY_CLOSED',
   };
+}
+
+/**
+ * Broker/session ownership cannot be trusted -- an unexpected SAR-magic
+ * position was found with no matching session ownership, or a daily close
+ * could not authoritatively confirm the account is flat. Blocks every
+ * normal path (same posture as REVERSAL_UNKNOWN) but is never
+ * auto-resolved by a single reconciliation pass; it requires an explicit
+ * operator-confirmed recovery (2026-09-25 incident repair).
+ */
+export function enterRecoveryRequired(session: SarSessionState): SarSessionState {
+  return { ...session, state: 'RECOVERY_REQUIRED' };
 }
 
 /** 01:00 Beirut the next day: a brand new session, flat, waiting for the market. */

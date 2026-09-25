@@ -60,6 +60,37 @@ export const SAR_UNKNOWN_ESCALATION_SECONDS = 300;
  */
 export const SAR_RECONCILE_MIN_AGE_SECONDS = 10;
 
+/**
+ * Distinct, deliberately more generous grace period for an order attempt
+ * the collector has NEVER claimed at all (`claimedAt === null`) -- "never
+ * claimed" means the collector's own pending-order poll hasn't even tried
+ * yet, which is a materially weaker signal than "claimed and the close
+ * didn't complete." Confirmed production incident (2026-09-24): a
+ * REVERSAL sat unclaimed while the collector's MT5 lock was held by
+ * observation work, and reconciliation concluded FAILED using the same
+ * 10s window meant for a CLAIMED attempt -- killing a reversal that had
+ * never even had its first execution attempt. Sized comfortably above the
+ * worst-case bounded lock-wait introduced in the collector's main loop
+ * (see runner.py's MAIN_LOOP_LOCK_ACQUIRE_TIMEOUT_SECONDS) plus normal
+ * poll-cadence jitter, without being an arbitrary/unrelated number: it is
+ * a genuinely different question (has the collector even tried yet?)
+ * from what SAR_RECONCILE_MIN_AGE_SECONDS answers (did a claimed attempt
+ * round-trip in a reasonable time?).
+ */
+export const SAR_RECONCILE_UNCLAIMED_GRACE_SECONDS = 30;
+
+/**
+ * Observability threshold ONLY (2026-09-25 hardening pass) -- when a
+ * REVERSAL attempt has sat unclaimed for at least this long, a single,
+ * deduplicated "SAR REVERSAL EXECUTION DELAY" alert fires. Deliberately
+ * lower than SAR_RECONCILE_UNCLAIMED_GRACE_SECONDS (30s): the alert exists
+ * so an abnormal delay is visible well before reconciliation's own grace
+ * period would otherwise conclude anything, without itself causing any
+ * state change, cancellation, or new order. Never alters execution
+ * timing -- purely a signal for a human to notice.
+ */
+export const SAR_UNCLAIMED_REVERSAL_ALERT_THRESHOLD_SECONDS = 10;
+
 /** A snapshot older than this, relative to when it is read, is never used to resolve an UNKNOWN. */
 export const SAR_RECONCILE_MAX_SNAPSHOT_AGE_SECONDS = 30;
 
@@ -81,15 +112,24 @@ export const SAR_RECONCILE_MAX_SNAPSHOT_AGE_SECONDS = 30;
 export const SAR_WATCHDOG_STALE_THRESHOLD_MS = 8_000;
 
 /**
- * The wide, catastrophic-only backstop stop-loss and take-profit distance
- * attached to every SAR order, in USD of gold price. NOT this strategy's
- * real exit mechanism — the $0.50 reversal is. This exists only because
- * `Executor.send_bracket_order` (the collector's send path) enforces this
- * codebase's own audited rule that no order is ever sent bare
- * (AUTONOMOUS_DEMO_TRADING_PLAN.md §1); see MIGRATION_AND_ROLLBACK.md for
- * the full discussion. Deliberately wide — 20x the reversal distance — so it
- * only matters if the reversal logic itself cannot run (process down,
- * disconnected) for long enough that price has moved this far unmanaged.
+ * REMOVED from new SAR orders (2026-09-25 strategy correction): this
+ * strategy has no catastrophic/emergency broker-side bracket by design --
+ * the $0.50 trailing reversal IS the complete exit mechanism, and a
+ * profit-side "catastrophic" take-profit is not part of the specification
+ * at all. A live incident (2026-09-24) proved this bracket is actively
+ * harmful, not merely redundant: a BUY's $0.50 reversal was already due
+ * (price had crossed the reversal level) but execution was delayed, and
+ * the broker's own $10 take-profit closed the position first, via a path
+ * the app-level reversal logic never controlled — an unintended broker
+ * exit competing with the intended strategy, not a safety net.
+ *
+ * This constant is kept, unused by new order submission, ONLY because
+ * historical `xauusd_sar_catastrophic_incidents` rows reference this
+ * distance for audit purposes; it must never be reintroduced into
+ * `execution.controller.ts`'s pending-order payload. See
+ * `collector/app/executor.py`'s `send_market_order_no_bracket` for the
+ * new SAR-only, no-bracket order path (every other strategy keeps using
+ * `send_bracket_order` and its mandatory-SL/TP invariant unchanged).
  */
 export const SAR_CATASTROPHIC_STOP_USD = SPEC.reversalDistanceUsd * 20;
 

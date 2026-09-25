@@ -519,3 +519,97 @@ def test_a_watchdog_poll_failure_is_logged_and_never_crashes_the_loop():
     api.get_sar_watchdog_check.side_effect = ApiClientError("network down")
 
     app._poll_sar_watchdog()  # must not raise
+
+
+# --- 2026-09-25 strategy correction: no catastrophic bracket -----------------
+#
+# xauusd-sar-v1 has NO broker-side SL/TP by design (the $0.50 trailing
+# reversal is the entire exit mechanism). `noBracket: true` on the order
+# routes it to `send_market_order_no_bracket`, never `send_bracket_order`.
+
+
+def test_noBracket_order_uses_send_market_order_no_bracket_not_send_bracket_order():
+    app, api, executor = _app()
+    api.get_pending_sar_order.return_value = {"order": _order(noBracket=True)}
+    executor.send_market_order_no_bracket.return_value = OrderResult(ok=True, ticket=900001, price=4500.5)
+
+    app._poll_and_execute_pending_sar_order()
+
+    executor.send_bracket_order.assert_not_called()
+    executor.send_market_order_no_bracket.assert_called_once()
+    kwargs = executor.send_market_order_no_bracket.call_args.kwargs
+    assert kwargs["side"] == "BUY"
+    assert "stop_loss_points" not in kwargs
+    assert "take_profit_points" not in kwargs
+
+    payload = api.post_sar_execution_result.call_args.args[2]
+    assert payload["ok"] is True
+    assert payload["ticket"] == 900001
+
+
+def test_a_reversal_with_noBracket_closes_then_opens_via_the_no_bracket_path():
+    app, api, executor = _app()
+    api.get_pending_sar_order.return_value = {
+        "order": _order(kind="REVERSAL", side="SELL", closingTicket="900001", noBracket=True),
+    }
+    executor.find_open_position.return_value = _live_position(900001, 0.5)
+    executor.close_position.return_value = OrderResult(ok=True, ticket=900001, price=4502.5)
+    executor.send_market_order_no_bracket.return_value = OrderResult(ok=True, ticket=900002, price=4502.5)
+
+    app._poll_and_execute_pending_sar_order()
+
+    executor.close_position.assert_called_once()
+    executor.send_bracket_order.assert_not_called()
+    executor.send_market_order_no_bracket.assert_called_once()
+    open_kwargs = executor.send_market_order_no_bracket.call_args.kwargs
+    assert open_kwargs["side"] == "SELL"
+
+
+# --- 2026-09-25 daily-close FLATTEN fix ---------------------------------------
+#
+# A daily close must close the existing position and NEVER reopen the
+# opposite side -- unlike a REVERSAL, which always closes-then-opens by
+# design. Confirmed production bug: closeForDay() used to reuse kind=
+# 'REVERSAL', which this collector always followed with a fresh open,
+# defeating "no new exposure at close."
+
+
+def test_flatten_closes_the_position_and_never_opens_a_new_one():
+    app, api, executor = _app()
+    api.get_pending_sar_order.return_value = {
+        "order": _order(kind="FLATTEN", side="SELL", closingTicket="900001", noBracket=True),
+    }
+    executor.find_open_position.return_value = _live_position(900001, 0.5)
+    executor.close_position.return_value = OrderResult(ok=True, ticket=900001, price=4270.0)
+
+    app._poll_and_execute_pending_sar_order()
+
+    executor.close_position.assert_called_once()
+    close_kwargs = executor.close_position.call_args.kwargs
+    assert close_kwargs["ticket"] == 900001
+    assert close_kwargs["side"] == "BUY"  # closing a BUY-side existing position
+
+    # The whole point of this fix: no open call of any kind after a FLATTEN.
+    executor.send_bracket_order.assert_not_called()
+    executor.send_market_order_no_bracket.assert_not_called()
+
+    payload = api.post_sar_execution_result.call_args.args[2]
+    assert payload["ok"] is True
+    assert payload["uncertain"] is False
+
+
+def test_flatten_reports_uncertain_when_the_close_itself_fails():
+    app, api, executor = _app()
+    api.get_pending_sar_order.return_value = {
+        "order": _order(kind="FLATTEN", side="SELL", closingTicket="900001", noBracket=True),
+    }
+    executor.find_open_position.return_value = _live_position(900001, 0.5)
+    executor.close_position.return_value = OrderResult(ok=False, error_message="requote")
+
+    app._poll_and_execute_pending_sar_order()
+
+    executor.send_bracket_order.assert_not_called()
+    executor.send_market_order_no_bracket.assert_not_called()
+    payload = api.post_sar_execution_result.call_args.args[2]
+    assert payload["ok"] is False
+    assert payload["uncertain"] is True

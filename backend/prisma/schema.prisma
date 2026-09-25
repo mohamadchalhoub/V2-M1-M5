@@ -2666,6 +2666,26 @@ enum XauusdSarState {
   ACTIVE_SELL
   REVERSAL_UNKNOWN
   DAILY_CLOSED
+  // Broker/session-ownership mismatch requiring an operator (2026-09-25
+  // incident repair): an unexpected SAR-magic broker position was found
+  // with no matching session ownership, or the daily close could not
+  // authoritatively confirm the account is flat. Blocks every normal
+  // evaluation/submission path exactly like REVERSAL_UNKNOWN, but is never
+  // entered/exited automatically the way REVERSAL_UNKNOWN is by a single
+  // reconciliation pass -- it requires an explicit operator-confirmed
+  // recovery. See reconciliation.service.ts and execution.service.ts.
+  RECOVERY_REQUIRED
+  // A daily-close FLATTEN's own close order was acknowledged FILLED by the
+  // broker, but that acknowledgment ALONE is not sufficient to declare the
+  // day closed (2026-09-25 hardening pass, per explicit instruction: "a
+  // successful MT5 close order acknowledgment alone is NOT sufficient").
+  // Session stays here -- ownership fields (brokerTicket etc.) are NOT
+  // cleared yet -- until a fresh, complete, connected broker snapshot
+  // independently confirms ZERO SAR-magic positions. Blocks every normal
+  // evaluation/submission path exactly like REVERSAL_UNKNOWN/
+  // RECOVERY_REQUIRED. See reconciliation.service.ts's
+  // confirmDailyCloseFlat().
+  DAILY_CLOSE_PENDING_CONFIRMATION
 }
 
 enum XauusdSarDirection {

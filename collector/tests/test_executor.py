@@ -247,6 +247,73 @@ class TestSendBracketOrder:
         assert len(fake.order_send_calls) == 2
 
 
+class TestSendMarketOrderNoBracket:
+    """xauusd-sar-v1 ONLY (2026-09-25 strategy correction) — no catastrophic
+    broker-side bracket. Sends sl=0.0/tp=0.0 (MT5's own "no protection"
+    convention, never a zero-distance bracket that would immediately
+    trigger), shares send_bracket_order's exact duplicate-position guard,
+    and does NOT call _verify_protective_stop (a missing SL here is the
+    intended outcome, not a defect)."""
+
+    def test_refuses_on_a_non_demo_account_before_sending_anything(self):
+        fake = FakeMt5(trade_mode=ACCOUNT_TRADE_MODE_REAL)
+        with pytest.raises(DemoAccountRequiredError):
+            Executor(fake).send_market_order_no_bracket(side="BUY", volume=0.01, magic=1, comment="x")
+        assert fake.order_send_calls == []
+
+    def test_rejects_an_invalid_side(self):
+        with pytest.raises(ValueError, match="side"):
+            Executor(FakeMt5()).send_market_order_no_bracket(side="LONG", volume=0.01, magic=1, comment="x")
+
+    def test_sends_zero_sl_and_zero_tp_never_a_zero_distance_bracket(self):
+        fake = FakeMt5(tick_bid=4270.0, tick_ask=4270.2)
+        result = Executor(fake).send_market_order_no_bracket(side="BUY", volume=0.01, magic=262610220, comment="sar-x")
+
+        assert result.ok is True
+        sent = fake.order_send_calls[0]
+        assert sent["sl"] == 0.0
+        assert sent["tp"] == 0.0
+        assert sent["price"] == 4270.2  # buys at ask, same as send_bracket_order
+
+    def test_refuses_a_second_position_under_the_same_magic(self):
+        fake = FakeMt5()
+        fake.set_open_positions([open_position(ticket=900001, magic=262610220)])
+        result = Executor(fake).send_market_order_no_bracket(side="BUY", volume=0.01, magic=262610220, comment="sar-x")
+        assert result.ok is False
+        assert "already exists" in result.error_message
+        assert fake.order_send_calls == []
+
+    def test_reports_unknown_when_the_duplicate_check_itself_fails(self):
+        fake = FakeMt5()
+        fake.make_positions_get_fail()
+        result = Executor(fake).send_market_order_no_bracket(side="BUY", volume=0.01, magic=262610220, comment="sar-x")
+        assert result.ok is False
+        assert result.outcome == "UNKNOWN"
+        assert fake.order_send_calls == []
+
+    def test_retries_once_with_a_fresh_quote_after_a_requote_then_succeeds(self):
+        fake = FakeMt5(tick_ask=1.1000)
+        fake.queue_order_send_result(failed_result())
+        result = Executor(fake).send_market_order_no_bracket(side="BUY", volume=0.01, magic=1, comment="x")
+        assert result.ok is True
+        assert len(fake.order_send_calls) == 2
+        assert fake.order_send_calls[1]["sl"] == 0.0
+        assert fake.order_send_calls[1]["tp"] == 0.0
+
+    def test_does_not_call_protective_stop_verification_at_all(self, caplog):
+        """`_verify_protective_stop` logs (WARNING or ERROR, depending on
+        what it finds) whenever it runs at all — correct behaviour for
+        send_bracket_order, wrong here, since no SL is the intended,
+        correct outcome for this strategy, not a defect to verify against."""
+        import logging
+
+        fake = FakeMt5()
+        with caplog.at_level(logging.WARNING):
+            result = Executor(fake).send_market_order_no_bracket(side="BUY", volume=0.01, magic=1, comment="x")
+        assert result.ok is True
+        assert not any("protective stop" in r.message for r in caplog.records)
+
+
 class TestDuplicatePreventionAndReconciliation:
     """Audit finding: order_send's `None` response is ambiguous — it means
     the acknowledgment was lost, not that the order failed. Blindly

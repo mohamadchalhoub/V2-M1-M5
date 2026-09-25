@@ -429,6 +429,75 @@ class Executor:
             )
             return self._verify_protective_stop(result)
 
+    # ------------------------------------------------------------------
+    # xauusd-sar-v1 (Engine A) ONLY -- 2026-09-25 strategy correction.
+    #
+    # This strategy has NO catastrophic/emergency broker-side bracket by
+    # design: the $0.50 trailing reversal IS the complete exit mechanism,
+    # closing the full position and immediately opening the opposite side
+    # the instant the reversal level is reached/crossed. A live incident
+    # (2026-09-24) proved the old $10 SL/TP bracket was actively harmful,
+    # not merely redundant: a BUY's $0.50 reversal was already due when
+    # execution was delayed, and the broker's own take-profit closed the
+    # position first via a path the app-level reversal logic never
+    # controlled -- an unintended broker exit competing with the intended
+    # strategy, not a safety net.
+    #
+    # Deliberately a SEPARATE method from send_bracket_order, not a bypass
+    # of its `stop_loss_points is None` check: that check enforces
+    # AUTONOMOUS_DEMO_TRADING_PLAN.md §1 for every OTHER strategy calling
+    # send_bracket_order, and must never be weakened or made conditional
+    # for them. Only xauusd-sar-v1's own order-submission path
+    # (runner.py's `_poll_and_execute_pending_sar_order`, gated on
+    # `order.get("noBracket")` from the backend) ever calls this method.
+    #
+    # Shares send_bracket_order's exact duplicate-position guard (still a
+    # valid, separate safety net unrelated to the SL/TP bracket question)
+    # and its retry/ambiguous-response handling via the same
+    # `_send_with_one_retry`, passing `None` for both SL/TP so
+    # `_build_bracket_request` sends MT5's own "no stop-loss/take-profit"
+    # convention (sl=0.0, tp=0.0) rather than a zero-distance bracket that
+    # would immediately trigger. Does NOT call `_verify_protective_stop`:
+    # a missing SL here is the intended, correct outcome, not a defect to
+    # warn about.
+    def send_market_order_no_bracket(
+        self,
+        *,
+        side: str,
+        volume: float,
+        magic: int,
+        comment: str,
+        symbol: str = DEFAULT_SYMBOL,
+        point_size: float = EURUSD_POINT_SIZE,
+        deviation_points: int = 20,
+    ) -> OrderResult:
+        with self._lock:
+            self.verify_demo_account()
+
+            if side not in ("BUY", "SELL"):
+                raise ValueError(f"side must be BUY or SELL, got {side!r}")
+
+            try:
+                existing = self.find_open_position(magic, symbol=symbol)
+            except ReconciliationQueryFailed as exc:
+                return _unknown_result(f"cannot verify no duplicate position exists before sending ({exc}) — refusing to send until this is resolved.")
+
+            if existing is not None:
+                logger.warning(
+                    "refusing to open a new %s position on %s — an open position (ticket=%s) already exists under this system's magic number %s",
+                    side, symbol, existing.ticket, magic,
+                )
+                return OrderResult(
+                    ok=False,
+                    outcome="FAILED",
+                    error_message=f"An open position (ticket={existing.ticket}) already exists under magic={magic} on {symbol} — refusing to open a second one.",
+                )
+
+            return self._send_with_one_retry(
+                side=side, volume=volume, stop_loss_points=None, take_profit_points=None,
+                magic=magic, comment=comment, symbol=symbol, point_size=point_size,
+                deviation_points=deviation_points,
+            )
 
     # ------------------------------------------------------------------
     # ENGINE B - the Telegram copy engine.
@@ -695,7 +764,7 @@ class Executor:
 
     def _build_bracket_request(
 
-        self, *, side: str, volume: float, stop_loss_points: float, take_profit_points: float,
+        self, *, side: str, volume: float, stop_loss_points: float | None, take_profit_points: float | None,
         magic: int, comment: str, deviation_points: int, symbol: str = DEFAULT_SYMBOL, point_size: float = EURUSD_POINT_SIZE,
     ) -> dict | None:
         """Builds one order_send request from a FRESH live tick — called
@@ -728,10 +797,19 @@ class Executor:
 
         order_type = self._mt5.ORDER_TYPE_BUY if side == "BUY" else self._mt5.ORDER_TYPE_SELL
         price = tick.ask if side == "BUY" else tick.bid
-        sl_offset = _points_to_price(stop_loss_points, point_size)
-        tp_offset = _points_to_price(take_profit_points, point_size)
-        stop_loss = price - sl_offset if side == "BUY" else price + sl_offset
-        take_profit = price + tp_offset if side == "BUY" else price - tp_offset
+        # None means "no bracket at all" (xauusd-sar-v1 only, 2026-09-25
+        # strategy correction) -- 0.0 is MT5's own convention for "no
+        # stop-loss/take-profit attached", distinct from "an SL/TP AT the
+        # current price" (which a zero-distance points value would
+        # otherwise compute here and immediately trigger).
+        if stop_loss_points is None and take_profit_points is None:
+            stop_loss = 0.0
+            take_profit = 0.0
+        else:
+            sl_offset = _points_to_price(stop_loss_points, point_size)
+            tp_offset = _points_to_price(take_profit_points, point_size)
+            stop_loss = price - sl_offset if side == "BUY" else price + sl_offset
+            take_profit = price + tp_offset if side == "BUY" else price - tp_offset
 
         return {
             "action": self._mt5.TRADE_ACTION_DEAL,
@@ -749,7 +827,7 @@ class Executor:
         }, None
 
     def _send_with_one_retry(
-        self, *, side: str, volume: float, stop_loss_points: float, take_profit_points: float,
+        self, *, side: str, volume: float, stop_loss_points: float | None, take_profit_points: float | None,
         magic: int, comment: str, deviation_points: int, symbol: str = DEFAULT_SYMBOL, point_size: float = EURUSD_POINT_SIZE,
     ) -> OrderResult:
         build_kwargs = dict(

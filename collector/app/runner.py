@@ -215,14 +215,28 @@ SYMBOL_METADATA_SYNC_INTERVAL_SECONDS = 86400
 # background thread (see _maybe_start_tick_sync), serialized against the
 # main loop's own MT5 calls with `_mt5_call_lock` — the MetaTrader5 Python
 # module is documented as not thread-safe for concurrent calls on one
-# connection, so true parallel MT5 calls are never allowed, but the main
-# loop only does a NON-BLOCKING lock attempt: if tick sync is mid-call, the
-# main loop skips that one ~poll_interval_seconds cycle's MT5 work and
-# checks again next cycle, rather than blocking synchronously for the
-# tick call's entire duration. Net effect: the loop keeps cycling and stays
-# responsive to shutdown throughout a slow/failing tick call, and normal
-# work resumes on the very next cycle once the tick call finishes — instead
-# of one uninterruptible ~106s freeze.
+# connection, so true parallel MT5 calls are never allowed.
+#
+# REVISED 2026-09-25 (execution-priority fix, incident repair): the main
+# loop used to do a NON-BLOCKING lock attempt and skip the ENTIRE cycle's
+# MT5 work — including xauusd-sar-v1's execution-critical pending-order
+# poll — the instant ANY other thread (archival tick-sync, or the RSI/live
+# tick observation thread that shares this same lock) held it. Confirmed
+# live, 2026-09-24: a pending SAR REVERSAL sat unclaimed for its entire
+# ~9.5s life because three consecutive main-loop cycles, ~10s apart, all
+# lost this race and skipped outright — reconciliation then judged the
+# never-attempted reversal a failure. The main loop now does a BOUNDED
+# blocking acquire (MAIN_LOOP_LOCK_ACQUIRE_TIMEOUT_SECONDS) instead: long
+# enough to reliably ride out the RSI thread's own lock hold (bounded to a
+# single MT5 call since commit 8dc4298, normally sub-second), short enough
+# that even a slow/failing archival tick-sync call (up to ~106s) only
+# delays this cycle by a few seconds, not the original uninterruptible
+# freeze this design was built to avoid. Execution-critical work (SAR
+# pending-order poll) is deliberately the FIRST MT5 work done once the
+# lock is acquired each cycle — see the ordering inside the loop body —
+# so observation/history work never gets to run again before execution
+# has had its turn.
+MAIN_LOOP_LOCK_ACQUIRE_TIMEOUT_SECONDS = 3.0
 TICK_SYNC_INTERVAL_SECONDS = 300
 # Bounded failure cooldown ("do not repeat the same unsuccessful query
 # every five minutes indefinitely"): each consecutive FAILED tick-sync
@@ -358,21 +372,80 @@ class CollectorApp:
             self._start_rsi_observation_loop()
         try:
             while not self._stop_event.is_set():
-                if not self._mt5_call_lock.acquire(blocking=False):
-                    # Isolation fix: the tick-sync thread is mid MT5-call.
-                    # Skip this cycle's MT5 work rather than block waiting
-                    # for it — see TICK_SYNC_INTERVAL_SECONDS' own comment.
-                    logger.info("main loop cycle skipped — tick sync holds the MT5 connection")
+                if not self._mt5_call_lock.acquire(timeout=MAIN_LOOP_LOCK_ACQUIRE_TIMEOUT_SECONDS):
+                    # Bounded wait exhausted -- some other MT5 call (tick
+                    # sync, or the RSI observation thread) is still holding
+                    # the lock after MAIN_LOOP_LOCK_ACQUIRE_TIMEOUT_SECONDS.
+                    # Skip this one cycle rather than block indefinitely;
+                    # see this constant's own comment for why a bounded
+                    # wait (not non-blocking, not unbounded) is the fix.
+                    logger.info("main loop cycle skipped — MT5 connection still held after bounded wait")
                     self._maybe_start_tick_sync()
                     self._stop_event.wait(timeout=self._config.poll_interval_seconds)
                     continue
 
+                # EXECUTION-PRIORITY LOCK SCOPE (2026-09-25 fix): held ONLY
+                # for SAR's pending-order poll and Engine B's execution --
+                # released immediately afterward, BEFORE the long tail of
+                # non-critical snapshot/sync/observation work below. This is
+                # the actual fix for the confirmed production starvation,
+                # more than the bounded-acquire-timeout change above is on
+                # its own: the OLD code held this same lock across the
+                # ENTIRE cycle (every strategy's HTTP+MT5 calls combined,
+                # not just this cycle's own brief MT5 reads), so the
+                # dedicated SAR fast-pass thread's own short-timeout acquire
+                # (`_sar_fast_execution_pass`, 0.25s) lost the race for
+                # however long that FULL cycle took, not merely for the
+                # duration of one MT5 call. Splitting the scope means
+                # execution-critical work is never blocked behind
+                # autonomous/gold/m1m5/trend-breakout polling, and the lock
+                # is free again for the fast-pass thread far sooner.
                 try:
                     if not self._client.is_connected():
                         connected, backoff = self._attempt_connect(backoff)
                         if not connected:
                             continue
 
+                    if getattr(self._config, "sar_execution_enabled", False):
+                        # Engine A REPLACEMENT, in its own try — the same
+                        # isolation Engine B gets below. A SAR poll, execution
+                        # or reconciliation failure must never stop the frozen
+                        # RSI strategy's residual management or Engine B.
+                        try:
+                            self._poll_and_execute_pending_sar_order()
+                        except Exception as exc:  # noqa: BLE001
+                            logger.warning("xauusd-sar pass failed, continuing", extra={"error": str(exc)})
+                    # `getattr` with a default, not a direct attribute read:
+                    # Engine A's existing tests build their own config doubles,
+                    # and adding a field to the real Config must not make those
+                    # doubles raise inside the shared loop. Absent means off,
+                    # which is the safe default for an execution flag.
+                    if getattr(self._config, "telegram_engine_execution_enabled", False):
+                        # Engine B, in its OWN try. A Telegram ingestion,
+                        # execution or reconciliation failure must never stop
+                        # Engine A monitoring or placing its orders, so nothing
+                        # below is allowed to escape into the shared loop.
+                        try:
+                            self._push_telegram_reconciliation()
+                            self._poll_and_execute_pending_telegram_leg()
+                        except Exception as exc:  # noqa: BLE001
+                            logger.warning("telegram engine pass failed, continuing", extra={"error": str(exc)})
+                finally:
+                    self._mt5_call_lock.release()
+
+                # NON-CRITICAL LOCK SCOPE — priority 4, deliberately its own
+                # later acquisition rather than continuing under the same
+                # hold as above. A bounded-timeout miss here only delays
+                # observation/history work (never execution), so it is
+                # safe to simply skip this cycle's non-critical work and
+                # retry next cycle rather than block.
+                if not self._mt5_call_lock.acquire(timeout=MAIN_LOOP_LOCK_ACQUIRE_TIMEOUT_SECONDS):
+                    logger.info("main loop non-critical work skipped — MT5 connection still held after bounded wait")
+                    self._maybe_start_tick_sync()
+                    self._stop_event.wait(timeout=self._config.poll_interval_seconds)
+                    continue
+
+                try:
                     self._push_and_print_snapshot()
                     if self._trade_sync_due():
                         self._sync_trades()
@@ -402,30 +475,6 @@ class CollectorApp:
                         # reconciliation and liquidation running.
                         self._poll_and_execute_m1m5_close_request()
                         self._poll_and_execute_m1m5_protection_request()
-                    if getattr(self._config, "sar_execution_enabled", False):
-                        # Engine A REPLACEMENT, in its own try — the same
-                        # isolation Engine B gets below. A SAR poll, execution
-                        # or reconciliation failure must never stop the frozen
-                        # RSI strategy's residual management or Engine B.
-                        try:
-                            self._poll_and_execute_pending_sar_order()
-                        except Exception as exc:  # noqa: BLE001
-                            logger.warning("xauusd-sar pass failed, continuing", extra={"error": str(exc)})
-                    # `getattr` with a default, not a direct attribute read:
-                    # Engine A's existing tests build their own config doubles,
-                    # and adding a field to the real Config must not make those
-                    # doubles raise inside the shared loop. Absent means off,
-                    # which is the safe default for an execution flag.
-                    if getattr(self._config, "telegram_engine_execution_enabled", False):
-                        # Engine B, in its OWN try. A Telegram ingestion,
-                        # execution or reconciliation failure must never stop
-                        # Engine A monitoring or placing its orders, so nothing
-                        # below is allowed to escape into the shared loop.
-                        try:
-                            self._push_telegram_reconciliation()
-                            self._poll_and_execute_pending_telegram_leg()
-                        except Exception as exc:  # noqa: BLE001
-                            logger.warning("telegram engine pass failed, continuing", extra={"error": str(exc)})
                     if self._config.rsi_execution_enabled:
                         # Tick observation now runs on its own one-second
                         # thread (see _start_rsi_observation_loop); only the
@@ -832,6 +881,33 @@ class CollectorApp:
             return
 
         newest = max(int(t["time_msc"]) for t in fresh)
+
+        # Emergency hardening pass (2026-09-25): historical archival is
+        # entirely separate from live execution -- see
+        # Config.historical_tick_archival_enabled's own docstring for the
+        # full trace proving nothing execution-relevant reads
+        # _rsi_cursor_msc/_rsi_last_pushed_msc or this function's fetched
+        # ticks. When disabled, `post_ticks()` is never called at all --
+        # not attempted-then-caught, literally skipped -- so a slow,
+        # timing-out, or unavailable historical-tick backend can never
+        # block or delay this thread. The cursor still advances (as if the
+        # push had succeeded) so a later re-enable doesn't need to catch
+        # up an unbounded backlog, and so the MT5 query window above stays
+        # bounded regardless of this flag.
+        # getattr with a default, not a direct attribute read: existing
+        # test config doubles built before this flag existed must not
+        # raise inside the shared observation loop (same reasoning as the
+        # sar_execution_enabled/telegram_engine_execution_enabled reads
+        # elsewhere in this file). Absent means enabled -- the safe,
+        # backward-compatible default.
+        if not getattr(self._config, "historical_tick_archival_enabled", True):
+            self._rsi_cursor_msc = newest
+            self._rsi_last_pushed_msc = newest
+            logger.debug("rsi observation: historical archival disabled, skipping post_ticks", extra={
+                "symbol": RSI_TICK_SYMBOL, "count": len(fresh),
+            })
+            return
+
         payload_ticks = [{k: v for k, v in t.items() if k != "time_msc"} for t in fresh]
         # batch_seq must be contiguous within the pushed batch.
         for i, t in enumerate(payload_ticks):
@@ -1297,15 +1373,39 @@ class CollectorApp:
             reversal_in_progress = True  # from here on, any open failure leaves the account FLAT, not in the old state.
             close_fill_price = close_result.price
 
+            if order["kind"] == "FLATTEN":
+                # 2026-09-25 fix: a daily-close flatten must NEVER reopen
+                # the opposite side -- unlike a REVERSAL, which always
+                # closes-then-opens by design. Previously this function had
+                # no distinct "close only" kind, so a daily close reused
+                # 'REVERSAL' and this code unconditionally opened a fresh
+                # position afterward, defeating "no new exposure at close."
+                logger.info("xauusd-sar flatten complete (daily close, no reopen)", extra={"tag": tag})
+                self._report_sar_execution_result(
+                    tag, ok=True, ticket=None, filled_price=None,
+                    close_fill_price=close_fill_price, uncertain=False,
+                )
+                return
+
         logger.info("xauusd-sar opening position", extra={
             "tag": tag, "kind": order["kind"], "side": side, "volume": volume, "magic": magic,
         })
         try:
-            result = self._executor.send_bracket_order(
-                side=side, volume=volume,
-                stop_loss_points=catastrophic_points, take_profit_points=catastrophic_points,
-                magic=magic, comment=order["comment"], symbol=symbol, point_size=point_size,
-            )
+            if order.get("noBracket"):
+                # xauusd-sar-v1 ONLY (2026-09-25 strategy correction): no
+                # catastrophic broker-side bracket -- the $0.50 trailing
+                # reversal is the entire exit mechanism. See
+                # executor.py's send_market_order_no_bracket docstring.
+                result = self._executor.send_market_order_no_bracket(
+                    side=side, volume=volume,
+                    magic=magic, comment=order["comment"], symbol=symbol, point_size=point_size,
+                )
+            else:
+                result = self._executor.send_bracket_order(
+                    side=side, volume=volume,
+                    stop_loss_points=catastrophic_points, take_profit_points=catastrophic_points,
+                    magic=magic, comment=order["comment"], symbol=symbol, point_size=point_size,
+                )
         except DemoAccountRequiredError as exc:
             logger.critical("XAUUSD-SAR: DEMO ACCOUNT CHECK FAILED - refusing to trade", extra={"error": str(exc)})
             self._report_sar_execution_result(tag, ok=False, uncertain=reversal_in_progress, error_message=str(exc))

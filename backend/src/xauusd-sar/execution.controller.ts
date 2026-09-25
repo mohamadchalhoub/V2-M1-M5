@@ -11,6 +11,39 @@
  * Nothing here approves a trade. The strategy decided before the row was
  * queued; these endpoints move an already-decided order to the terminal and
  * bring the answer back.
+ *
+ * ============================================================
+ * DEPLOYMENT ORDERING INVARIANT (2026-09-25 incident repair) — DO NOT
+ * VIOLATE THIS ORDER.
+ * ============================================================
+ * This response now emits `noBracket: true` (no catastrophicStopPoints at
+ * all) and a `kind: 'FLATTEN'` value the pending order can carry.
+ *
+ *   NEW COLLECTOR + OLD API  = supported temporary state. An old API never
+ *   sends `noBracket`/`kind:'FLATTEN'`, so a new collector's
+ *   `order.get("noBracket")` check is falsy and it correctly falls back to
+ *   `send_bracket_order` with the old API's own `catastrophicStopPoints`;
+ *   `order["kind"] == "FLATTEN"` is never true, so the new close-only
+ *   branch never triggers. No new bug, just doesn't yet have the fix.
+ *
+ *   OLD COLLECTOR + NEW API = FORBIDDEN. An old collector reads
+ *   `order.get("catastrophicStopPoints", 100000)` — since this NEW payload
+ *   omits that field entirely, it would silently default to 100000 RAW
+ *   POINTS (not this strategy's real $10-equivalent distance), producing
+ *   a wildly wrong bracket. An old collector also has no `kind=="FLATTEN"`
+ *   branch, so it would silently treat a FLATTEN as a REVERSAL and reopen
+ *   the position it was supposed to close for the day — reintroducing the
+ *   exact daily-close bug this repair fixes.
+ *
+ * Required deployment order, while Engine A is broker-confirmed FLAT:
+ *   1. apply the migration (additive only, safe at any point)
+ *   2. deploy the NEW COLLECTOR
+ *   3. verify collector healthy and connected
+ *   4. deploy the NEW API
+ *   5. deploy the new SAR scheduler, if its image/code requires replacing
+ *   6. verify the entire stack
+ *   7. only then allow a new SAR session to start
+ * Collector before (or simultaneously with, never after) the API.
  */
 import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
@@ -21,7 +54,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CollectorTokenGuard } from '../auth/collector-token.guard';
 import { SarExecutionService } from './execution.service';
 import { SarReconciliationService } from './reconciliation.service';
-import { SAR_CATASTROPHIC_STOP_USD, SAR_EXPECTED_GOLD_POINT_SIZE, SAR_MAGIC, SAR_SYMBOL, sarOrderComment } from './safety-constants';
+import { SAR_EXPECTED_GOLD_POINT_SIZE, SAR_MAGIC, SAR_SYMBOL, sarOrderComment } from './safety-constants';
 import { readQuoteCandidates } from '../xauusd-m1m5/quote-sources';
 import { resolveQuote } from '../xauusd-m1m5/quote';
 
@@ -89,9 +122,13 @@ export class SarExecutionController {
     const attempt = await this.execution.claimNextOrderAttempt(accountId, Date.now());
     if (!attempt) return { order: null };
 
-    // The ticket being closed, for a REVERSAL, is whatever the session row
-    // still shows at claim time — the position this attempt is reversing.
-    const session = attempt.kind === 'REVERSAL' ? await this.prisma.xauusdSarSession.findUnique({ where: { accountId } }) : null;
+    // The ticket being closed, for a REVERSAL or a daily-close FLATTEN, is
+    // whatever the session row still shows at claim time — the position
+    // this attempt is reversing or flattening.
+    const session =
+      attempt.kind === 'REVERSAL' || attempt.kind === 'FLATTEN'
+        ? await this.prisma.xauusdSarSession.findUnique({ where: { accountId } })
+        : null;
 
     return {
       order: {
@@ -102,7 +139,17 @@ export class SarExecutionController {
         magic: SAR_MAGIC,
         symbol: SAR_SYMBOL,
         pointSize: SAR_EXPECTED_GOLD_POINT_SIZE,
-        catastrophicStopPoints: Math.round(SAR_CATASTROPHIC_STOP_USD / SAR_EXPECTED_GOLD_POINT_SIZE),
+        // 2026-09-25 strategy correction: xauusd-sar-v1 has NO catastrophic
+        // broker-side bracket -- the $0.50 trailing reversal is the entire
+        // exit mechanism. `noBracket: true` tells the collector to send
+        // this order via `send_market_order_no_bracket` (no SL/TP at all),
+        // never `send_bracket_order`. See safety-constants.ts's own
+        // SAR_CATASTROPHIC_STOP_USD comment for why the old $10 bracket
+        // was removed. Every other strategy is unaffected.
+        noBracket: true,
+        // A daily-close flatten must never reopen the opposite side — see
+        // execution.service.ts's closeForDay(). Only 'REVERSAL' opens a
+        // new position after closing; 'FLATTEN' closes and stops there.
         closingTicket: session?.brokerTicket ?? null,
         comment: sarOrderComment(attempt.idempotencyTag),
       },

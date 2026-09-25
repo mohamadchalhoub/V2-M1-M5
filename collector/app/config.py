@@ -211,6 +211,40 @@ class Config:
     # RSI strategy's residual close/protection polling, never a new entry.
     sar_execution_enabled: bool = False
 
+    # Emergency hardening pass (2026-09-25): the RSI observation loop's
+    # `post_ticks()` call (the historical archival push to
+    # /collector/ticks, feeding the historical_ticks table) is entirely
+    # separate from live execution -- confirmed by direct code trace,
+    # nothing else in this file reads `_rsi_cursor_msc`/
+    # `_rsi_last_pushed_msc`, and neither `_sar_fast_execution_pass` nor
+    # `_m1m5_fast_execution_pass` depends on this function's fetched ticks
+    # at all. Live production evidence: this call was observed blocking
+    # for its full 10s timeout repeatedly, degrading the SAME thread's
+    # observation cadence from ~1s to a median of 13.1s (max 64.9s) --
+    # directly delaying whatever runs on this thread after it.
+    #
+    # DEFAULT True (archival ON, unchanged behavior) for backward
+    # compatibility -- an existing deployment upgrading this collector
+    # image must not silently stop archiving merely by picking up new
+    # code; disabling is an explicit, deliberate operator action, same
+    # posture as every other flag in this file. Absent entirely ->
+    # defaults to "true" -> identical to pre-existing behavior.
+    #
+    # When False: `_observe_rsi_once()` still acquires the MT5 lock,
+    # reads incremental ticks, and releases the lock exactly as before
+    # (so cadence-measurement/diagnostics and the bounded, cursor-tracked
+    # MT5 query window are unaffected) -- it simply never calls
+    # `post_ticks()`. The cursor still advances (using the same ticks it
+    # would have pushed) so a later re-enable does not need to catch up
+    # an unbounded backlog. No other behavior on this thread changes:
+    # SAR/M1M5 fast-passes, broker snapshot pushes, reconciliation, and
+    # the watchdog poll are all untouched by this flag.
+    #
+    # Requires a collector restart to take effect (read once at startup
+    # into this dataclass, like every other flag here) -- there is no
+    # runtime toggle without one.
+    historical_tick_archival_enabled: bool = True
+
     def timeframes_for(self, symbol: str) -> tuple[str, ...]:
         return (self.candle_timeframes_by_symbol or {}).get(symbol, self.candle_timeframes)
 
@@ -323,6 +357,12 @@ class Config:
         m1m5_execution_enabled = e.get("XAUUSD_M1M5_EXECUTION_ENABLED", "false").strip().lower() == "true"
         telegram_engine_execution_enabled = e.get("TELEGRAM_ENGINE_EXECUTION_ENABLED", "false").strip().lower() == "true"
         sar_execution_enabled = e.get("XAUUSD_SAR_EXECUTION_ENABLED", "false").strip().lower() == "true"
+        # Default "true" (archival ON), NOT "false" like every flag above --
+        # this one exists to let an operator turn OFF something that
+        # already runs by default, not turn on something new. Absent
+        # entirely, or any value other than the literal string "false",
+        # preserves today's behavior exactly.
+        historical_tick_archival_enabled = e.get("HISTORICAL_TICK_ARCHIVAL_ENABLED", "true").strip().lower() != "false"
 
         require_explicit_terminal = (
             e.get("MT5_REQUIRE_EXPLICIT_TERMINAL", "false").strip().lower() == "true"
@@ -394,6 +434,7 @@ class Config:
             m1m5_execution_enabled=m1m5_execution_enabled,
             telegram_engine_execution_enabled=telegram_engine_execution_enabled,
             sar_execution_enabled=sar_execution_enabled,
+            historical_tick_archival_enabled=historical_tick_archival_enabled,
         )
 
     @property

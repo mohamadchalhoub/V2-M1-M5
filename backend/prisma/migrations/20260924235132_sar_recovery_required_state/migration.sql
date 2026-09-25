@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "XauusdSarState" ADD VALUE 'RECOVERY_REQUIRED';

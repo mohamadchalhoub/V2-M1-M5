@@ -82,6 +82,45 @@ export function sarReconciliationIncidentMessage(f: { detail: string }): string 
 }
 
 /**
+ * Broker/session ownership mismatch — an unexpected SAR-magic position
+ * exists with no matching session ownership, or the session expected a
+ * ticket the broker no longer shows. Never auto-resolved (unlike
+ * REVERSAL_UNKNOWN): requires an explicit operator-confirmed recovery.
+ */
+/**
+ * Observability only (2026-09-25 hardening pass) -- an unclaimed REVERSAL
+ * has sat longer than a healthy poll cadence ever should. NEVER implies
+ * any state/order mutation happened; the 30s reconciliation grace period
+ * is unaffected and continues exactly as before. Fires at most once per
+ * attempt (deduplicated on the attempt id), not once per reconciliation
+ * pass.
+ */
+export function sarReversalExecutionDelayMessage(f: { attemptId: string; ageSeconds: number }): string {
+  return compact([
+    `⚠️ ${HEADER}`,
+    '',
+    'SAR REVERSAL EXECUTION DELAY',
+    `attempt=${f.attemptId}`,
+    'state=REVERSAL_UNKNOWN',
+    `age=${f.ageSeconds.toFixed(1)}s`,
+    'claimed=false',
+    '',
+    'Informational only -- no state change, no cancellation, no new order. Reconciliation continues normally.',
+  ]);
+}
+
+export function sarRecoveryRequiredMessage(f: { detail: string }): string {
+  return compact([
+    `🚨 ${HEADER}`,
+    '',
+    'RECOVERY REQUIRED — BROKER/SESSION OWNERSHIP MISMATCH',
+    f.detail,
+    '',
+    'Engine A is blocked until an operator confirms broker-flat state and repairs the session. Engine B is unaffected.',
+  ]);
+}
+
+/**
  * A $10 catastrophic backstop closure is never a normal SAR trade — its
  * existence means the real $0.50 reversal pipeline failed to act for as
  * long as it took price to travel the full $10. High severity, deliberately

@@ -29,8 +29,16 @@ function service() {
   return new SarReconciliationService(prisma as never, notifier);
 }
 
-/** A REVERSAL_UNKNOWN session with an old SELL position and a stuck attempt trying to reverse it to BUY. */
-async function seedStuckReversal(opts: { requestedAtMs?: number } = {}) {
+/**
+ * A REVERSAL_UNKNOWN session with an old SELL position and a stuck attempt
+ * trying to reverse it to BUY. `claimedAtMs` defaults to `requestedAtMs`
+ * (Fix 4, 2026-09-25: claimed-vs-unclaimed age gates were split, so a test
+ * whose intent is "the collector claimed and tried, and enough time has
+ * passed since" must set claimedAt explicitly, same as production's own
+ * claim timestamp would be) -- pass `claimedAtMs: null` to test the
+ * genuinely-unclaimed grace period instead.
+ */
+async function seedStuckReversal(opts: { requestedAtMs?: number; claimedAtMs?: number | null } = {}) {
   await prisma.xauusdSarSession.create({
     data: {
       accountId,
@@ -52,16 +60,19 @@ async function seedStuckReversal(opts: { requestedAtMs?: number } = {}) {
   await prisma.xauusdSarCycle.create({
     data: { accountId, cycleId: 'cycle-old', direction: 'SELL', entryTicket: '58606170943', entryFillPrice: 4282.78, entryAt: new Date(NOW - 20000) },
   });
+  const requestedAtMs = opts.requestedAtMs ?? NOW - 20000;
+  const claimedAtMs = opts.claimedAtMs === undefined ? requestedAtMs : opts.claimedAtMs;
   await prisma.xauusdSarOrderAttempt.create({
     data: {
       accountId, cycleId: 'cycle-new', idempotencyTag: 'SARtest0000001', kind: 'REVERSAL', direction: 'BUY',
-      volume: 0.02, status: 'SENT', requestedAt: new Date(opts.requestedAtMs ?? NOW - 20000),
+      volume: 0.02, status: 'SENT', requestedAt: new Date(requestedAtMs),
+      claimedAt: claimedAtMs === null ? null : new Date(claimedAtMs),
     },
   });
 }
 
-/** A REVERSAL_UNKNOWN session for a stuck INITIAL entry (no prior position). */
-async function seedStuckInitial(opts: { requestedAtMs?: number } = {}) {
+/** A REVERSAL_UNKNOWN session for a stuck INITIAL entry (no prior position). See seedStuckReversal's own comment on claimedAtMs. */
+async function seedStuckInitial(opts: { requestedAtMs?: number; claimedAtMs?: number | null } = {}) {
   await prisma.xauusdSarSession.create({
     data: {
       accountId,
@@ -74,10 +85,13 @@ async function seedStuckInitial(opts: { requestedAtMs?: number } = {}) {
       unknownSince: new Date(NOW - 5000),
     },
   });
+  const requestedAtMs = opts.requestedAtMs ?? NOW - 20000;
+  const claimedAtMs = opts.claimedAtMs === undefined ? requestedAtMs : opts.claimedAtMs;
   await prisma.xauusdSarOrderAttempt.create({
     data: {
       accountId, cycleId: 'cycle-new', idempotencyTag: 'SARtest0000002', kind: 'INITIAL', direction: 'BUY',
-      volume: 0.02, status: 'SENT', requestedAt: new Date(opts.requestedAtMs ?? NOW - 20000),
+      volume: 0.02, status: 'SENT', requestedAt: new Date(requestedAtMs),
+      claimedAt: claimedAtMs === null ? null : new Date(claimedAtMs),
     },
   });
 }
