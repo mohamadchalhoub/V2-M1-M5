@@ -139,8 +139,8 @@ describe('the signal alert', () => {
   });
 
   it('states how many orders it will place, and at what size', () => {
-    expect(text).toContain('Planned orders: 1 (targets TP1)');
-    expect(text).toContain('Volume: 0.01');
+    expect(text).toContain('Planned orders: 2');
+    expect(text).toContain('Volume per order: 0.01');
   });
 
   it('reports the measured latency rather than an estimate', () => {
@@ -229,8 +229,8 @@ describe('the activation alerts', () => {
     const text = messages.activationPendingMessage(ACTIVATION);
     expect(text).toContain('Account Mode: DEMO');
     expect(text).toContain(`Magic: ${TELEGRAM_MAGIC}`);
-    expect(text).toContain('Volume: 0.01 lot per signal (TP1 only)');
-    expect(text).toContain('Maximum Signal Age: 60 minutes');
+    expect(text).toContain('Volume: 0.01 lot per TP');
+    expect(text).toContain('Maximum Signal Age: 60 seconds');
     expect(text).toContain('Engine A: UNCHANGED');
   });
 

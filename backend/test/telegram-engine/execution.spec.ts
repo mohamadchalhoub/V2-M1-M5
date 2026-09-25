@@ -151,32 +151,32 @@ afterAll(async () => {
 });
 
 describe('a valid fresh signal, published inside Engine A’s 14:00–19:00 pause', () => {
-  it('submits exactly one leg, regardless of how many targets were published', async () => {
+  it('submits one 0.01 leg per published target (two here)', async () => {
     const broker = new FakeBroker();
     const result = await service(broker).process(message(), ctx());
 
     expect(result.outcome).toBe('SUBMITTED');
-    expect(result.legsSubmitted).toBe(1);
-    expect(broker.calls).toHaveLength(1);
+    expect(result.legsSubmitted).toBe(2);
+    expect(broker.calls).toHaveLength(2);
   });
 
-  it('sends 0.01 lot, with the source stop and TP1 (not the farther published target)', async () => {
+  it('sends 0.01 lot, all with the source stop, each leg with its own published target', async () => {
     const broker = new FakeBroker();
     await service(broker).process(message(), ctx());
 
-    expect(broker.calls.map((c) => c.volumeLots)).toEqual([0.01]);
-    expect(broker.calls.map((c) => c.stopLoss)).toEqual([4348]);
-    expect(broker.calls.map((c) => c.takeProfit)).toEqual([4329]);
-    expect(broker.calls.map((c) => c.direction)).toEqual(['SELL']);
+    expect(broker.calls.map((c) => c.volumeLots)).toEqual([0.01, 0.01]);
+    expect(broker.calls.map((c) => c.stopLoss)).toEqual([4348, 4348]);
+    expect(broker.calls.map((c) => c.takeProfit)).toEqual([4329, 4300]);
+    expect(broker.calls.map((c) => c.direction)).toEqual(['SELL', 'SELL']);
   });
 
-  it('stamps the leg with the Telegram magic number', async () => {
+  it('stamps every leg with the Telegram magic number', async () => {
     const broker = new FakeBroker();
     await service(broker).process(message(), ctx());
-    expect(broker.calls.map((c) => c.magicNumber)).toEqual([TELEGRAM_MAGIC]);
+    expect(broker.calls.map((c) => c.magicNumber)).toEqual([TELEGRAM_MAGIC, TELEGRAM_MAGIC]);
   });
 
-  it('records the single leg as one signal group, numbered 1', async () => {
+  it('records both legs under one signal group, numbered 1 and 2', async () => {
     const broker = new FakeBroker();
     const result = await service(broker).process(message(), ctx());
 
@@ -184,7 +184,7 @@ describe('a valid fresh signal, published inside Engine A’s 14:00–19:00 paus
       where: { signalId: result.signalId! },
       orderBy: { legIndex: 'asc' },
     });
-    expect(legs.map((l) => l.legIndex)).toEqual([1]);
+    expect(legs.map((l) => l.legIndex)).toEqual([1, 2]);
     expect(legs.every((l) => l.orderStatus === 'PENDING')).toBe(true);
   });
 
@@ -281,7 +281,7 @@ describe('duplicates', () => {
 
     expect(first.outcome).toBe('SUBMITTED');
     expect(second.outcome).toBe('TELEGRAM_DUPLICATE_SIGNAL');
-    expect(broker.calls).toHaveLength(1); // the first signal's one leg, and no more
+    expect(broker.calls).toHaveLength(2); // the first signal's two legs, and no more
   });
 
   it('survives a restart: the guard is the database, not process memory', async () => {
@@ -293,7 +293,7 @@ describe('duplicates', () => {
     // A completely new service instance, as after a restart.
     const afterRestart = await service(broker).process(msg, ctx());
     expect(afterRestart.outcome).toBe('TELEGRAM_DUPLICATE_SIGNAL');
-    expect(broker.calls).toHaveLength(1);
+    expect(broker.calls).toHaveLength(2);
   });
 
   it('does not open a second trade for a restatement with a DIFFERENT target list', async () => {
@@ -335,7 +335,7 @@ describe('duplicates', () => {
     const again = await svc.process(message({ messageId: '601', publishedAtMs: NOW - 4_000 }), ctx());
 
     expect(again.outcome).toBe('SUBMITTED');
-    expect(broker.calls).toHaveLength(2);
+    expect(broker.calls).toHaveLength(4);
   });
 
   it('treats the same signal as NEW once the earlier one was cancelled without trading', async () => {
@@ -351,7 +351,7 @@ describe('duplicates', () => {
     const again = await svc.process(message({ messageId: '701', publishedAtMs: NOW - 4_000 }), ctx());
 
     expect(again.outcome).toBe('SUBMITTED');
-    expect(broker.calls).toHaveLength(1);
+    expect(broker.calls).toHaveLength(2);
   });
 
   it('treats a repost as NEW while the earlier signal is only waiting for its entry (not yet taken)', async () => {
@@ -367,7 +367,7 @@ describe('duplicates', () => {
     const again = await svc.process(message({ messageId: '801', publishedAtMs: NOW - 4_000 }), ctx());
 
     expect(again.outcome).toBe('SUBMITTED');
-    expect(broker.calls).toHaveLength(1);
+    expect(broker.calls).toHaveLength(2);
   });
 
   it('does not open a second position for a repost under a new message id', async () => {
@@ -379,8 +379,8 @@ describe('duplicates', () => {
     const repost = await svc.process(message({ messageId: '501', publishedAtMs: NOW - 4_000 }), ctx());
 
     expect(repost.outcome).toBe('TELEGRAM_DUPLICATE_SIGNAL');
-    expect(broker.calls).toHaveLength(1);
-    expect(await prisma.telegramSignalLeg.count()).toBe(1);
+    expect(broker.calls).toHaveLength(2);
+    expect(await prisma.telegramSignalLeg.count()).toBe(2);
   });
 });
 
@@ -396,7 +396,7 @@ describe('signal-group occupancy', () => {
 
     expect(second.outcome).toBe('TELEGRAM_OCCUPIED');
     expect(second.detail).toMatch(/not queued behind/i);
-    expect(broker.calls).toHaveLength(1);
+    expect(broker.calls).toHaveLength(2);
   });
 });
 
@@ -501,7 +501,7 @@ describe('the remaining gates', () => {
 
     expect(result.outcome).toBe('TELEGRAM_NOT_SUBMITTING_MODE');
     expect(broker.calls).toHaveLength(0);
-    expect(await prisma.telegramSignalLeg.count()).toBe(1);
+    expect(await prisma.telegramSignalLeg.count()).toBe(2);
     // The group is released, so a later live signal is not blocked by a
     // rehearsal that never reached the broker.
     expect(await prisma.telegramSignalGroupLock.count()).toBe(0);
@@ -573,10 +573,10 @@ describe('resuming a signal that is awaiting its entry to retrace', () => {
 
     expect(result).not.toBeNull();
     expect(result!.outcome).toBe('SUBMITTED');
-    expect(broker.calls).toHaveLength(1);
+    expect(broker.calls).toHaveLength(2);
     expect(broker.calls[0].takeProfit).toBe(4329);
     const legs = await prisma.telegramSignalLeg.findMany({ where: { signalId } });
-    expect(legs).toHaveLength(1);
+    expect(legs).toHaveLength(2);
     expect(Number(legs[0].sourceEntry)).toBe(4338);
   });
 
@@ -656,5 +656,78 @@ describe('resuming a signal that is awaiting its entry to retrace', () => {
 
     const result = await service(broker).retryAwaitingEntry(submitted.signalId!, ctx());
     expect(result).toBeNull();
+  });
+});
+
+describe('the 60-second lifetime covers a signal waiting for price to return (operator timeline)', () => {
+  // SELL 4338, SL 4348: window [4337, 4348). Received at publication with the
+  // bid at 4334 ($4 favourable, outside the window), then price returns.
+  async function parkAtPublication(broker: FakeBroker) {
+    const parked = await service(broker).process(
+      message({ publishedAtMs: NOW }),
+      ctx({ quote: { bid: 4334.0, ask: 4334.3, tickAtMs: NOW - 500 } }),
+    );
+    expect(parked.outcome).toBe('TELEGRAM_AWAITING_ENTRY_RETRACE');
+    return parked.signalId!;
+  }
+
+  it('enters when price returns inside the window at T+45s', async () => {
+    const broker = new FakeBroker();
+    const signalId = await parkAtPublication(broker);
+    const at = NOW + 45_000;
+    const result = await service(broker).retryAwaitingEntry(
+      signalId,
+      ctx({ nowMs: at, quote: { bid: 4338.0, ask: 4338.3, tickAtMs: at - 500 } }),
+    );
+    expect(result!.outcome).toBe('SUBMITTED');
+    expect(broker.calls.map((c) => c.takeProfit)).toEqual([4329, 4300]);
+    expect(broker.calls.every((c) => c.stopLoss === 4348 && c.volumeLots === 0.01)).toBe(true);
+  });
+
+  it('never enters when price returns at T+61s, even from a freshly started service (restart)', async () => {
+    const broker = new FakeBroker();
+    const signalId = await parkAtPublication(broker);
+    const at = NOW + 61_000;
+    const restarted = service(broker);
+    const result = await restarted.retryAwaitingEntry(
+      signalId,
+      ctx({ nowMs: at, quote: { bid: 4338.0, ask: 4338.3, tickAtMs: at - 500 } }),
+    );
+    expect(result!.outcome).toBe('TELEGRAM_SIGNAL_EXPIRED');
+    expect(broker.calls).toHaveLength(0);
+    // Expired permanently: a later sweep does not revive it.
+    const again = await service(broker).retryAwaitingEntry(
+      signalId,
+      ctx({ nowMs: at + 1_000, quote: { bid: 4338.0, ask: 4338.3, tickAtMs: at + 500 } }),
+    );
+    expect(again).toBeNull();
+    expect(broker.calls).toHaveLength(0);
+  });
+
+  it('measures age from publication even when the message is received 50s late', async () => {
+    const broker = new FakeBroker();
+    const result = await service(broker).process(
+      message({ publishedAtMs: NOW - 61_000 }),
+      ctx({ quote: { bid: 4338.0, ask: 4338.3, tickAtMs: NOW - 500 } }),
+    );
+    expect(result.outcome).toBe('TELEGRAM_SIGNAL_EXPIRED');
+    expect(broker.calls).toHaveLength(0);
+  });
+});
+
+describe('a three-target signal', () => {
+  it('opens three independent 0.01 legs, each with its own target and the shared published stop', async () => {
+    const broker = new FakeBroker();
+    const result = await service(broker).process(
+      message({ text: 'Gold sell now 4338\nSL 4348\nTP 4329\nTP 4320\nTP 4310' }),
+      ctx(),
+    );
+    expect(result.outcome).toBe('SUBMITTED');
+    expect(broker.calls.map((c) => c.takeProfit)).toEqual([4329, 4320, 4310]);
+    expect(broker.calls.map((c) => c.stopLoss)).toEqual([4348, 4348, 4348]);
+    expect(broker.calls.map((c) => c.volumeLots)).toEqual([0.01, 0.01, 0.01]);
+    const legs = await prisma.telegramSignalLeg.findMany({ where: { signalId: result.signalId! }, orderBy: { legIndex: 'asc' } });
+    expect(legs.map((l) => l.legIndex)).toEqual([1, 2, 3]);
+    expect(new Set(legs.map((l) => l.idempotencyTag)).size).toBe(3);
   });
 });

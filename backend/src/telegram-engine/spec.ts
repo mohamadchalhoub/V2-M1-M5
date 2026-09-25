@@ -46,13 +46,13 @@ export const TELEGRAM_SPEC = {
    * Hard publication-to-submission lifetime.
    *
    * Measured from the ORIGINAL Telegram publication timestamp to the instant
-   * the leg is handed to the broker — not to the instant the message was
-   * received. Raised from an earlier 60-second value to 1 hour by explicit
-   * operator instruction: a signal is now still executable up to an hour
-   * after publication, subject to every other check (entry deviation, TP1
-   * latch, duplicates) still applying at execution time. See `freshness.ts`.
+   * each individual leg is handed to the broker — not to the instant the
+   * message was received, and not once per signal. A two-leg signal whose
+   * first leg is submitted at 58s and whose second would land at 61s submits
+   * the first and refuses the second. Restored to 60 seconds by operator
+   * instruction (2026-09-25) after an interim 1-hour value. See `freshness.ts`.
    */
-  maxSignalAgeMs: 60 * 60_000,
+  maxSignalAgeMs: 60_000,
 
   /**
    * Clock skew tolerance for a publication timestamp dated in the future.
@@ -65,11 +65,7 @@ export const TELEGRAM_SPEC = {
   futurePublicationToleranceMs: 2_000,
 
   /**
-   * The size of the ONE position this engine opens per signal, targeting
-   * TP1 (see legs.ts and tp1.ts). The name is kept from an earlier version
-   * that opened one position per published target; changed by operator
-   * instruction to always exactly one position, regardless of how many
-   * targets a message lists.
+   * One independent position per published take-profit, at this size each (see legs.ts).
    */
   lotsPerTakeProfit: 0.01,
 

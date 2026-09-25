@@ -22,63 +22,52 @@ const CONSTRAINTS = { pointSize: 0.01, tickSize: 0.01, stopLevelPoints: 0, freez
 /** A market sitting exactly where the channel said to sell. */
 const QUOTE = { bid: 4338.0, ask: 4338.3 };
 
-describe('the worked example becomes exactly ONE leg, targeting TP1', () => {
-  // SIGNAL is SELL 4338, SL 4348, TPs 4329/4300. TP1 for a SELL is the
-  // NEAREST target, i.e. the highest listed, 4329 — see tp1.ts. The engine
-  // opens one 0.01-lot position aimed at that level, whatever else the
-  // message listed. Changed on operator instruction: an earlier version
-  // opened one position per published target.
+describe('the worked example becomes one 0.01 leg per published target', () => {
+  // SIGNAL is SELL 4338, SL 4348, TPs 4329/4300: two independent positions,
+  // both with the published stop, each with its own published target.
   const plan = planLegs({ signal: SIGNAL, quote: QUOTE, constraints: CONSTRAINTS });
 
-  it('opens exactly one leg, regardless of how many targets were published', () => {
-    expect(plan.legs).toHaveLength(1);
+  it('opens one leg per published target', () => {
+    expect(plan.legs).toHaveLength(2);
   });
 
-  it('gives it 0.01 lot', () => {
-    expect(plan.legs![0].volumeLots).toBe(0.01);
+  it('gives every leg 0.01 lot', () => {
+    expect(plan.legs!.map((l) => l.volumeLots)).toEqual([0.01, 0.01]);
   });
 
-  it('carries the SOURCE entry and the SOURCE stop unchanged', () => {
-    const leg = plan.legs![0];
-    expect(leg.sourceEntry).toBe(4338);
-    expect(leg.stopLoss).toBe(4348);
-    expect(leg.direction).toBe('SELL');
+  it('carries the SOURCE entry and the SOURCE stop unchanged on every leg', () => {
+    for (const leg of plan.legs!) {
+      expect(leg.sourceEntry).toBe(4338);
+      expect(leg.stopLoss).toBe(4348);
+      expect(leg.direction).toBe('SELL');
+    }
   });
 
-  it('targets TP1 — the nearest published target — not the first one listed', () => {
-    expect(plan.legs![0].takeProfit).toBe(4329);
+  it('assigns each published target to its own leg, in publication order', () => {
+    expect(plan.legs!.map((l) => l.takeProfit)).toEqual([4329, 4300]);
     expect(plan.tp1).toBe(4329);
   });
 
   it('does not recompute the brackets from the live quote', () => {
-    // Engine A would build a $5/$5 bracket around the market. Engine B copies
-    // what was published — 10 dollars of stop, 9 of target.
     const leg = plan.legs![0];
     expect(leg.stopLoss - leg.sourceEntry).toBe(10);
   });
 
-  it('stamps the leg with the Telegram magic number, never Engine A’s', () => {
-    const leg = plan.legs![0];
-    expect(leg.magicNumber).toBe(TELEGRAM_MAGIC);
-    expect([V2_MAGIC_M1, V2_MAGIC_M5]).not.toContain(leg.magicNumber);
+  it('stamps every leg with the Telegram magic number, never Engine A’s', () => {
+    for (const leg of plan.legs!) {
+      expect(leg.magicNumber).toBe(TELEGRAM_MAGIC);
+      expect([V2_MAGIC_M1, V2_MAGIC_M5]).not.toContain(leg.magicNumber);
+    }
   });
 
-  it('the single leg is numbered 1', () => {
-    expect(plan.legs![0].legIndex).toBe(1);
-  });
-
-  it('the FARTHER published target (4300) never becomes an order', () => {
-    expect(plan.legs!.some((l) => l.takeProfit === 4300)).toBe(false);
+  it('numbers the legs 1 and 2', () => {
+    expect(plan.legs!.map((l) => l.legIndex)).toEqual([1, 2]);
   });
 });
 
-describe('entry protection now refuses ANY movement off the published entry, favourable included', () => {
-  // SIGNAL is SELL 4338, SL 4348, TPs 4329 / 4300. Changed on operator
-  // instruction: an earlier version treated a LOWER executable price (nearer
-  // the target) as an unconditionally-accepted "better" fill. It is not
-  // accepted any more — the published entry is the trade, and price having
-  // moved at all off it, in either direction, means the moment described by
-  // the signal has passed.
+describe('entry protection: up to $1 favourable is accepted, beyond that is refused', () => {
+  // SIGNAL is SELL 4338, SL 4348, TPs 4329 / 4300. SELL window is
+  // [entry - $1, SL) — see tp1.ts.
   it('refuses a market $4 BELOW the published entry, even though it is nearer the target', () => {
     const plan = planLegs({
       signal: SIGNAL,
@@ -233,11 +222,9 @@ describe('margin is checked for the group, not per leg', () => {
   const legs = planLegs({ signal: SIGNAL, quote: QUOTE, constraints: CONSTRAINTS }).legs!;
 
   it('computes margin from the leg using MT5’s own formula', () => {
-    // Now always a single leg, so "group" margin is just that one leg's
-    // margin — but it still goes through groupMarginRequired rather than a
-    // per-leg shortcut, so a future multi-leg signal would sum correctly.
+    // Two 0.01 legs, so the group margin is the sum of both.
     const margin = groupMarginRequired(legs, 100, 4338, 100);
-    expect(margin).toBeCloseTo((0.01 * 100 * 4338) / 100, 6);
+    expect(margin).toBeCloseTo((2 * 0.01 * 100 * 4338) / 100, 6);
   });
 
   it('returns Infinity on unknown leverage, so the comparison refuses', () => {
