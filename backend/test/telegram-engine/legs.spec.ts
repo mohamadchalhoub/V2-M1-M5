@@ -93,8 +93,19 @@ describe('entry protection now refuses ANY movement off the published entry, fav
     expect(plan.deviationUsd).toBeCloseTo(-4, 6);
   });
 
+  it('accepts a SELL exactly $1 better (the edge of the favourable allowance)', () => {
+    const plan = planLegs({
+      signal: SIGNAL,
+      quote: { bid: 4337.0, ask: 4337.3 },
+      constraints: CONSTRAINTS,
+      maxAdverseUsd: 1.5,
+    });
+    expect(plan.legs).not.toBeNull();
+    expect(plan.favourable).toBe(true);
+  });
+
   it.each([
-    ['$1 better', 4337.0],
+    ['$1.01 better', 4336.99],
     ['$3 better', 4335.0],
     ['$8 better, just short of the first target', 4330.0],
   ])('refuses a SELL %s', (_label, bid) => {
@@ -164,14 +175,14 @@ describe('entry protection now refuses ANY movement off the published entry, fav
 
   it('measures against the side the order actually fills at', () => {
     // A SELL fills at the bid, so the bid is what is compared. Here the bid
-    // is $0.40 favourable, which is refused under the new rule.
+    // is $1.10 favourable (outside the $1 allowance) while the ask is not.
     const plan = planLegs({
       signal: SIGNAL,
-      quote: { bid: 4337.6, ask: 4340.0 },
+      quote: { bid: 4336.9, ask: 4340.0 },
       constraints: CONSTRAINTS,
       maxAdverseUsd: 1.5,
     });
-    expect(plan.executablePrice).toBe(4337.6);
+    expect(plan.executablePrice).toBe(4336.9);
     expect(plan.legs).toBeNull();
     expect(plan.favourable).toBe(true);
   });

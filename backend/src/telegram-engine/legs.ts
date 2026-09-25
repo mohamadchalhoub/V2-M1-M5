@@ -148,9 +148,9 @@ export function planLegs(input: LegPlanInput): LegPlan {
     );
   }
 
-  // --- Entry protection. The published entry is the trade: price having
-  // moved off it in EITHER direction is refused now, not just adverse
-  // movement beyond the bound — see tp1.ts.
+  // --- Entry protection: SELL entry-$1 <= price < SL, BUY SL < price <=
+  // entry+$1 (see tp1.ts). Runs after the TP1 check, so a spent signal is
+  // never revived by landing inside the window.
   const maxAdverse = input.maxAdverseUsd ?? configuredMaxAdverseEntryDeviationUsd();
   const deviation = evaluateEntryDeviation(signal.direction, signal.entry, signal.stopLoss, executablePrice, maxAdverse);
   if (!deviation.acceptable) {

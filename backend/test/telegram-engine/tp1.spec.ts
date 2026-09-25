@@ -148,13 +148,9 @@ describe('a spent signal opens nothing', () => {
 });
 
 describe('the two bounds together', () => {
-  it('accepts only the exact published entry; everything favourable is refused, and TP1 or beyond is refused as spent', () => {
-    // Changed on operator instruction: the eligible zone used to run from
-    // the entry down to (not including) TP1. Now only the published entry
-    // itself is eligible on the favourable side — any move toward the
-    // target, however small, is refused as deviation, not accepted as a
-    // better fill.
-    const outcomes = [4338, 4337, 4335, 4331, 4330, 4329.01, 4329, 4328].map((bid) => ({
+  it('accepts up to $1 favourable; further favourable is refused, and TP1 or beyond is refused as spent', () => {
+    // Operator instruction 2026-09-25: SELL window is entry-$1 <= price < SL.
+    const outcomes = [4338, 4337.5, 4337, 4336.99, 4335, 4331, 4330, 4329.01, 4329, 4328].map((bid) => ({
       bid,
       refusal: planLegs({
         signal: SELL,
@@ -164,10 +160,9 @@ describe('the two bounds together', () => {
       }).refusal,
     }));
 
-    expect(outcomes.find((o) => o.bid === 4338)!.refusal).toBeNull();
-    // Everything below the entry but still above TP1 is favourable movement,
-    // and is refused as deviation now...
-    for (const o of outcomes.filter((x) => x.bid < 4338 && x.bid > 4329)) {
+    for (const bid of [4338, 4337.5, 4337]) expect(outcomes.find((o) => o.bid === bid)!.refusal).toBeNull();
+    // More than $1 below the entry but still above TP1 is refused as deviation...
+    for (const o of outcomes.filter((x) => x.bid < 4337 && x.bid > 4329)) {
       expect(o.refusal).toBe('TELEGRAM_ADVERSE_ENTRY_DEVIATION');
     }
     // ...and at or below TP1 the signal is finished outright, which takes

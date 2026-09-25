@@ -124,6 +124,33 @@ export interface DeviationVerdict {
   readonly detail: string;
 }
 
+/**
+ * Entry window (operator instruction, 2026-09-25), superseding the
+ * "favourable movement refused outright" rule above:
+ *
+ *   SELL: entry - $1.00 <= price < stopLoss
+ *   BUY:  stopLoss < price <= entry + $1.00
+ *
+ * Up to $1.00 of favourable movement is accepted; beyond it the verdict stays
+ * `favourable: true`, so the execution service keeps treating the signal as
+ * awaiting a retrace (within its lifetime) exactly as before. The published
+ * TP and SL are never adjusted for the actual execution price.
+ */
+export const TELEGRAM_FAVOURABLE_ENTRY_TOLERANCE_USD = 1.0;
+
+/** Absorbs binary float error so exact-cent boundaries (e.g. 4274.00 vs 4275 - 1) compare exactly. */
+const PRICE_EPSILON = 1e-6;
+
+export function entryWindow(
+  direction: Direction,
+  publishedEntry: number,
+  stopLoss: number,
+): { readonly low: number; readonly high: number; readonly lowInclusive: boolean; readonly highInclusive: boolean } {
+  return direction === 'SELL'
+    ? { low: publishedEntry - TELEGRAM_FAVOURABLE_ENTRY_TOLERANCE_USD, high: stopLoss, lowInclusive: true, highInclusive: false }
+    : { low: stopLoss, high: publishedEntry + TELEGRAM_FAVOURABLE_ENTRY_TOLERANCE_USD, lowInclusive: false, highInclusive: true };
+}
+
 export function evaluateEntryDeviation(
   direction: Direction,
   publishedEntry: number,
@@ -135,17 +162,30 @@ export function evaluateEntryDeviation(
   const adverseUsd =
     direction === 'SELL' ? executablePrice - publishedEntry : publishedEntry - executablePrice;
   const favourable = adverseUsd < 0;
+  const window = entryWindow(direction, publishedEntry, stopLoss);
+  const windowText =
+    `${window.lowInclusive ? '[' : '('}${window.low.toFixed(2)}, ${window.high.toFixed(2)}${window.highInclusive ? ']' : ')'}`;
 
-  if (favourable) {
+  if (favourable && -adverseUsd > TELEGRAM_FAVOURABLE_ENTRY_TOLERANCE_USD + PRICE_EPSILON) {
     return {
       acceptable: false,
       adverseUsd,
       favourable: true,
       detail:
-        `The executable price ${executablePrice} is $${Math.abs(adverseUsd).toFixed(2)} BETTER than the published ` +
-        `entry ${publishedEntry} for a ${direction} — price has already moved toward the target. Refused: the ` +
-        'published entry is the trade; once price has moved off it, in either direction, the moment described by ' +
-        'the signal has passed.',
+        `TELEGRAM_ENTRY_WINDOW_EXCEEDED: the executable price ${executablePrice} is $${Math.abs(adverseUsd).toFixed(2)} ` +
+        `BETTER than the published entry ${publishedEntry} for a ${direction}, beyond the ` +
+        `$${TELEGRAM_FAVOURABLE_ENTRY_TOLERANCE_USD.toFixed(2)} favourable allowance (entry window ${windowText}). ` +
+        'Not entered; the signal keeps waiting for price to return inside the window within its lifetime.',
+    };
+  }
+  if (favourable) {
+    return {
+      acceptable: true,
+      adverseUsd,
+      favourable: true,
+      detail:
+        `The executable price is $${Math.abs(adverseUsd).toFixed(2)} better than published, within the ` +
+        `$${TELEGRAM_FAVOURABLE_ENTRY_TOLERANCE_USD.toFixed(2)} favourable allowance (entry window ${windowText}).`,
     };
   }
   // Never further than the stop itself, whichever bound is tighter. A price
@@ -159,8 +199,9 @@ export function evaluateEntryDeviation(
       adverseUsd,
       favourable: false,
       detail:
-        `The executable price ${executablePrice} is $${adverseUsd.toFixed(2)} WORSE than the published entry ` +
-        `${publishedEntry} for a ${direction} — at or past the published stop ${stopLoss}. This is not a late ` +
+        `TELEGRAM_SL_ALREADY_REACHED: the executable price ${executablePrice} is $${adverseUsd.toFixed(2)} WORSE ` +
+        `than the published entry ${publishedEntry} for a ${direction} — at or past the published stop ${stopLoss} ` +
+        `(entry window ${windowText}). This is not a late ` +
         'entry, it is evidence the trade already happened without it, and it is never taken.',
     };
   }
