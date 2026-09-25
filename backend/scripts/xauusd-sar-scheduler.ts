@@ -41,6 +41,7 @@ import { resolveQuote } from '../src/xauusd-m1m5/quote';
 import { evaluateReadiness } from '../src/xauusd-m1m5/mt5-readiness';
 
 const HEARTBEAT_INTERVAL_MS = 60_000;
+const GATE_LOG_INTERVAL_MS = 60_000;
 
 async function main(): Promise<void> {
   const logger = new Logger('xauusd-sar-scheduler');
@@ -55,7 +56,20 @@ async function main(): Promise<void> {
     logger.error('No account id configured. Set XAUUSD_M1M5_ACCOUNT_ID (already set for Engine A/B) or XAUUSD_SAR_ACCOUNT_ID.');
     process.exit(1);
   }
-  const expectedLoginId = (process.env.XAUUSD_M1M5_EXPECTED_LOGIN_ID ?? process.env.XAUUSD_M1M5_EXPECTED_LOGIN ?? '').trim() || null;
+  // MT5_EXPECTED_LOGIN is the name the collector, the dashboard and the M1M5
+  // scheduler read; accepting only the older XAUUSD_M1M5_* names left SAR's
+  // readiness permanently ACCOUNT_IDENTITY_UNKNOWN on a deployment that sets
+  // just the current one, so initializeSession was never reached.
+  const expectedLoginId =
+    (
+      process.env.XAUUSD_M1M5_EXPECTED_LOGIN_ID ??
+      process.env.XAUUSD_M1M5_EXPECTED_LOGIN ??
+      process.env.MT5_EXPECTED_LOGIN ??
+      ''
+    ).trim() || null;
+  if (!expectedLoginId) {
+    logger.warn('No expected MT5 login configured (MT5_EXPECTED_LOGIN). Readiness will block every SAR evaluation as ACCOUNT_IDENTITY_UNKNOWN.');
+  }
 
   const app = await NestFactory.createApplicationContext(XauusdSarModule, { logger: ['error', 'warn', 'log'] });
   const prisma = app.get(PrismaService);
@@ -69,6 +83,8 @@ async function main(): Promise<void> {
 
   let running = true;
   let lastCloseDate: string | null = null;
+  let lastGateReason = '';
+  let lastGateLogMs = 0;
 
   process.on('SIGTERM', () => (running = false));
   process.on('SIGINT', () => (running = false));
@@ -100,6 +116,20 @@ async function main(): Promise<void> {
           snapshot: permissionSnapshot?.permissions ?? null,
           expectedLoginId,
         });
+
+        const gateBlockers: string[] = [];
+        if (!resolved.quote) gateBlockers.push('NO_QUOTE');
+        else if (!resolved.quote.fresh) gateBlockers.push(`QUOTE_STALE(${resolved.quote.ageSeconds.toFixed(1)}s)`);
+        if (!permissionSnapshot) gateBlockers.push('NO_PERMISSION_SNAPSHOT');
+        else if (permissionSnapshot.sessionOpen !== true) gateBlockers.push(`SESSION_OPEN=${String(permissionSnapshot.sessionOpen)}`);
+        if (!readiness.ready) gateBlockers.push(...readiness.blockers.map((b) => b.code));
+        const gateReason = gateBlockers.join(',');
+        if (gateBlockers.length > 0 && (gateReason !== lastGateReason || cycleStart - lastGateLogMs >= GATE_LOG_INTERVAL_MS)) {
+          logger.warn(`evaluation gated, not evaluating this cycle: ${gateReason}`);
+          lastGateLogMs = cycleStart;
+        }
+        if (gateBlockers.length === 0 && lastGateReason) logger.log('evaluation gate open again.');
+        lastGateReason = gateReason;
 
         if (resolved.quote && permissionSnapshot?.sessionOpen && readiness.ready) {
           const quoteInput = { bid: resolved.quote.bid, ask: resolved.quote.ask, ageSeconds: resolved.quote.ageSeconds, fresh: resolved.quote.fresh };
