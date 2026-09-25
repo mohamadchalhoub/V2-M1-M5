@@ -329,3 +329,59 @@ describe('the daily close', () => {
     expect(second.detail).toMatch(/already closed/);
   });
 });
+
+describe('daily-close flatten through a QUEUEING broker (the production port)', () => {
+  // Production's SarQueueingBrokerPort persists nothing: the attempt row is
+  // the collector's queue. A FLATTEN that returned QUEUED without writing
+  // that row left the session REVERSAL_UNKNOWN with no attempt, forever.
+  class QueueingBroker implements SarBrokerPort {
+    public readonly calls: SarSubmitRequest[] = [];
+    async submit(request: SarSubmitRequest): Promise<SarSubmitResponse> {
+      this.calls.push(request);
+      return { status: 'QUEUED' };
+    }
+  }
+
+  async function activeSell() {
+    const filling = service(new FakeBroker('FILLED'));
+    await filling.ensureSession(accountId, SESSION_START);
+    await filling.initializeSession(accountId, { bid: 4500, ask: 4500.2, ageSeconds: 1, fresh: true }, SESSION_START);
+    await filling.evaluateTick(accountId, { bid: 4499.5, ask: 4499.7, ageSeconds: 1, fresh: true }, SESSION_START + 1000);
+    const row = await prisma.xauusdSarSession.findUnique({ where: { accountId } });
+    expect(row!.state).toBe('ACTIVE_SELL');
+    return row!;
+  }
+
+  it('records a SENT FLATTEN attempt that the collector can claim', async () => {
+    const row = await activeSell();
+    const broker = new QueueingBroker();
+    const svc = service(broker);
+
+    const result = await svc.closeForDay(accountId, SESSION_START + 60_000);
+    expect(result.detail).toContain('flatten queued');
+
+    const attempts = await prisma.xauusdSarOrderAttempt.findMany({ where: { accountId, kind: 'FLATTEN' } });
+    expect(attempts).toHaveLength(1);
+    expect(attempts[0].status).toBe('SENT');
+    expect(attempts[0].direction).toBe('BUY');
+    expect(broker.calls[0].idempotencyTag).toBe(attempts[0].idempotencyTag);
+    expect(broker.calls[0].closingTicket).toBe(row.brokerTicket);
+
+    const claimed = await svc.claimNextOrderAttempt(accountId, SESSION_START + 61_000);
+    expect(claimed).not.toBeNull();
+    expect(claimed!.kind).toBe('FLATTEN');
+  });
+
+  it('gives each flatten its own unique tag, so a retry after a failure cannot collide', async () => {
+    await activeSell();
+    const svc = service(new QueueingBroker());
+    await svc.closeForDay(accountId, SESSION_START + 60_000);
+    // Simulate reconciliation resuming management, then a second flatten.
+    await prisma.xauusdSarSession.update({ where: { accountId }, data: { state: 'ACTIVE_SELL', unknownSince: null } });
+    await svc.closeForDay(accountId, SESSION_START + 90_000);
+
+    const tags = (await prisma.xauusdSarOrderAttempt.findMany({ where: { accountId, kind: 'FLATTEN' } })).map((a) => a.idempotencyTag);
+    expect(tags).toHaveLength(2);
+    expect(new Set(tags).size).toBe(2);
+  });
+});

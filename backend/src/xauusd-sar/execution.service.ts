@@ -595,21 +595,38 @@ export class SarExecutionService {
 
     if (row.state === 'ACTIVE_BUY' || row.state === 'ACTIVE_SELL') {
       if (!row.brokerTicket) return { action: 'BLOCKED', detail: 'active state with no ticket — data defect, refusing to guess.' };
+      const volume = await currentSarVolume(this.prisma, accountId);
+      if (volume === null) return { action: 'BLOCKED', detail: 'no volume configured for xauusd-sar.' };
       const claim = await this.prisma.xauusdSarSession.updateMany({ where: { accountId, state: row.state }, data: { state: 'REVERSAL_UNKNOWN', unknownSince: new Date(nowMs) } });
       if (claim.count === 0) return { action: 'NONE', detail: 'lost the claim race.' };
+      // The queueing broker port persists nothing: the attempt row IS the
+      // collector's queue (see queue-broker.port.ts). Without it a FLATTEN
+      // was announced as QUEUED but never reached the collector, leaving the
+      // session REVERSAL_UNKNOWN with no attempt and the position unmanaged.
+      const flattenCycleId = row.cycleId ?? randomUUID();
+      const flattenTag = `SARCLOSE${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+      const flattenDirection: SarDirection = row.direction === 'BUY' ? 'SELL' : 'BUY';
+      try {
+        await this.prisma.xauusdSarOrderAttempt.create({
+          data: { accountId, cycleId: flattenCycleId, idempotencyTag: flattenTag, kind: 'FLATTEN', direction: flattenDirection, volume, status: 'PENDING' },
+        });
+      } catch (err) {
+        await this.prisma.xauusdSarSession.updateMany({ where: { accountId, state: 'REVERSAL_UNKNOWN' }, data: { state: row.state, unknownSince: null } });
+        return { action: 'BLOCKED', detail: `could not record the flatten attempt; claim released: ${(err as Error).message}` };
+      }
       const response = await this.broker.submit({
         accountId,
-        cycleId: row.cycleId ?? randomUUID(),
+        cycleId: flattenCycleId,
         // FLATTEN, never REVERSAL: the collector opens a fresh opposite
         // position after every REVERSAL close by design (that's the whole
         // point of a reversal) -- reusing that kind for a daily close was
         // itself a production bug (it would reopen exposure immediately
         // after "closing" for the day). FLATTEN closes and stops there.
         kind: 'FLATTEN',
-        direction: row.direction === 'BUY' ? 'SELL' : 'BUY',
-        volumeLots: (await currentSarVolume(this.prisma, accountId)) ?? 0,
+        direction: flattenDirection,
+        volumeLots: volume,
         magicNumber: SAR_MAGIC,
-        idempotencyTag: `SARCLOSE${(row.cycleId ?? randomUUID()).replace(/-/g, '').slice(0, 8)}`,
+        idempotencyTag: flattenTag,
         closingTicket: row.brokerTicket,
       });
       if (response.status !== 'FILLED' && response.status !== 'QUEUED') {
@@ -617,6 +634,7 @@ export class SarExecutionService {
         return { action: 'BLOCKED', detail: `daily close failed: ${response.error ?? 'unknown'}` };
       }
       if (response.status === 'QUEUED') {
+        await this.prisma.xauusdSarOrderAttempt.update({ where: { idempotencyTag: flattenTag }, data: { status: 'SENT' } });
         // Session stays REVERSAL_UNKNOWN (already claimed above) --
         // reconciliation resolves it on a later cycle, exactly like any
         // other reversal. A LATER call to closeForDay (the scheduler
@@ -631,6 +649,10 @@ export class SarExecutionService {
       // DAILY_CLOSE_PENDING_CONFIRMATION and let reconciliation's
       // confirmDailyCloseFlat() independently verify zero SAR positions
       // before ever setting DAILY_CLOSED or clearing brokerTicket.
+      await this.prisma.xauusdSarOrderAttempt.update({
+        where: { idempotencyTag: flattenTag },
+        data: { status: 'FILLED', ticket: response.ticket ?? null, fillPrice: response.fillPrice ?? null, resolvedAt: new Date(nowMs) },
+      });
       await this.prisma.xauusdSarCycle.updateMany({
         where: { accountId, entryTicket: row.brokerTicket, exitAt: null },
         data: { exitFillPrice: response.fillPrice ?? null, exitAt: new Date(nowMs), exitReason: 'DAILY_CLOSE' },
