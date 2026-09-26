@@ -11,7 +11,7 @@ vi.mock('../../src/auth/token.util', async (importOriginal) => {
 
 import { verifyToken, generateCollectorToken, hashToken } from '../../src/auth/token.util';
 import { CollectorTokenGuard } from '../../src/auth/collector-token.guard';
-import { CollectorTokenCache, collectorTokenCache, tokenDigest } from '../../src/auth/collector-token-cache';
+import { TokenAuthCache, collectorTokenCache, tokenDigest } from '../../src/auth/token-auth-cache';
 
 const prisma = new PrismaClient();
 const verifySpy = vi.mocked(verifyToken);
@@ -63,7 +63,7 @@ describe('collector token authentication with the verification cache', () => {
   });
 
   it('2: an invalid token is rejected exactly as before', async () => {
-    const bogus = tokenA.slice(0, 8) + 'x'.repeat(40);
+    const bogus = tokenA.slice(0, 8) + 'x'.repeat(42);
     await expect(guard().canActivate(ctx(bogus, accountA))).rejects.toThrow(new UnauthorizedException('Invalid or revoked token'));
   });
 
@@ -138,7 +138,7 @@ describe('collector token authentication with the verification cache', () => {
   });
 
   it('13+14: a failed verification is not cached and its in-flight slot is released', async () => {
-    const bogus = tokenA.slice(0, 8) + 'y'.repeat(40);
+    const bogus = tokenA.slice(0, 8) + 'y'.repeat(42);
     await Promise.allSettled(Array.from({ length: 4 }, () => guard().canActivate(ctx(bogus, accountA))));
     expect(collectorTokenCache.hasKey(tokenDigest(bogus))).toBe(false);
     expect(collectorTokenCache.inFlightCount).toBe(0);
@@ -155,20 +155,20 @@ describe('collector token authentication with the verification cache', () => {
 
 describe('the cache structure itself', () => {
   it('15: is bounded', () => {
-    const c = new CollectorTokenCache(60_000, 10);
+    const c = new TokenAuthCache(60_000, 10);
     for (let i = 0; i < 100; i++) c.set(`d${i}`, { credentialId: `c${i}`, accountId: 'a' }, 0);
     expect(c.size).toBeLessThanOrEqual(10);
   });
 
   it('expired entries never authenticate', () => {
-    const c = new CollectorTokenCache(60_000, 10);
+    const c = new TokenAuthCache(60_000, 10);
     c.set('d', { credentialId: 'c', accountId: 'a' }, 0);
     expect(c.get('d', 59_999)).not.toBeNull();
     expect(c.get('d', 60_000)).toBeNull();
   });
 
   it('invalidateCredential drops every entry for that credential', () => {
-    const c = new CollectorTokenCache(60_000, 10);
+    const c = new TokenAuthCache(60_000, 10);
     c.set('d1', { credentialId: 'c', accountId: 'a' }, 0);
     c.set('d2', { credentialId: 'c', accountId: 'a' }, 0);
     c.invalidateCredential('c');

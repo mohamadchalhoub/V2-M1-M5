@@ -164,6 +164,10 @@ services:
       # project-unique alias is safe. Set here, in tracked config, so it cannot
       # be lost or mistyped in a gitignored file.
       BACKEND_API_URL: http://m1m5-v2-api:3000
+      # Shared with Caddy, which sends it on every request it forwards after
+      # basic_auth (frontend/src/lib/proxy-auth.ts). Read from this project's
+      # root .env so it is never in the frontend build context or image.
+      DASHBOARD_PROXY_SECRET: ${DASHBOARD_PROXY_SECRET:?set DASHBOARD_PROXY_SECRET in the project .env}
     depends_on:
       api:
         # Genuinely useful here (not just added for symmetry): the

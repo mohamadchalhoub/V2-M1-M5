@@ -3,6 +3,7 @@
 // propagate to test workers — this file is what actually makes
 // DATABASE_URL point at the disposable test database for the code under test.
 import { config } from 'dotenv';
+import { beforeEach } from 'vitest';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -72,3 +73,14 @@ process.env.GOLD_STOP_NEW_ENTRIES_PATH = join(isolatedGoldRuntimeDir, 'GOLD_STOP
 process.env.XAUUSD_RSI_EXECUTION_MODE = 'OFF';
 delete process.env.XAUUSD_RSI_STOP_NEW_ENTRIES;
 delete process.env.GOLD_STOP_NEW_ENTRIES;
+
+// Authentication caches and the failure limiter are process-wide. Reset them
+// before every test so a suite that deliberately sends bad tokens cannot
+// throttle the next test, and a cached success cannot leak between tests.
+beforeEach(async () => {
+  const { authFailureLimiter } = await import('../src/auth/auth-throttle');
+  const { collectorTokenCache, dashboardTokenCache } = await import('../src/auth/token-auth-cache');
+  authFailureLimiter.clear();
+  collectorTokenCache.clear();
+  dashboardTokenCache.clear();
+});
